@@ -1,0 +1,109 @@
+{# item_contrato/list.html #}
+
+{% extends 'contracts/base.html' %}
+{% block content %}
+
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-semibold mb-4">Itens de Contrato</h1>
+
+    <!-- 🔍 Filtros -->
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <input type="text" name="contrato" placeholder="Contrato..." value="{{ request.GET.contrato }}" 
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+
+        <input type="text" name="numero" placeholder="Nº do Item..." value="{{ request.GET.numero }}" 
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+
+        <select name="tipo" 
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <option value="">Tipo</option>
+            <option value="Hardware" {% if request.GET.tipo == "Hardware" %}selected{% endif %}>Hardware</option>
+            <option value="Software" {% if request.GET.tipo == "Software" %}selected{% endif %}>Software</option>
+            <option value="Solução" {% if request.GET.tipo == "Solução" %}selected{% endif %}>Solução</option>
+            <option value="Serviço" {% if request.GET.tipo == "Serviço" %}selected{% endif %}>Serviço</option>
+            <option value="Treinamento" {% if request.GET.tipo == "Treinamento" %}selected{% endif %}>Treinamento</option>
+        </select>
+
+        <div class="flex gap-2">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Filtrar</button>
+            <a href="{% url 'item_contrato_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Limpar</a>
+        </div>
+    </form>
+
+    <!-- 🔢 Tabela -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto border border-gray-300 dark:border-gray-600">
+<thead>
+    <tr class="bg-gray-100 dark:bg-gray-700">
+        <th class="border px-4 py-2">Lote</th>
+        <th class="border px-4 py-2">Nº Item</th>
+        <th class="border px-4 py-2">Contrato</th>
+        <th class="border px-4 py-2">Descrição</th>
+        <th class="border px-4 py-2">Unidade</th>
+        <th class="border px-4 py-2">Qtd</th>
+        <th class="border px-4 py-2">Qtd. Consumida</th>
+        <th class="border px-4 py-2">Qtd. Saldo</th>
+        <th class="border px-4 py-2">Ações</th>
+    </tr>
+</thead>
+<tbody>
+    {% for item in itens %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td class="border px-4 py-2">{{ item.lote }}</td>
+            <td class="border px-4 py-2">{{ item.numero_item }}</td>
+            <td class="border px-4 py-2">
+                {{ item.contrato.numero_contrato }} - {{ item.contrato.cliente.nome_fantasia }}
+            </td>
+            <td class="border px-4 py-2">{{ item.descricao|truncatechars:30 }}</td>
+            <td class="border px-4 py-2">{{ item.unidade }}</td>
+            <td class="border px-4 py-2">{{ item.quantidade }}</td>
+            <td class="border px-4 py-2">{{ item.quantidade_consumida }}</td>
+            <td class="border px-4 py-2">{{ item.saldo_quantidade }}</td>
+            <td class="border px-4 py-2 flex gap-2">
+                <a href="{% url 'item_contrato_detail' item.id %}" class="text-blue-600 hover:underline">Ver</a>
+                <a href="{% url 'item_contrato_update' item.id %}" class="text-yellow-600 hover:underline">Editar</a>
+                <a href="{% url 'item_contrato_delete' item.id %}" class="text-red-600 hover:underline">Excluir</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="9" class="text-center border px-4 py-2">Nenhum item encontrado.</td>
+        </tr>
+    {% endfor %}
+</tbody>
+
+        </table>
+    </div>
+
+    <!-- 🔗 Paginação e Ações -->
+    <div class="flex justify-between items-center mt-6">
+        <div>
+            <a href="{% url 'item_contrato_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">+ Novo Item de Contrato</a>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'export_item_contrato_csv' %}?{{ request.GET.urlencode }}" 
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">Exportar CSV</a>
+        </div>
+    </div>
+
+    <!-- 🔢 Paginação -->
+    <div class="flex justify-center mt-4">
+        <nav class="inline-flex">
+            {% if itens.has_previous %}
+                <a href="?page={{ itens.previous_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1 border rounded-l-lg hover:bg-gray-200 dark:hover:bg-gray-700">Anterior</a>
+            {% else %}
+                <span class="px-3 py-1 border rounded-l-lg opacity-50 cursor-not-allowed">Anterior</span>
+            {% endif %}
+
+            <span class="px-4 py-1 border-t border-b">{{ itens.number }} de {{ itens.paginator.num_pages }}</span>
+
+            {% if itens.has_next %}
+                <a href="?page={{ itens.next_page_number }}&{{ request.GET.urlencode }}" class="px-3 py-1 border rounded-r-lg hover:bg-gray-200 dark:hover:bg-gray-700">Próxima</a>
+            {% else %}
+                <span class="px-3 py-1 border rounded-r-lg opacity-50 cursor-not-allowed">Próxima</span>
+            {% endif %}
+        </nav>
+    </div>
+</div>
+
+{% endblock %}

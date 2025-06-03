@@ -1,0 +1,248 @@
+{% extends 'contracts/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Ordem de Fornecimento
+        </h1>
+        <a href="{% url 'ordem_fornecimento_list' %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{ form.non_field_errors }}
+
+            {% for field in form.visible_fields %}
+            <div id="div_{{ field.name }}">
+                <label for="{{ field.id_for_label }}"
+                       class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.name == 'valor_unitario' %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Valor Unitário: <strong id="valor_unitario_formatado">R$ 0,00</strong>
+                </p>
+                {% endif %}
+                {% if field.name == 'valor_total' %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Valor Total: <strong id="valor_total_formatado">R$ 0,00</strong>
+                </p>
+                {% endif %}
+                {% if field.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {{ field.errors|striptags }}
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Ações -->
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% url 'ordem_fornecimento_list' %}"
+               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // Elementos do formulário
+    const clienteSelect = document.getElementById('id_cliente');
+    const contratoSelect = document.getElementById('id_contrato');
+    const itemContratoSelect = document.getElementById('id_item_contrato');
+    const itemFornecedorSelect = document.getElementById('id_item_fornecedor');
+    
+    const statusSelect = document.getElementById('id_status');
+    const dataAtivacaoDiv = document.getElementById('div_data_ativacao');
+    const dataFaturamentoDiv = document.getElementById('div_data_faturamento');
+    const dataAtivacaoInput = document.getElementById('id_data_ativacao');
+    const dataFaturamentoInput = document.getElementById('id_data_faturamento');
+
+    const valorUnitarioInput = document.getElementById('id_valor_unitario');
+    const valorTotalInput = document.getElementById('id_valor_total');
+
+    const labelValorUnitario = document.getElementById('valor_unitario_formatado');
+    const labelValorTotal = document.getElementById('valor_total_formatado');
+
+    // Função que retorna data de hoje no formato YYYY-MM-DD (compatível com input date)
+    function dataHoje() {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    // Oculta os campos de data
+    function hideDateFields() {
+        if (dataAtivacaoDiv) dataAtivacaoDiv.style.display = 'none';
+        if (dataFaturamentoDiv) dataFaturamentoDiv.style.display = 'none';
+    }
+
+    // Mostra campos de data conforme o status e preenche com a data atual
+    function atualizarCamposDeData(status) {
+        hideDateFields();
+
+        if (status === 'finalizada' || status === 'faturada') {
+            if (dataAtivacaoDiv) {
+                dataAtivacaoDiv.style.display = 'block';
+                if (!dataAtivacaoInput.value) {
+                    dataAtivacaoInput.value = dataHoje();
+                }
+            }
+        }
+
+        if (status === 'faturada') {
+            if (dataFaturamentoDiv) {
+                dataFaturamentoDiv.style.display = 'block';
+                dataFaturamentoInput.value = dataHoje();
+              
+            }
+        }
+    }
+
+    // Formata moeda no padrão BRL
+    function formatarMoeda(valor) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(valor);
+    }
+
+    // Atualiza valor total (quantidade x valor unitário)
+    function atualizarValorTotal() {
+        const quantidade = parseFloat(document.getElementById('id_quantidade').value) || 0;
+        const valorUnitario = parseFloat(valorUnitarioInput.value) || 0;
+        const total = quantidade * valorUnitario;
+
+        valorTotalInput.value = total.toFixed(2);
+        if (labelValorTotal) {
+            labelValorTotal.innerText = formatarMoeda(total);
+        }
+    }
+
+    // 🔗 Carregar Contratos baseado no Cliente selecionado
+    clienteSelect.addEventListener('change', function () {
+        const clienteId = this.value;
+        contratoSelect.innerHTML = '<option value="">---------</option>';
+        itemContratoSelect.innerHTML = '<option value="">---------</option>';
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+
+        if (clienteId) {
+            fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.contratos.forEach(contrato => {
+                        const option = document.createElement('option');
+                        option.value = contrato.id;
+                        option.textContent = contrato.numero;
+                        contratoSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+
+    // 🔗 Carregar Itens do Contrato e Itens de Fornecedor baseado no Contrato selecionado
+    contratoSelect.addEventListener('change', function () {
+        const contratoId = this.value;
+
+        itemContratoSelect.innerHTML = '<option value="">---------</option>';
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+
+        if (contratoId) {
+            fetch(`/api/itenscontrato/?contrato_id=${contratoId}&tipo=hardware,software,solucao`)
+                .then(response => response.json())
+                .then(data => {
+                    data.itens_contrato.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        option.dataset.valorUnitario = item.valor_unitario;
+                        itemContratoSelect.appendChild(option);
+                    });
+                });
+
+            fetch(`/api/itensfornecedor/?contrato_id=${contratoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.itens_fornecedor.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        itemFornecedorSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+
+    // 🔄 Ao selecionar item do contrato, atualiza valor e carrega os itens de fornecedor
+    itemContratoSelect.addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const contratoId = contratoSelect.value;
+        const itemContratoId = this.value;
+
+        // Atualiza valor unitário
+        if (selectedOption) {
+            const valorUnitario = parseFloat(selectedOption.dataset.valorUnitario) || 0;
+            valorUnitarioInput.value = valorUnitario.toFixed(2);
+            if (labelValorUnitario) {
+                labelValorUnitario.innerText = formatarMoeda(valorUnitario);
+            }
+            atualizarValorTotal();
+        }
+
+        // Carrega itens de fornecedor de acordo com tipo do item do contrato
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+        if (contratoId && itemContratoId) {
+            fetch(`/api/itens_fornecedor_por_item_contrato/?contrato=${contratoId}&item_contrato=${itemContratoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        itemFornecedorSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+
+
+    // 🔢 Atualiza valor total ao alterar quantidade
+    document.getElementById('id_quantidade').addEventListener('input', atualizarValorTotal);
+
+    // 🎯 Atualiza campos de data conforme o status selecionado
+    statusSelect.addEventListener('change', function () {
+        atualizarCamposDeData(this.value);
+    });
+
+    // 🚀 Inicializa o formulário na carga da página
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusAtual = statusSelect.value;
+        atualizarCamposDeData(statusAtual);
+        atualizarValorTotal();
+    });
+    // Ao alterar o status, atualiza exibição dos campos
+    statusSelect.addEventListener('change', function () {
+      atualizarCamposDeData(this.value);
+    });
+</script>
+
+{% endblock %}

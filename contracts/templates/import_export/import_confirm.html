@@ -1,0 +1,29 @@
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        ⚠️ Confirmar Importação
+    </h1>
+
+    <p class="mb-6 text-gray-600 dark:text-gray-300">
+        Você está prestes a importar os dados do arquivo <strong>{{ filename }}</strong>.
+        Isso pode sobrescrever dados existentes. Deseja continuar?
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="file_path" value="{{ file_path }}">
+        <div class="flex gap-4">
+            <button type="submit" name="confirm" value="yes"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">
+                ✅ Confirmar
+            </button>
+            <a href="{% url 'import_export' %}" 
+               class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

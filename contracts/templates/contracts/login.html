@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Controle de Contratos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-900 flex items-center justify-center h-screen">
+
+    <div class="w-full max-w-sm bg-gray-800 p-8 rounded-lg shadow">
+        <h1 class="text-2xl mb-1 text-center font-bold text-white">Controle de Contratos</h1>
+        <p class="text-sm text-center text-gray-400 mb-4">Faça login para continuar</p>
+        
+        <!-- Logo da Alltech centralizada -->
+        <div class="flex justify-center mb-6">
+            <img src="{% static 'img/logo_alltech_branco2.png' %}" alt="Logo Alltech" class="h-12">
+        </div>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="text-red-500 text-sm">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+            <div>
+                <label for="id_username" class="block mb-1 text-sm text-white">Usuário</label>
+                <input type="text" name="username" id="id_username" required autofocus
+                    class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5">
+            </div>
+            <div>
+                <label for="id_password" class="block mb-1 text-sm text-white">Senha</label>
+                <input type="password" name="password" id="id_password" required
+                    class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5">
+            </div>
+            <button type="submit"
+                class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Entrar
+            </button>
+        </form>
+
+        {% if messages %}
+            <ul class="mt-4 text-red-500 text-sm">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <p class="mt-6 text-xs text-center text-gray-500">
+            © Controle de Contratos
+        </p>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+</body>
+</html>

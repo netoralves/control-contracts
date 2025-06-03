@@ -1,0 +1,23 @@
+{# ordem_servico/confirm_delete.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-4">Excluir Ordem de Serviço</h1>
+
+    <p class="mb-4">Tem certeza de que deseja excluir a Ordem de Serviço <strong>{{ object.numero_os }}</strong>?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex space-x-2">
+            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                Sim, excluir
+            </button>
+            <a href="{% url 'ordem_servico_list' %}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

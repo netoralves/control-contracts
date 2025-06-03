@@ -1,0 +1,100 @@
+{# item_fornecedor/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+{% load form_filters %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+
+    <h1 class="text-2xl font-bold mb-6 dark:text-white">
+        {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Fornecedor
+    </h1>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Fornecedor -->
+            <div>
+                <label class="block mb-2 text-sm font-medium">Fornecedor</label>
+                {{ form.fornecedor|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Outro Fornecedor -->
+            <div id="outro-fornecedor-div" class="hidden">
+                <label class="block mb-2 text-sm font-medium">Outro Fornecedor</label>
+                {{ form.outro_fornecedor|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Tipo -->
+            <div>
+                <label class="block mb-2 text-sm font-medium">Tipo</label>
+                {{ form.tipo|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- SKU -->
+            <div>
+                <label class="block mb-2 text-sm font-medium">SKU</label>
+                {{ form.sku|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Unidade -->
+            <div>
+                <label class="block mb-2 text-sm font-medium">Unidade</label>
+                {{ form.unidade|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Valor Unitário -->
+            <div>
+                <label class="block mb-2 text-sm font-medium">Valor Unitário (R$)</label>
+                {{ form.valor_unitario|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Descrição -->
+            <div class="md:col-span-2">
+                <label class="block mb-2 text-sm font-medium">Descrição</label>
+                {{ form.descricao|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+            <!-- Observações -->
+            <div class="md:col-span-2">
+                <label class="block mb-2 text-sm font-medium">Observações</label>
+                {{ form.observacoes|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+            </div>
+
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit"
+                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                Salvar
+            </button>
+            <a href="{% url 'item_fornecedor_list' %}"
+                class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Script para exibir 'Outro Fornecedor' -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fornecedorSelect = document.getElementById('id_fornecedor');
+    const outroFornecedorDiv = document.getElementById('outro-fornecedor-div');
+
+    function toggleOutroFornecedor() {
+        if (fornecedorSelect.value === 'Outro Fornecedor') {
+            outroFornecedorDiv.classList.remove('hidden');
+        } else {
+            outroFornecedorDiv.classList.add('hidden');
+        }
+    }
+
+    fornecedorSelect.addEventListener('change', toggleOutroFornecedor);
+    toggleOutroFornecedor();
+});
+</script>
+
+{% endblock %}

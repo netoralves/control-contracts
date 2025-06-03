@@ -1,0 +1,85 @@
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Título -->
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Dashboard</h1>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Total Clientes</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ total_clientes }}</div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Contratos Ativos</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ contratos_ativos }}</div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Valor Total Contratos</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">R$ {{ valor_total_contratos }}</div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Valor Total Faturado</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">R$ {{ valor_total_faturado }}</div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Evolução do Faturamento</h2>
+            <canvas id="faturamentoChart" class="w-full h-64"></canvas>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Contratos por Cliente</h2>
+            <canvas id="contratoClienteChart" class="w-full h-64"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts dos Gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const faturamentoData = JSON.parse(`{{ grafico_faturamento|escapejs }}`);
+    const contratoClienteData = JSON.parse(`{{ grafico_contratos_por_cliente|escapejs }}`);
+
+    const ctxFaturamento = document.getElementById('faturamentoChart').getContext('2d');
+    const faturamentoChart = new Chart(ctxFaturamento, {
+        type: 'bar',
+        data: faturamentoData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Evolução do Faturamento'
+                }
+            }
+        }
+    });
+
+    const ctxContrato = document.getElementById('contratoClienteChart').getContext('2d');
+    const contratoClienteChart = new Chart(ctxContrato, {
+        type: 'doughnut',
+        data: contratoClienteData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: 'Distribuição dos Contratos por Cliente'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

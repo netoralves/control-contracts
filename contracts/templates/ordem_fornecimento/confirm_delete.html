@@ -1,0 +1,32 @@
+{# ordem_fornecimento/confirm_delete.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+
+    <!-- Cabeçalho -->
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Confirmar Exclusão
+    </h1>
+
+    <p class="mb-6 text-sm text-gray-800 dark:text-gray-300">
+        Tem certeza de que deseja <strong>excluir</strong> esta Ordem de Fornecimento:
+        <br>
+        <strong>{{ ordem.numero_of }}</strong> — Cliente: <strong>{{ ordem.cliente.nome_fantasia }}</strong>?
+        <br>
+        Esta ação não poderá ser desfeita.
+    </p>
+
+    <form method="post" class="flex gap-4">
+        {% csrf_token %}
+        <button type="submit"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+            <i class="fa fa-trash"></i> Confirmar
+        </button>
+        <a href="{% url 'ordem_fornecimento_list' %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-times"></i> Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

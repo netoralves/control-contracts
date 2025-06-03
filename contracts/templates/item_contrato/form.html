@@ -1,0 +1,135 @@
+{# item_contrato/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+        {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Contrato
+    </h1>
+
+    <form method="post" class="bg-white dark:bg-gray-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- Lote -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Lote</label>
+                {{ form.lote }}
+                {% for error in form.lote.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Nº do Item -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Nº do Item</label>
+                {{ form.numero_item }}
+                {% for error in form.numero_item.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Contrato -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Contrato</label>
+                {{ form.contrato }}
+                {% for error in form.contrato.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Descrição -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Descrição</label>
+                {{ form.descricao }}
+                {% for error in form.descricao.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Tipo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Tipo</label>
+                {{ form.tipo }}
+                {% for error in form.tipo.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Unidade -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Unidade</label>
+                {{ form.unidade }}
+                {% for error in form.unidade.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Quantidade -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Quantidade</label>
+                {{ form.quantidade }}
+                {% for error in form.quantidade.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Valor Unitário -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Valor Unitário (R$)</label>
+                {{ form.valor_unitario }}
+                {% for error in form.valor_unitario.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Vigência Produto -->
+            <div id="vigencia-produto-div" class="md:col-span-2 {% if not form.instance.vigencia_produto %}hidden{% endif %}">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Vigência Produto (meses)
+                </label>
+                {{ form.vigencia_produto }}
+                {% for error in form.vigencia_produto.errors %}
+                    <p class="text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-2 mt-6">
+            <a href="{% url 'item_contrato_list' %}" 
+                class="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-100 
+                      focus:ring-4 focus:outline-none focus:ring-blue-300 
+                      dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">
+                Cancelar
+            </a>
+            <button type="submit" 
+                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 
+                       focus:outline-none focus:ring-blue-300 font-medium rounded-lg 
+                       text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Salvar
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const tipoSelect = document.getElementById("id_tipo");
+    const vigenciaDiv = document.getElementById("vigencia-produto-div");
+
+    function toggleVigencia() {
+        const tipo = tipoSelect.value;
+        if (['Hardware', 'Software', 'Solução'].includes(tipo)) {
+            vigenciaDiv.classList.remove("hidden");
+        } else {
+            vigenciaDiv.classList.add("hidden");
+        }
+    }
+
+    tipoSelect.addEventListener('change', toggleVigencia);
+    document.addEventListener('DOMContentLoaded', toggleVigencia);
+</script>
+{% endblock %}

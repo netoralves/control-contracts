@@ -1,0 +1,21 @@
+{# contrato/confirm_delete.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-4">Confirmar Exclusão</h1>
+    <p class="mb-6">Tem certeza que deseja excluir o contrato <strong>{{ object }}</strong>?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'contrato_list' %}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                Confirmar Exclusão
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{# contrato/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+{% if form.errors %}
+<div class="bg-red-100 text-red-800 p-4 rounded mb-4">
+    <strong>Erros no formulário:</strong>
+    <ul>
+        {% for field in form %}
+            {% for error in field.errors %}
+                <li>{{ field.label }}: {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+<div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6">Novo Contrato</h1>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Número do Contrato -->
+            <div>
+                {{ form.numero_contrato.label_tag }}
+                {{ form.numero_contrato }}
+            </div>
+
+            <!-- Cliente -->
+            <div>
+                {{ form.cliente.label_tag }}
+                {{ form.cliente }}
+            </div>
+
+            <!-- ARP -->
+            <div>
+                {{ form.ata_registro_preco.label_tag }}
+                {{ form.ata_registro_preco }}
+            </div>
+
+            <!-- Pregão Eletrônico -->
+            <div>
+                {{ form.pregao_eletronico.label_tag }}
+                {{ form.pregao_eletronico }}
+            </div>
+
+            <!-- Processo -->
+            <div>
+                {{ form.processo.label_tag }}
+                {{ form.processo }}
+            </div>
+
+            <!-- Termo de Referência -->
+            <div>
+                {{ form.termo_referencia.label_tag }}
+                {{ form.termo_referencia }}
+            </div>
+
+            <!-- Vigência -->
+            <div>
+                {{ form.vigencia.label_tag }}
+                {{ form.vigencia }}
+            </div>
+
+            <!-- Data de Assinatura -->
+            <div>
+                {{ form.data_assinatura.label_tag }}
+                {{ form.data_assinatura }}
+            </div>
+
+            <!-- Data de Fim (Calculada) -->
+            <div>
+                {{ form.data_fim.label_tag }}
+                {{ form.data_fim }}
+            </div>
+
+            <!-- Situação -->
+            <div>
+                {{ form.situacao.label_tag }}
+                {{ form.situacao }}
+            </div>
+
+            <!-- Fornecedores -->
+            <div class="md:col-span-2">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Fornecedores</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {% for checkbox in form.fornecedores %}
+                        <label class="flex items-center space-x-2">
+                            {{ checkbox.tag }}
+                            <span>{{ checkbox.choice_label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Botões -->
+        <div class="mt-8 flex justify-end gap-4">
+            <a href="{% url 'contrato_list' %}" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 dark:text-white hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Salvar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

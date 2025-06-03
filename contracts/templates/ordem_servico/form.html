@@ -1,0 +1,349 @@
+{% extends 'contracts/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Ordem de Serviço
+        </h1>
+        <a href="{% url 'ordem_servico_list' %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <!-- Identificação da OS e Contrato -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="font-medium">Identificação da OS</label>
+                {{ form.numero_os.label_tag }}{{ form.numero_os }}
+                {{ form.numero_os_cliente.label_tag }}{{ form.numero_os_cliente }}
+                {{ form.gerente_projetos.label_tag }}{{ form.gerente_projetos }}
+                {{ form.consultor_tecnico.label_tag }}{{ form.consultor_tecnico }}
+                <label class="font-medium mt-2 block">Controle</label>
+                {{ form.status.label_tag }}{{ form.status }}
+            </div>
+            <div>
+                <label class="font-medium">Informações do Contrato</label>
+                {{ form.cliente.label_tag }}{{ form.cliente }}
+                {{ form.contrato.label_tag }}{{ form.contrato }}
+                {{ form.item_contrato.label_tag }}{{ form.item_contrato }}
+                {{ form.item_fornecedor.label_tag }}{{ form.item_fornecedor }}
+            </div>
+        </div>
+
+        <!-- Período Planejado -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="font-medium">Início Planejado</label>
+                <div class="grid grid-cols-2 gap-2">
+                    {{ form.data_inicio.label_tag }}{{ form.data_inicio }}
+                    {{ form.hora_inicio.label_tag }}{{ form.hora_inicio }}
+                </div>
+            </div>
+            <div>
+                <label class="font-medium">Término Planejado</label>
+                <div class="grid grid-cols-2 gap-2">
+                    {{ form.data_termino.label_tag }}{{ form.data_termino }}
+                    {{ form.hora_termino.label_tag }}{{ form.hora_termino }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Cálculo de Horas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            {{ form.horas_consultor.label_tag }}{{ form.horas_consultor }}
+            {{ form.horas_gerente.label_tag }}{{ form.horas_gerente }}
+            {{ form.horas_totais.label_tag }}{{ form.horas_totais }}
+        </div>
+
+        <!-- Total da OS -->
+        <div class="mb-4">
+            <label class="font-medium">Total OS</label>
+            {{ form.quantidade.label_tag }}{{ form.quantidade }}
+        </div>
+
+        <!-- Documentação de Conclusão -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div id="div_data_emissao_trd">
+                <label for="id_data_emissao_trd" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Data Emissão TRD:
+                </label>
+                {{ form.data_emissao_trd }}
+            </div>
+            <div id="div_data_faturamento">
+                {{ form.data_faturamento.label_tag }}{{ form.data_faturamento }}
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% url 'ordem_servico_list' %}"
+               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Script -->
+<script>
+    const isNew = "{{ form.instance.pk|yesno:'false,true' }}" === "true";
+
+    const clienteSelect = document.getElementById('id_cliente');
+    const contratoSelect = document.getElementById('id_contrato');
+    const itemContratoSelect = document.getElementById('id_item_contrato');
+    const itemFornecedorSelect = document.getElementById('id_item_fornecedor');
+
+    const quantidadeInput = document.getElementById('id_quantidade');
+    const dataInicioInput = document.getElementById('id_data_inicio');
+    const horaInicioInput = document.getElementById('id_hora_inicio');
+    const dataTerminoInput = document.getElementById('id_data_termino');
+    const horaTerminoInput = document.getElementById('id_hora_termino');
+
+    const horasConsultorInput = document.getElementById('id_horas_consultor');
+    const horasGerenteInput = document.getElementById('id_horas_gerente');
+    const horasTotaisInput = document.getElementById('id_horas_totais');
+
+    const statusSelect = document.getElementById('id_status');
+    const dataEmissaoTrdInput = document.getElementById('id_data_emissao_trd');
+    const dataFaturamentoInput = document.getElementById('id_data_faturamento');
+
+    const divDataEmissaoTrd = document.getElementById('div_data_emissao_trd');
+    const divDataFaturamento = document.getElementById('div_data_faturamento');
+
+    // Carregar contratos com base no cliente
+    clienteSelect.addEventListener('change', function () {
+        const clienteId = this.value;
+        contratoSelect.innerHTML = '<option value="">---------</option>';
+        itemContratoSelect.innerHTML = '<option value="">---------</option>';
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+
+        if (clienteId) {
+            fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.contratos.forEach(contrato => {
+                        const option = document.createElement('option');
+                        option.value = contrato.id;
+                        option.textContent = contrato.numero;
+                        contratoSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+
+    // Atualizar itens do contrato com base no contrato selecionado
+    contratoSelect.addEventListener('change', function () {
+        const contratoId = this.value;
+        itemContratoSelect.innerHTML = '<option value="">---------</option>';
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+
+        if (contratoId) {
+            fetch(`/api/itens_contrato_por_contrato/?contrato_id=${contratoId}&tipo=servico,treinamento`)
+                .then(response => response.json())
+                .then(data => {
+                    data.itens_contrato.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        itemContratoSelect.appendChild(option);
+                    });
+
+                    const valorAtual = "{{ form.item_contrato.value|default:'' }}";
+                    if (valorAtual !== "") {
+                        itemContratoSelect.value = valorAtual;
+                        itemContratoSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+        }
+    });
+
+    // Atualizar itens do fornecedor com base no item do contrato
+    itemContratoSelect.addEventListener('change', function () {
+        const contratoId = contratoSelect.value;
+        const itemContratoId = this.value;
+        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+
+        if (contratoId && itemContratoId) {
+            fetch(`/api/itens_fornecedor_por_item_contrato/?contrato=${contratoId}&item_contrato=${itemContratoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.descricao;
+                        itemFornecedorSelect.appendChild(option);
+                    });
+
+                    const valorAtual = "{{ form.item_fornecedor.value|default:'' }}";
+                    if (valorAtual !== "") {
+                        itemFornecedorSelect.value = valorAtual;
+                    }
+                });
+        }
+    });
+
+    function atualizarQuantidade() {
+        const horasConsultor = parseFloat(horasConsultorInput.value) || 0;
+        const horasGerente = parseFloat(horasGerenteInput.value) || 0;
+        const quantidade = horasConsultor + horasGerente;
+        quantidadeInput.value = quantidade.toFixed(2);
+    }
+
+    function atualizarCamposStatus() {
+        const status = statusSelect.value;
+        divDataEmissaoTrd.style.display = 'none';
+        divDataFaturamento.style.display = 'none';
+
+        if (status === 'finalizada' || status === 'faturada') {
+            divDataEmissaoTrd.style.display = 'block';
+            if (!dataEmissaoTrdInput.value) {
+                dataEmissaoTrdInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        if (status === 'faturada') {
+            divDataFaturamento.style.display = 'block';
+            if (!dataFaturamentoInput.value) {
+                dataFaturamentoInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+    }
+
+    function calcularHorasConsultor() {
+        const dataInicio = dataInicioInput.value;
+        const horaInicio = horaInicioInput.value;
+        const dataFim = dataTerminoInput.value;
+        const horaFim = horaTerminoInput.value;
+
+        if (!dataInicio || !horaInicio || !dataFim || !horaFim) return;
+
+        const inicio = new Date(`${dataInicio}T${horaInicio}`);
+        const fim = new Date(`${dataFim}T${horaFim}`);
+
+        if (fim <= inicio) return;
+
+        let horasTotal = 0;
+        let atual = new Date(inicio);
+
+        while (atual < fim) {
+            const diaSemana = atual.getDay();
+            const ehDiaUtil = diaSemana >= 1 && diaSemana <= 5;
+
+            if (!ehDiaUtil) {
+                atual.setDate(atual.getDate() + (diaSemana === 6 ? 2 : 1));
+                atual.setHours(9, 0, 0, 0);
+                continue;
+            }
+
+            const horaAtual = atual.getHours();
+            const minutoAtual = atual.getMinutes();
+
+            let proximoIntervalo;
+
+            if (horaAtual < 9 || (horaAtual === 9 && minutoAtual === 0)) {
+                atual.setHours(9, 0, 0, 0);
+                proximoIntervalo = new Date(atual);
+                proximoIntervalo.setHours(12, 0, 0, 0);
+            } else if (horaAtual >= 9 && horaAtual < 12) {
+                proximoIntervalo = new Date(atual);
+                proximoIntervalo.setHours(12, 0, 0, 0);
+            } else if (horaAtual >= 12 && horaAtual < 14) {
+                atual.setHours(14, 0, 0, 0);
+                proximoIntervalo = new Date(atual);
+                proximoIntervalo.setHours(19, 0, 0, 0);
+            } else if (horaAtual >= 14 && horaAtual < 19) {
+                proximoIntervalo = new Date(atual);
+                proximoIntervalo.setHours(19, 0, 0, 0);
+            } else {
+                atual.setDate(atual.getDate() + 1);
+                atual.setHours(9, 0, 0, 0);
+                continue;
+            }
+
+            const fimIntervalo = proximoIntervalo > fim ? fim : proximoIntervalo;
+            const diffMs = fimIntervalo - atual;
+            const diffHoras = diffMs / (1000 * 60 * 60);
+
+            horasTotal += diffHoras;
+            atual = new Date(fimIntervalo);
+        }
+
+        const horasGerente = horasTotal * 0.25;
+        const horasTotais = horasTotal + horasGerente;
+
+        const horasConsultorFinal = horasTotal.toFixed(2);
+        const horasGerenteFinal = horasGerente.toFixed(2);
+        const horasTotaisFinal = horasTotais.toFixed(2);
+
+        atualizarQuantidade();
+
+        // Preencher campos
+        horasConsultorInput.value = horasConsultorFinal;
+        horasGerenteInput.value = horasGerenteFinal;
+        horasTotaisInput.value = horasTotaisFinal;
+        quantidadeInput.value = horasTotaisFinal;
+
+        // Garantir que valores visuais e internos estejam sincronizados
+        horasConsultorInput.dispatchEvent(new Event('input', { bubbles: true }));
+        horasGerenteInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    }
+
+    statusSelect.addEventListener('change', atualizarCamposStatus);
+
+    if (isNew) {
+        dataInicioInput.addEventListener('change', calcularHorasConsultor);
+        horaInicioInput.addEventListener('change', calcularHorasConsultor);
+        dataTerminoInput.addEventListener('change', calcularHorasConsultor);
+        horaTerminoInput.addEventListener('change', calcularHorasConsultor);
+        horasConsultorInput.addEventListener('input', atualizarQuantidade);
+        horasGerenteInput.addEventListener('input', atualizarQuantidade);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        atualizarCamposStatus();
+
+        if (statusSelect.value === 'finalizada') {
+            divDataEmissaoTrd.style.display = 'block';
+            if (!dataEmissaoTrdInput.value) {
+                dataEmissaoTrdInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        if (statusSelect.value === 'faturada') {
+            divDataEmissaoTrd.style.display = 'block';
+            divDataFaturamento.style.display = 'block';
+
+            if (!dataEmissaoTrdInput.value) {
+                dataEmissaoTrdInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            if (!dataFaturamentoInput.value) {
+                dataFaturamentoInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        // Carrega itens se campos estiverem preenchidos
+        if (contratoSelect.value) {
+            contratoSelect.dispatchEvent(new Event('change'));
+        }
+
+        if (itemContratoSelect.value) {
+            itemContratoSelect.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %}

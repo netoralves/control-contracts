@@ -1,0 +1,64 @@
+{# ordem_fornecimento/detail.html #}
+
+{% extends 'contracts/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            Detalhes da Ordem de Fornecimento
+        </h1>
+        <a href="{% url 'ordem_fornecimento_list' %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Detalhes -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+            <p><strong>Número OF:</strong> {{ ordem.numero_of }}</p>
+            <p><strong>Número OF Cliente:</strong> {{ ordem.numero_of_cliente }}</p>
+            <p><strong>Cliente:</strong> {{ ordem.cliente.nome_fantasia }}</p>
+            <p><strong>Contrato:</strong> {{ ordem.contrato.numero_contrato }}</p>
+            <p><strong>Item do Contrato:</strong> {{ ordem.item_contrato.descricao }}</p>
+            <p><strong>Item do Fornecedor:</strong> {{ ordem.item_fornecedor.descricao }}</p>
+            <p><strong>Unidade:</strong> {{ ordem.unidade }}</p>
+        </div>
+        <div>
+            <p><strong>Quantidade:</strong> {{ ordem.quantidade }}</p>
+            <p><strong>Valor Unitário:</strong> R$ {{ ordem.valor_unitario|floatformat:2|intcomma }}</p>
+            <p><strong>Valor Total:</strong> R$ {{ ordem.valor_total|floatformat:2|intcomma }}</p>
+            <p><strong>Vigência do Produto:</strong> {{ ordem.vigencia_produto }} meses</p>
+            <p><strong>Status:</strong> {{ ordem.get_status_display }}</p>
+            <p><strong>Data Ativação:</strong> {{ ordem.data_ativacao|date:"d/m/Y" }}</p>
+            <p><strong>Data Faturamento:</strong> {{ ordem.data_faturamento|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Observações -->
+    {% if ordem.observacoes %}
+    <div class="mt-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Observações</h2>
+        <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded">
+            {{ ordem.observacoes }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ações -->
+    <div class="flex justify-end gap-2 mt-6">
+        <a href="{% url 'ordem_fornecimento_update' ordem.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+            <i class="fa fa-edit"></i> Editar
+        </a>
+        <a href="{% url 'ordem_fornecimento_delete' ordem.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+            <i class="fa fa-trash"></i> Excluir
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{# cliente/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
+            Detalhes do Cliente
+        </h1>
+        <div class="flex gap-2">
+            <a href="{% url 'cliente_update' cliente.id %}" 
+               class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none 
+               focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 
+               dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Editar
+            </a>
+            <a href="{% url 'cliente_list' %}" 
+               class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 
+               focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 
+               dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 
+               dark:hover:border-gray-600 dark:focus:ring-gray-700">
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Coluna Esquerda -->
+        <div class="space-y-4">
+            <div><strong class="text-gray-700 dark:text-gray-300">Razão Social:</strong><br>{{ cliente.nome_razao_social }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Nome Fantasia:</strong><br>{{ cliente.nome_fantasia }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Tipo Cliente:</strong><br>{{ cliente.tipo_cliente }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Tipo Pessoa:</strong><br>{{ cliente.tipo_pessoa }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">CNPJ/CPF:</strong><br>{{ cliente.cnpj_cpf }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Natureza Jurídica:</strong><br>{{ cliente.natureza_juridica }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Inscrição Estadual:</strong><br>{{ cliente.inscricao_estadual }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Inscrição Municipal:</strong><br>{{ cliente.inscricao_municipal }}</div>
+        </div>
+
+        <!-- Coluna Direita -->
+        <div class="space-y-4">
+            <div><strong class="text-gray-700 dark:text-gray-300">Endereço:</strong><br>{{ cliente.endereco }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Número:</strong><br>{{ cliente.numero }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Complemento:</strong><br>{{ cliente.complemento }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Bairro:</strong><br>{{ cliente.bairro }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Cidade:</strong><br>{{ cliente.cidade }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Estado:</strong><br>{{ cliente.estado }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">CEP:</strong><br>{{ cliente.cep }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">País:</strong><br>{{ cliente.pais }}</div>
+        </div>
+    </div>
+
+    <!-- Linha -->
+    <hr class="my-6 border-gray-200 dark:border-gray-600">
+
+    <!-- Dados do responsável e status -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="space-y-4">
+            <div><strong class="text-gray-700 dark:text-gray-300">Nome Responsável:</strong><br>{{ cliente.nome_responsavel }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Cargo Responsável:</strong><br>{{ cliente.cargo_responsavel }}</div>
+        </div>
+
+        <div class="space-y-4">
+            <div><strong class="text-gray-700 dark:text-gray-300">Telefone Contato:</strong><br>{{ cliente.telefone_contato }}</div>
+            <div><strong class="text-gray-700 dark:text-gray-300">Email Contato:</strong><br>{{ cliente.email_contato }}</div>
+            <div>
+                <strong class="text-gray-700 dark:text-gray-300">Status:</strong><br>
+                {% if cliente.ativo %}
+                    <span class="text-green-600 font-medium">Ativo</span>
+                {% else %}
+                    <span class="text-red-600 font-medium">Inativo</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

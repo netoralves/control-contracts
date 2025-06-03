@@ -1,0 +1,109 @@
+{# contrato/list.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Lista de Contratos</h1>
+        <div class="flex gap-2">
+            <a href="{% url 'contrato_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">+ Novo Contrato</a>
+            <a href="{% url 'export_contratos_csv' %}" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Exportar CSV</a>
+        </div>
+    </div>
+
+    <!-- 🔍 Filtros -->
+    <form method="get" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label for="cliente" class="block text-sm font-medium mb-1">Cliente</label>
+                <input type="text" name="cliente" id="cliente" value="{{ request.GET.cliente }}" placeholder="Buscar por cliente"
+                       class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="numero" class="block text-sm font-medium mb-1">Nº Contrato</label>
+                <input type="text" name="numero" id="numero" value="{{ request.GET.numero }}" placeholder="Buscar por número"
+                       class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="situacao" class="block text-sm font-medium mb-1">Situação</label>
+                <select name="situacao" id="situacao"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos</option>
+                    <option value="Ativo" {% if request.GET.situacao == 'Ativo' %}selected{% endif %}>Ativo</option>
+                    <option value="Inativo" {% if request.GET.situacao == 'Inativo' %}selected{% endif %}>Inativo</option>
+                </select>
+            </div>
+            <div>
+                <label for="fornecedor" class="block text-sm font-medium mb-1">Fornecedor</label>
+                <select name="fornecedor" id="fornecedor"
+                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos</option>
+                        {% for f in fornecedores_lista %}
+                            <option value="{{ f }}" {% if request.GET.fornecedor == f %}selected{% endif %}>
+                                {{ f }}
+                            </option>
+                        {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit"
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Filtrar
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- 📄 Tabela -->
+    <div class="overflow-x-auto">
+        <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                    <th class="p-2">Nº Contrato</th>
+                    <th class="p-2">Cliente</th>
+                    <th class="p-2">Fornecedores</th>
+                    <th class="p-2">Data Assinatura</th>
+                    <th class="p-2">Data Fim</th>
+                    <th class="p-2">Valor Total (R$)</th>
+                    <th class="p-2">Situação</th>
+                    <th class="p-2">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contrato in contratos %}
+                <tr class="border-t border-gray-300 dark:border-gray-700">
+                    <td class="p-2">{{ contrato.numero_contrato }}</td>
+                    <td class="p-2">{{ contrato.cliente }}</td>
+                    <td class="p-2">
+                        {% for fornecedor in contrato.fornecedores %}
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded dark:bg-blue-900 dark:text-blue-300 mr-1">
+                                {{ fornecedor }}
+                            </span>
+                        {% endfor %}
+                    </td>
+                    <td class="p-2">{{ contrato.data_assinatura }}</td>
+                    <td class="p-2">{{ contrato.data_fim }}</td>
+                    <td class="p-2">R$ {{ contrato.valor_global|floatformat:2 }}</td>
+                    <td class="p-2">
+                        {% if contrato.situacao == 'Ativo' %}
+                            <span class="text-green-600 font-semibold">Ativo</span>
+                        {% else %}
+                            <span class="text-red-600 font-semibold">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-2 flex gap-2">
+                        <a href="{% url 'contrato_detail' contrato.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                        <a href="{% url 'contrato_update' contrato.pk %}" class="text-yellow-600 hover:underline">Editar</a>
+                        <a href="{% url 'contrato_delete' contrato.pk %}" class="text-red-600 hover:underline">Excluir</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="p-4 text-center">Nenhum contrato encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

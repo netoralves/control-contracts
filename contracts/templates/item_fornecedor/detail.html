@@ -1,0 +1,70 @@
+{# item_fornecedor/detail.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+
+    <h1 class="text-2xl font-bold mb-6 dark:text-white">Detalhes do Item de Fornecedor</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div>
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Fornecedor</h2>
+            <p class="text-lg dark:text-white">
+                {% if item.fornecedor == 'Outro Fornecedor' %}
+                    {{ item.outro_fornecedor }}
+                {% else %}
+                    {{ item.fornecedor }}
+                {% endif %}
+            </p>
+        </div>
+
+        <div>
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Tipo</h2>
+            <p class="text-lg dark:text-white">{{ item.tipo }}</p>
+        </div>
+
+        <div>
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">SKU</h2>
+            <p class="text-lg dark:text-white">{{ item.sku }}</p>
+        </div>
+
+        <div>
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Unidade</h2>
+            <p class="text-lg dark:text-white">{{ item.unidade }}</p>
+        </div>
+
+        <div>
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Valor Unitário</h2>
+            <p class="text-lg dark:text-white">R$ {{ item.valor_unitario }}</p>
+        </div>
+
+        <div class="md:col-span-2">
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Descrição</h2>
+            <p class="text-lg dark:text-white">{{ item.descricao }}</p>
+        </div>
+
+        <div class="md:col-span-2">
+            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Observações</h2>
+            <p class="text-lg dark:text-white">{{ item.observacoes|default:"-" }}</p>
+        </div>
+
+    </div>
+
+    <div class="flex justify-end gap-2 mt-6">
+        <a href="{% url 'item_fornecedor_update' item.id %}"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg">
+            Editar
+        </a>
+        <a href="{% url 'item_fornecedor_delete' item.id %}"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+            Excluir
+        </a>
+        <a href="{% url 'item_fornecedor_list' %}"
+            class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">
+            Voltar
+        </a>
+    </div>
+
+</div>
+{% endblock %}

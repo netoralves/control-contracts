@@ -1,0 +1,36 @@
+{# item_fornecedor/confirm_delete.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+
+    <h1 class="text-2xl font-bold mb-6 dark:text-white">Excluir Item de Fornecedor</h1>
+
+    <p class="text-lg mb-6 dark:text-gray-300">
+        Tem certeza que deseja excluir o item:
+        <strong class="dark:text-white">{{ object.descricao }}</strong>
+        do fornecedor
+        <strong class="dark:text-white">
+            {% if object.fornecedor == 'Outro Fornecedor' %}
+                {{ object.outro_fornecedor }}
+            {% else %}
+                {{ object.fornecedor }}
+            {% endif %}
+        </strong>?
+        Esta ação não poderá ser desfeita.
+    </p>
+
+    <form method="post" class="flex justify-end gap-3">
+        {% csrf_token %}
+        <button type="submit"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+            Confirmar Exclusão
+        </button>
+        <a href="{% url 'item_fornecedor_list' %}"
+            class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">
+            Cancelar
+        </a>
+    </form>
+
+</div>
+{% endblock %}

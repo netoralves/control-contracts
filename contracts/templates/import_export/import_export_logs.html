@@ -1,0 +1,42 @@
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        📜 Logs de Importação e Exportação
+    </h1>
+
+    {% if logs %}
+        <table class="min-w-full table-auto bg-white dark:bg-gray-900 rounded-md shadow">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                    <th class="p-3 text-left text-sm font-semibold">Data</th>
+                    <th class="p-3 text-left text-sm font-semibold">Tipo</th>
+                    <th class="p-3 text-left text-sm font-semibold">Arquivo</th>
+                    <th class="p-3 text-left text-sm font-semibold">Status</th>
+                    <th class="p-3 text-left text-sm font-semibold">Mensagem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="p-3 text-sm">{{ log.data|date:"d/m/Y H:i" }}</td>
+                        <td class="p-3 text-sm">{{ log.tipo }}</td>
+                        <td class="p-3 text-sm">{{ log.arquivo }}</td>
+                        <td class="p-3 text-sm">
+                            {% if log.status == 'Sucesso' %}
+                                <span class="text-green-600">{{ log.status }}</span>
+                            {% else %}
+                                <span class="text-red-600">{{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 text-sm">{{ log.mensagem }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-gray-600 dark:text-gray-300">Nenhum log encontrado.</p>
+    {% endif %}
+</div>
+{% endblock %}

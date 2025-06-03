@@ -1,0 +1,43 @@
+{# ordem_servico/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-6">Detalhes da Ordem de Serviço</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><strong>Número:</strong> <p>{{ ordem.numero_os }}</p></div>
+        <div><strong>Cliente:</strong> <p>{{ ordem.cliente.nome_fantasia }}</p></div>
+        <div><strong>Contrato:</strong> <p>{{ ordem.contrato.numero_contrato }}</p></div>
+        <div><strong>Item Contrato:</strong> <p>{{ ordem.item_contrato }}</p></div>
+        <div><strong>Item Fornecedor:</strong> <p>{{ ordem.item_fornecedor }}</p></div>
+        <div><strong>Status:</strong> <p>{{ ordem.get_status_display }}</p></div>
+        <div><strong>Quantidade:</strong> <p>{{ ordem.quantidade }}</p></div>
+        <div><strong>Valor Unitário:</strong> <p>R$ {{ ordem.valor_unitario|floatformat:2 }}</p></div>
+        <div><strong>Valor Total:</strong> <p>R$ {{ ordem.valor_total|floatformat:2 }}</p></div>
+        <div><strong>Data Início:</strong> <p>{{ ordem.data_inicio }}</p></div>
+        <div><strong>Hora Início:</strong> <p>{{ ordem.hora_inicio }}</p></div>
+        <div><strong>Data Término:</strong> <p>{{ ordem.data_termino|default:"-" }}</p></div>
+        <div><strong>Hora Término:</strong> <p>{{ ordem.hora_termino|default:"-" }}</p></div>
+        <div><strong>Data Emissão TRD:</strong> <p>{{ ordem.data_emissao_trd|default:"-" }}</p></div>
+        <div><strong>Data Faturamento:</strong> <p>{{ ordem.data_faturamento|default:"-" }}</p></div>
+        <div><strong>Gerente de Projetos:</strong> <p>{{ ordem.gerente_projetos }}</p></div>
+        {% if ordem.tipo_os == "Serviço" %}
+        <div><strong>Consultor Técnico:</strong> <p>{{ ordem.consultor_tecnico }}</p></div>
+        <div><strong>Horas Consultor:</strong> <p>{{ ordem.horas_consultor }}</p></div>
+        <div><strong>Horas Gerente:</strong> <p>{{ ordem.horas_gerente }}</p></div>
+        <div><strong>Horas Totais:</strong> <p>{{ ordem.horas_totais }}</p></div>
+        {% endif %}
+    </div>
+
+    <div class="flex space-x-2 mt-6">
+        <a href="{% url 'ordem_servico_update' ordem.pk %}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+            Editar
+        </a>
+        <a href="{% url 'ordem_servico_list' %}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+            Voltar
+        </a>
+    </div>
+</div>
+{% endblock %}
