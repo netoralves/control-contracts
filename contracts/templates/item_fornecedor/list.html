@@ -2,18 +2,18 @@
 {% extends 'contracts/base.html' %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 
     <!-- Cabeçalho -->
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold dark:text-white">Itens de Fornecedor</h1>
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-semibold mb-4 dark:text-white">Itens de Fornecedor</h1>
         <div class="flex gap-2">
             <a href="{% url 'item_fornecedor_create' %}"
-                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                + Novo Item
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                + Novo Item de Fornecedor
             </a>
             <a href="{% url 'export_item_fornecedor_csv' %}"
-                class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
                 Exportar CSV
             </a>
         </div>

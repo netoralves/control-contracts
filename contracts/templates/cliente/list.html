@@ -1,109 +1,103 @@
 {# cliente/list.html #}
 {% extends 'contracts/base.html' %}
 
-{% load static %}
-
 {% block content %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 
     <!-- Cabeçalho -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Clientes</h1>
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold dark:text-white mb-4">Lista de Clientes</h1>
         <div class="flex gap-2">
-            <a href="{% url 'cliente_create' %}"
-               class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none 
-               focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center 
-               dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                + Novo Cliente
-            </a>
-            <a href="{% url 'export_clientes_csv' %}"
-               class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 
-               focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 
-               dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 
-               dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                Exportar CSV
-            </a>
+            <a href="{% url 'cliente_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">+ Novo Cliente</a>
+            <a href="{% url 'export_clientes_csv' %}" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Exportar CSV</a>
         </div>
     </div>
 
     <!-- Filtros -->
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <input type="text" name="nome" placeholder="Nome"
-               value="{{ request.GET.nome }}" 
-               class="block w-full p-2 border border-gray-300 rounded-lg 
-               bg-gray-50 focus:ring-blue-500 focus:border-blue-500 text-sm">
-
-        <input type="text" name="cidade" placeholder="Cidade"
-               value="{{ request.GET.cidade }}" 
-               class="block w-full p-2 border border-gray-300 rounded-lg 
-               bg-gray-50 focus:ring-blue-500 focus:border-blue-500 text-sm">
-
-        <input type="text" name="estado" placeholder="Estado"
-               value="{{ request.GET.estado }}" 
-               class="block w-full p-2 border border-gray-300 rounded-lg 
-               bg-gray-50 focus:ring-blue-500 focus:border-blue-500 text-sm">
-
-        <select name="ativo" 
-                class="block w-full p-2 border border-gray-300 rounded-lg 
-                bg-gray-50 focus:ring-blue-500 focus:border-blue-500 text-sm">
-            <option value="">Status</option>
-            <option value="ativo" {% if request.GET.ativo == "ativo" %}selected{% endif %}>Ativo</option>
-            <option value="inativo" {% if request.GET.ativo == "inativo" %}selected{% endif %}>Inativo</option>
-        </select>
-
-        <div class="md:col-span-4 flex justify-end gap-2">
-            <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white text-sm rounded-lg px-4 py-2">
-                Filtrar
-            </button>
-            <a href="{% url 'cliente_list' %}" 
-               class="bg-gray-300 hover:bg-gray-400 text-sm rounded-lg px-4 py-2">
-                Limpar
-            </a>
+    <form method="get" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label for="nome" class="block text-sm font-medium mb-1 dark:text-white mb-4">Nome</label>
+                <input type="text" name="nome" id="nome" value="{{ request.GET.nome }}" placeholder="Buscar por nome"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5
+                                dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="cidade" class="block text-sm font-medium mb-1 dark:text-white mb-4">Cidade</label>
+                <input type="text" name="cidade" id="cidade" value="{{ request.GET.cidade }}" placeholder="Buscar por cidade"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5
+                                dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="estado" class="block text-sm font-medium mb-1 dark:text-white mb-4">Estado</label>
+                <input type="text" name="estado" id="estado" value="{{ request.GET.estado }}" placeholder="Buscar por Estado"
+                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5
+                            dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="ativo" class="block text-sm font-medium mb-1 dark:text-white mb-4">Status</label>
+                <select name="ativo"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5
+                            dark:bg-gray-700 dark:border-gray-600 dark:text-white"> 
+                        <option value="">Status</option>
+                        <option value="ativo" {% if request.GET.ativo == "ativo" %}selected{% endif %}>Ativo</option>
+                        <option value="inativo" {% if request.GET.ativo == "inativo" %}selected{% endif %}>Inativo</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white text-sm rounded-lg px-4 py-2">
+                    Filtrar
+                </button>
+                <a href="{% url 'cliente_list' %}" 
+                    class="w-full bg-gray-300 hover:bg-gray-400 text-sm rounded-lg px-4 py-2">
+                    Limpar
+                </a>
+            </div>
         </div>
     </form>
 
     <!-- Tabela -->
-    <div class="relative overflow-x-auto rounded-lg">
-        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+    <div class="overflow-x-auto">
+        <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700 dark:text-white mb-4">
                 <tr>
-                    <th class="px-4 py-3">ID</th>
-                    <th class="px-4 py-3">Razão Social</th>
-                    <th class="px-4 py-3">Nome Fantasia</th>
-                    <th class="px-4 py-3">Cidade</th>
-                    <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3">CNPJ/CPF</th>
-                    <th class="px-4 py-3">Telefone</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Ações</th>
+                    <th class="p-2 dark:text-white text-center mb-4">ID</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Razão Social</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Nome Fantasia</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Cidade</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Estado</th>
+                    <th class="p-2 dark:text-white text-center mb-4">CNPJ/CPF</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Telefone</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Status</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cliente in clientes %}
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <td class="px-4 py-2">{{ cliente.id }}</td>
-                    <td class="px-4 py-2">{{ cliente.nome_razao_social }}</td>
-                    <td class="px-4 py-2">{{ cliente.nome_fantasia }}</td>
-                    <td class="px-4 py-2">{{ cliente.cidade }}</td>
-                    <td class="px-4 py-2">{{ cliente.estado }}</td>
-                    <td class="px-4 py-2">{{ cliente.cnpj_cpf }}</td>
-                    <td class="px-4 py-2">{{ cliente.telefone_contato }}</td>
-                    <td class="px-4 py-2">
+                <tr class="border-t border-gray-300 dark:border-gray-700"></tr>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.id }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.nome_razao_social }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.nome_fantasia }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.cidade }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.estado }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.cnpj_cpf }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">{{ cliente.telefone_contato }}</td>
+                    <td class="p-2 dark:text-white text-center mb-4">
                         {% if cliente.ativo %}
-                            <span class="text-green-600 font-medium">Ativo</span>
+                            <span class="text-green-600 font-semibold">Ativo</span>
                         {% else %}
-                            <span class="text-red-600 font-medium">Inativo</span>
+                            <span class="text-red-600 font-semibold">Inativo</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-2">
+                    <td class="p-2 flex gap-2">
                         <a href="{% url 'cliente_detail' cliente.id %}" class="text-blue-600 hover:underline">Detalhes</a> |
-                        <a href="{% url 'cliente_update' cliente.id %}" class="text-green-600 hover:underline">Editar</a> |
+                        <a href="{% url 'cliente_update' cliente.id %}" class="text-yellow-600 hover:underline">Editar</a> |
                         <a href="{% url 'cliente_delete' cliente.id %}" class="text-red-600 hover:underline">Excluir</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="px-6 py-4 text-center">Nenhum cliente encontrado.</td>
+                    <td colspan="8" class="p-4 text-center">Nenhum cliente encontrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>

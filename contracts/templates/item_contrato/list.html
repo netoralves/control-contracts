@@ -2,66 +2,83 @@
 
 {% extends 'contracts/base.html' %}
 {% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 
-<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-    <h1 class="text-2xl font-semibold mb-4">Itens de Contrato</h1>
+    <!-- Cabeçalho -->
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-semibold mb-4 dark:text-white mb-4">Itens de Contrato</h1>
+            <div class="flex gap-2">
+                <a href="{% url 'item_contrato_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">+ Novo Item de Contrato</a>
+                <a href="{% url 'export_item_contrato_csv' %}?{{ request.GET.urlencode }}"  class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">Exportar CSV</a>
+            </div>
+    </div>
+
 
     <!-- 🔍 Filtros -->
-    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <input type="text" name="contrato" placeholder="Contrato..." value="{{ request.GET.contrato }}" 
-               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-
-        <input type="text" name="numero" placeholder="Nº do Item..." value="{{ request.GET.numero }}" 
-               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-
-        <select name="tipo" 
-                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-            <option value="">Tipo</option>
-            <option value="Hardware" {% if request.GET.tipo == "Hardware" %}selected{% endif %}>Hardware</option>
-            <option value="Software" {% if request.GET.tipo == "Software" %}selected{% endif %}>Software</option>
-            <option value="Solução" {% if request.GET.tipo == "Solução" %}selected{% endif %}>Solução</option>
-            <option value="Serviço" {% if request.GET.tipo == "Serviço" %}selected{% endif %}>Serviço</option>
-            <option value="Treinamento" {% if request.GET.tipo == "Treinamento" %}selected{% endif %}>Treinamento</option>
-        </select>
-
-        <div class="flex gap-2">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Filtrar</button>
-            <a href="{% url 'item_contrato_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Limpar</a>
+     <form method="get" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label for="contrato" class="block text-sm font-medium mb-1 dark:text-white mb-4">Contrato</label>
+                <input type="text" name="contrato" value="{{ request.GET.contrato }}" placeholder="Buscar por contrato" 
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5
+                            dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            </div>
+            <div>
+                <label for="numero" class="block text-sm font-medium mb-1 dark:text-white mb-4">Nº do item</label>
+                <input type="text" name="numero" value="{{ request.GET.numero }}" placeholder="Buscar por Nº do Item" 
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            </div>
+            <div>
+                <label for="tipo" class="block text-sm font-medium mb-1 dark:text-white mb-4">Tipo</label>
+                <select name="tipo" 
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <option value="">Tipo</option>
+                        <option value="Hardware" {% if request.GET.tipo == "Hardware" %}selected{% endif %}>Hardware</option>
+                        <option value="Software" {% if request.GET.tipo == "Software" %}selected{% endif %}>Software</option>
+                        <option value="Solução" {% if request.GET.tipo == "Solução" %}selected{% endif %}>Solução</option>
+                        <option value="Serviço" {% if request.GET.tipo == "Serviço" %}selected{% endif %}>Serviço</option>
+                        <option value="Treinamento" {% if request.GET.tipo == "Treinamento" %}selected{% endif %}>Treinamento</option>
+                    </select>
+            </div>
+            <div class="flex md:col-span-2 items-end gap-2 justify-end">
+                <button type="submit" class="px-4 py-2 bg-blue-700 text-white text-sm text-center rounded-lg hover:bg-blue-800">Filtrar</button>
+                <a href="{% url 'item_contrato_list' %}" class="bg-gray-300 hover:bg-gray-400 text-sm text-center rounded-lg px-4 py-2">Limpar</a>
+            </div>
         </div>
     </form>
 
-    <!-- 🔢 Tabela -->
+    <!-- Tabela -->
     <div class="overflow-x-auto">
-        <table class="min-w-full table-auto border border-gray-300 dark:border-gray-600">
-<thead>
-    <tr class="bg-gray-100 dark:bg-gray-700">
-        <th class="border px-4 py-2">Lote</th>
-        <th class="border px-4 py-2">Nº Item</th>
-        <th class="border px-4 py-2">Contrato</th>
-        <th class="border px-4 py-2">Descrição</th>
-        <th class="border px-4 py-2">Unidade</th>
-        <th class="border px-4 py-2">Qtd</th>
-        <th class="border px-4 py-2">Qtd. Consumida</th>
-        <th class="border px-4 py-2">Qtd. Saldo</th>
-        <th class="border px-4 py-2">Ações</th>
-    </tr>
-</thead>
-<tbody>
+        <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+                <tr>
+                    <th class="p-2 dark:text-white text-center mb-4">Lote</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Nº Item</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Contrato</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Descrição</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Unidade</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Qtd</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Qtd. Consumida</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Qtd. Saldo</th>
+                    <th class="p-2 dark:text-white text-center mb-4">Ações</th>
+                </tr>
+            </thead>
+    <tbody>
     {% for item in itens %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-            <td class="border px-4 py-2">{{ item.lote }}</td>
-            <td class="border px-4 py-2">{{ item.numero_item }}</td>
-            <td class="border px-4 py-2">
+        <tr class="border-t border-gray-300 dark:border-gray-700"></tr>
+            <td class="p-2 dark:text-white text-center mb-4">{{ item.lote }}</td>
+            <td class="p-2 dark:text-white text-center mb-4">{{ item.numero_item }}</td>
+            <td class="p-2 dark:text-white text-center mb-4">
                 {{ item.contrato.numero_contrato }} - {{ item.contrato.cliente.nome_fantasia }}
             </td>
-            <td class="border px-4 py-2">{{ item.descricao|truncatechars:30 }}</td>
-            <td class="border px-4 py-2">{{ item.unidade }}</td>
-            <td class="border px-4 py-2">{{ item.quantidade }}</td>
-            <td class="border px-4 py-2">{{ item.quantidade_consumida }}</td>
-            <td class="border px-4 py-2">{{ item.saldo_quantidade }}</td>
-            <td class="border px-4 py-2 flex gap-2">
-                <a href="{% url 'item_contrato_detail' item.id %}" class="text-blue-600 hover:underline">Ver</a>
-                <a href="{% url 'item_contrato_update' item.id %}" class="text-yellow-600 hover:underline">Editar</a>
+            <td class="p-2 dark:text-white text-center "">{{ item.descricao|truncatechars:30 }}</td>
+            <td class="p-2 dark:text-white text-center mb-4"">{{ item.unidade }}</td>
+            <td class="p-2 dark:text-white text-center mb-4"">{{ item.quantidade }}</td>
+            <td class="p-2 dark:text-white text-center mb-4"">{{ item.quantidade_consumida }}</td>
+            <td class="p-2 dark:text-white text-center mb-4"">{{ item.saldo_quantidade }}</td>
+            <td class="p-2 flex gap-2">
+                <a href="{% url 'item_contrato_detail' item.id %}" class="text-blue-600 hover:underline">Detalhes</a> |
+                <a href="{% url 'item_contrato_update' item.id %}" class="text-yellow-600 hover:underline">Editar</a> |
                 <a href="{% url 'item_contrato_delete' item.id %}" class="text-red-600 hover:underline">Excluir</a>
             </td>
         </tr>
@@ -78,11 +95,10 @@
     <!-- 🔗 Paginação e Ações -->
     <div class="flex justify-between items-center mt-6">
         <div>
-            <a href="{% url 'item_contrato_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">+ Novo Item de Contrato</a>
+            
         </div>
         <div class="flex gap-2">
-            <a href="{% url 'export_item_contrato_csv' %}?{{ request.GET.urlencode }}" 
-               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">Exportar CSV</a>
+            
         </div>
     </div>
 

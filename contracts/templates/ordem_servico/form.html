@@ -20,15 +20,13 @@
         {{ form.non_field_errors }}
 
         <!-- Identificação da OS e Contrato -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-                <label class="font-medium">Identificação da OS</label>
-                {{ form.numero_os.label_tag }}{{ form.numero_os }}
-                {{ form.numero_os_cliente.label_tag }}{{ form.numero_os_cliente }}
-                {{ form.gerente_projetos.label_tag }}{{ form.gerente_projetos }}
-                {{ form.consultor_tecnico.label_tag }}{{ form.consultor_tecnico }}
-                <label class="font-medium mt-2 block">Controle</label>
-                {{ form.status.label_tag }}{{ form.status }}
+                    {{ form.numero_os.label_tag }}{{ form.numero_os }}
+                    {{ form.numero_os_cliente.label_tag }}{{ form.numero_os_cliente }}
+                    {{ form.gerente_projetos.label_tag }}{{ form.gerente_projetos }}
+                    {{ form.consultor_tecnico.label_tag }}{{ form.consultor_tecnico }}
+                    {{ form.status.label_tag }}{{ form.status }}
             </div>
             <div>
                 <label class="font-medium">Informações do Contrato</label>

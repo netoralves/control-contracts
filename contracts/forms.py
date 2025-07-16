@@ -56,7 +56,7 @@ class ContratoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # 🔍 Buscar fornecedores cadastrados no ItemFornecedor
+        #  Buscar fornecedores cadastrados no ItemFornecedor
         fornecedores_db = ItemFornecedor.objects.values_list(
             "fornecedor", flat=True
         ).distinct()
@@ -66,7 +66,7 @@ class ContratoForm(forms.ModelForm):
         fornecedores_db_upper = {f.strip().upper() for f in fornecedores_db}
         fornecedores_unicos.update(fornecedores_db_upper)
 
-        # 🔥 Ordena pelo nome amigável (label)
+        # Ordena pelo nome amigável (label)
         fornecedores_ordenados = sorted(
             [(f, FORNECEDORES_MAP.get(f, f.title())) for f in fornecedores_unicos],
             key=lambda x: x[1],
@@ -75,13 +75,13 @@ class ContratoForm(forms.ModelForm):
         # Aplica no campo
         self.fields["fornecedores"].choices = fornecedores_ordenados
 
-        # ✅ Carregar fornecedores existentes no contrato, quando em edição
+        # Carregar fornecedores existentes no contrato, quando em edição
         if self.instance and self.instance.pk:
             self.initial["fornecedores"] = [
                 f.upper() for f in self.instance.fornecedores
             ]
 
-        # 🔧 Aplicar CSS em todos os campos (exceto DateInput e Checkbox)
+        # Aplicar CSS em todos os campos (exceto DateInput e Checkbox)
         for field_name, field in self.fields.items():
             field.widget.attrs.update(
                 {
@@ -89,7 +89,7 @@ class ContratoForm(forms.ModelForm):
                 }
             )
 
-            # ⚠️ Corrige preenchimento dos campos date no modo edição
+            # Corrige preenchimento dos campos date no modo edição
             if isinstance(field.widget, DateInput):
                 field.widget.format = "%Y-%m-%d"
                 if self.instance and getattr(self.instance, field_name):
@@ -98,12 +98,12 @@ class ContratoForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        # 🔄 Normaliza fornecedores para UPPER (banco salvo sempre em caixa alta)
+        # Normaliza fornecedores para UPPER (banco salvo sempre em caixa alta)
         fornecedores = cleaned_data.get("fornecedores")
         if fornecedores:
             cleaned_data["fornecedores"] = [f.strip().upper() for f in fornecedores]
 
-        # 🗓️ Calcula data_fim automaticamente
+        # Calcula data_fim automaticamente
         data_assinatura = cleaned_data.get("data_assinatura")
         vigencia = cleaned_data.get("vigencia")
 
@@ -204,6 +204,7 @@ class ItemFornecedorForm(forms.ModelForm):
 
         if valor_unitario is not None and valor_unitario < 0:
             self.add_error("valor_unitario", "O valor unitário deve ser positivo.")
+    
 
 
 # Ordem Fornecimento Form

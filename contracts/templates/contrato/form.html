@@ -1,114 +1,322 @@
 {# contrato/form.html #}
 {% extends 'contracts/base.html' %}
-{% load static %}
+{% load static form_filters %}
 
 {% block content %}
-{% if form.errors %}
-<div class="bg-red-100 text-red-800 p-4 rounded mb-4">
-    <strong>Erros no formulário:</strong>
-    <ul>
-        {% for field in form %}
-            {% for error in field.errors %}
-                <li>{{ field.label }}: {{ error }}</li>
+<div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        {% if form.instance.pk %}Editar Contrato{% else %}Novo Contrato{% endif %}
+    </h1>
+
+    {% if form.errors %}
+    <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded mb-4">
+        <strong>Erros no formulário:</strong>
+        <ul class="mt-2 list-disc list-inside">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <li>{{ error }}</li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
-<div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-    <h1 class="text-2xl font-bold mb-6">Novo Contrato</h1>
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     <form method="post" novalidate>
         {% csrf_token %}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
 
             <!-- Número do Contrato -->
             <div>
-                {{ form.numero_contrato.label_tag }}
-                {{ form.numero_contrato }}
+                <label for="{{ form.numero_contrato.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.numero_contrato.label }}
+                </label>
+                {{ form.numero_contrato|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.numero_contrato.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.numero_contrato.help_text }}</p>
+                {% endif %}
+                {% if form.numero_contrato.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.numero_contrato.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Cliente -->
             <div>
-                {{ form.cliente.label_tag }}
-                {{ form.cliente }}
+                <label for="{{ form.cliente.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.cliente.label }}
+                </label>
+                {{ form.cliente|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.cliente.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.cliente.help_text }}</p>
+                {% endif %}
+                {% if form.cliente.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.cliente.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- ARP -->
             <div>
-                {{ form.ata_registro_preco.label_tag }}
-                {{ form.ata_registro_preco }}
+                <label for="{{ form.ata_registro_preco.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.ata_registro_preco.label }}
+                </label>
+                {{ form.ata_registro_preco|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.ata_registro_preco.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.ata_registro_preco.help_text }}</p>
+                {% endif %}
+                {% if form.ata_registro_preco.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.ata_registro_preco.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Pregão Eletrônico -->
             <div>
-                {{ form.pregao_eletronico.label_tag }}
-                {{ form.pregao_eletronico }}
+                <label for="{{ form.pregao_eletronico.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.pregao_eletronico.label }}
+                </label>
+                {{ form.pregao_eletronico|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.pregao_eletronico.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.pregao_eletronico.help_text }}</p>
+                {% endif %}
+                {% if form.pregao_eletronico.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.pregao_eletronico.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Processo -->
             <div>
-                {{ form.processo.label_tag }}
-                {{ form.processo }}
+                <label for="{{ form.processo.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.processo.label }}
+                </label>
+                {{ form.processo|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.processo.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.processo.help_text }}</p>
+                {% endif %}
+                {% if form.processo.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.processo.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Termo de Referência -->
             <div>
-                {{ form.termo_referencia.label_tag }}
-                {{ form.termo_referencia }}
+                <label for="{{ form.termo_referencia.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.termo_referencia.label }}
+                </label>
+                {{ form.termo_referencia|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.termo_referencia.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.termo_referencia.help_text }}</p>
+                {% endif %}
+                {% if form.termo_referencia.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.termo_referencia.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Vigência -->
             <div>
-                {{ form.vigencia.label_tag }}
-                {{ form.vigencia }}
+                <label for="{{ form.vigencia.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.vigencia.label }}
+                </label>
+                {{ form.vigencia|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.vigencia.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.vigencia.help_text }}</p>
+                {% endif %}
+                {% if form.vigencia.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.vigencia.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Data de Assinatura -->
             <div>
-                {{ form.data_assinatura.label_tag }}
-                {{ form.data_assinatura }}
+                <label for="{{ form.data_assinatura.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.data_assinatura.label }}
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/>
+                        </svg>
+                    </div>
+                    {{ form.data_assinatura|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" }}
+                </div>
+                {% if form.data_assinatura.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.data_assinatura.help_text }}</p>
+                {% endif %}
+                {% if form.data_assinatura.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.data_assinatura.errors }}</p>
+                {% endif %}
             </div>
 
-            <!-- Data de Fim (Calculada) -->
+            <!-- Data de Fim (Calculada Automaticamente) -->
             <div>
-                {{ form.data_fim.label_tag }}
-                {{ form.data_fim }}
+                <label for="{{ form.data_fim.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.data_fim.label }} <span class="text-xs text-gray-500">(Calculado automaticamente)</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"/>
+                        </svg>
+                    </div>
+                    {{ form.data_fim|add_class:"bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-600 dark:text-white cursor-not-allowed" }}
+                </div>
+                {% if form.data_fim.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.data_fim.help_text }}</p>
+                {% endif %}
+                {% if form.data_fim.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.data_fim.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Situação -->
             <div>
-                {{ form.situacao.label_tag }}
-                {{ form.situacao }}
+                <label for="{{ form.situacao.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.situacao.label }}
+                </label>
+                {{ form.situacao|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.situacao.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.situacao.help_text }}</p>
+                {% endif %}
+                {% if form.situacao.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.situacao.errors }}</p>
+                {% endif %}
             </div>
 
             <!-- Fornecedores -->
             <div class="md:col-span-2">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Fornecedores</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Fornecedores
+                </label>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {% for checkbox in form.fornecedores %}
-                        <label class="flex items-center space-x-2">
-                            {{ checkbox.tag }}
-                            <span>{{ checkbox.choice_label }}</span>
-                        </label>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="{{ checkbox.id_for_label }}"
+                                   name="{{ checkbox.html_name }}"
+                                   value="{{ checkbox.choice_value }}"
+                                   {% if checkbox.choice_value in checkbox.field.value %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="{{ checkbox.id_for_label }}" 
+                                   class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                {{ checkbox.choice_label }}
+                            </label>
+                        </div>
                     {% endfor %}
                 </div>
+                {% if form.fornecedores.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {{ form.fornecedores.errors.0 }}
+                    </p>
+                {% endif %}
+                {% if form.fornecedores.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {{ form.fornecedores.help_text }}
+                    </p>
+                {% endif %}
             </div>
 
         </div>
 
         <!-- Botões -->
-        <div class="mt-8 flex justify-end gap-4">
-            <a href="{% url 'contrato_list' %}" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 dark:text-white hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700">
-                Cancelar
-            </a>
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <div class="flex items-center space-x-4">
+            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 
+                focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 
+                text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                 Salvar
             </button>
+            <a href="{% url 'contrato_list' %}" class="text-gray-900 bg-white border border-gray-300 
+                focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium 
+                rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 
+                dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
+                Cancelar
+            </a>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obter referências dos campos
+    const vigenciaInput = document.getElementById('{{ form.vigencia.id_for_label }}');
+    const dataAssinaturaInput = document.getElementById('{{ form.data_assinatura.id_for_label }}');
+    const dataFimInput = document.getElementById('{{ form.data_fim.id_for_label }}');
+
+    // Tornar o campo data_fim readonly
+    if (dataFimInput) {
+        dataFimInput.readOnly = true;
+    }
+
+    function calculateEndDate() {
+        const vigencia = parseInt(vigenciaInput.value, 10);
+        const dataAssinaturaStr = dataAssinaturaInput.value;
+
+        // Limpar o campo se não houver dados suficientes
+        if (isNaN(vigencia) || vigencia <= 0 || !dataAssinaturaStr) {
+            dataFimInput.value = '';
+            return;
+        }
+
+        let assinaturaDate;
+
+        // Tentar parsear a data em diferentes formatos
+        if (dataAssinaturaStr.includes('/')) {
+            // Formato DD/MM/YYYY
+            const parts = dataAssinaturaStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Mês baseado em 0
+                const year = parseInt(parts[2], 10);
+                assinaturaDate = new Date(year, month, day);
+            }
+        } else if (dataAssinaturaStr.includes('-')) {
+            // Formato YYYY-MM-DD (input type="date")
+            assinaturaDate = new Date(dataAssinaturaStr + 'T00:00:00');
+        }
+
+        // Verificar se a data é válida
+        if (!assinaturaDate || isNaN(assinaturaDate.getTime())) {
+            dataFimInput.value = '';
+            return;
+        }
+
+        // Calcular a data de fim adicionando a vigência em meses
+        const dataFimCalculada = new Date(assinaturaDate);
+        dataFimCalculada.setMonth(dataFimCalculada.getMonth() + vigencia);
+
+        // Formatar a data de fim para o mesmo formato do input
+        let dataFimFormatada;
+        if (dataAssinaturaStr.includes('/')) {
+            // Formato DD/MM/YYYY
+            const day = String(dataFimCalculada.getDate()).padStart(2, '0');
+            const month = String(dataFimCalculada.getMonth() + 1).padStart(2, '0');
+            const year = dataFimCalculada.getFullYear();
+            dataFimFormatada = `${day}/${month}/${year}`;
+        } else {
+            // Formato YYYY-MM-DD
+            const year = dataFimCalculada.getFullYear();
+            const month = String(dataFimCalculada.getMonth() + 1).padStart(2, '0');
+            const day = String(dataFimCalculada.getDate()).padStart(2, '0');
+            dataFimFormatada = `${year}-${month}-${day}`;
+        }
+
+        dataFimInput.value = dataFimFormatada;
+    }
+
+    // Adicionar event listeners
+    if (vigenciaInput) {
+        vigenciaInput.addEventListener('change', calculateEndDate);
+        vigenciaInput.addEventListener('input', calculateEndDate);
+    }
+
+    if (dataAssinaturaInput) {
+        dataAssinaturaInput.addEventListener('change', calculateEndDate);
+        dataAssinaturaInput.addEventListener('input', calculateEndDate);
+    }
+
+    // Calcular na inicialização se os campos já estiverem preenchidos
+    calculateEndDate();
+});
+
+
+</script>
 {% endblock %}

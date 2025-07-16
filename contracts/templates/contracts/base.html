@@ -1,200 +1,261 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark:bg-gray-900">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Contratos - Alltech Soluções</title>
-    <link rel="icon" href="/static/img/logo_alltech_branco2.png">
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>{% block title %}Alltech Contratos{% endblock %}</title>
+    <link rel="icon" href="{% static 'img/logo_alltech_branco2.png' %}">
+
+    <!-- Flowbite e Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Configuração do Tailwind CSS -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Habilita o dark mode baseado em classe
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        .sidebar.minimized:not(.hovered) span,
-        .sidebar.minimized:not(.hovered) ul.submenu {
-            display: none;
+        /* Estilos para transições suaves */
+        #default-sidebar, main {
+            transition: all 0.3s ease-in-out;
         }
-        .sidebar.minimized i {
-            margin-left: 8px;
+
+        /* Quando a sidebar está minimizada */
+        body.sidebar-minimized #default-sidebar {
+            width: 80px; /* Largura apenas para os ícones */
         }
-        .rotate-180 {
-            transform: rotate(180deg);
+
+        body.sidebar-minimized main {
+            margin-left: 80px;
         }
-        .submenu {
-            transition: max-height 0.3s ease;
+
+        body.sidebar-minimized .nav-text, 
+        body.sidebar-minimized #logo-container span {
+            display: none; /* Esconde o texto dos links e da logo */
         }
-        .active-link {
-            background-color: rgb(59 130 246 / 0.1);
-            color: rgb(59 130 246);
+
+        body.sidebar-minimized #logo-container {
+            justify-content: center;
+        }
+
+        body.sidebar-minimized #default-sidebar ul a {
+            justify-content: center; /* Centraliza os ícones */
         }
     </style>
+
     <script>
-        tailwind.config = { darkMode: 'class' }
-
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        // Script para aplicar tema escuro/claro imediatamente para evitar "flash" e persistir mudança
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
-
-        function toggleSubMenu(id, iconId) {
-            const submenu = document.getElementById(id);
-            const icon = document.getElementById(iconId);
-            submenu.classList.toggle('hidden');
-            icon.classList.toggle('rotate-180');
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Dark mode persistente
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-
-            const sidebar = document.getElementById('logo-sidebar');
-            const hamburgerButton = document.getElementById('hamburger-button');
-
-            // Estado inicial do sidebar
-            const savedState = localStorage.getItem('sidebarState');
-            if (savedState === 'minimized') {
-                sidebar.classList.add('w-16', 'minimized');
-                sidebar.classList.remove('w-64');
-            } else {
-                sidebar.classList.add('w-64');
-                sidebar.classList.remove('w-16', 'minimized');
-            }
-
-            // Clique no botão hamburguer
-            hamburgerButton.addEventListener('click', () => {
-                sidebar.classList.toggle('w-64');
-                sidebar.classList.toggle('w-16');
-                sidebar.classList.toggle('minimized');
-                localStorage.setItem('sidebarState', sidebar.classList.contains('minimized') ? 'minimized' : 'expanded');
-            });
-
-            // Hover temporário
-            sidebar.addEventListener('mouseenter', () => {
-                if (sidebar.classList.contains('minimized')) {
-                    sidebar.classList.add('hovered');
-                    sidebar.classList.add('w-64');
-                    sidebar.classList.remove('w-16');
-                }
-            });
-
-            sidebar.addEventListener('mouseleave', () => {
-                if (sidebar.classList.contains('hovered')) {
-                    sidebar.classList.remove('hovered');
-                    sidebar.classList.add('w-16');
-                    sidebar.classList.remove('w-64');
-                }
-            });
-        });
     </script>
+
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+<body class="bg-gray-100 dark:bg-gray-900">
+
+<!-- Botão Hamburguer (agora fora do sidebar para controle) -->
+<button id="hamburger-button" type="button" class="fixed top-4 z-50 left-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white focus:outline-none">
+    <svg class="w-10 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+</button>
 
 <!-- Sidebar -->
-<aside id="logo-sidebar" class="sidebar fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-width duration-300 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 overflow-hidden" aria-label="Sidebar">
-    <div class="h-full px-0 pb-4 overflow-y-auto">
-        <ul class="space-y-4 font-medium">
+<aside id="default-sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-white dark:bg-gray-800 shadow-lg">
+    <div class="h-full px-3 py-4 overflow-y-auto">
+        <!-- Logo -->
+        <div id="logo-container" class="flex items-center ps-2.5 mb-5 h-12">
+            <img src="{% static 'img/logo_alltech_branco2.png' %}" class="h-7 me-3" alt="Alltech Logo" />
+            <span class="self-center text-xl font-semibold text-gray-500 whitespace-nowrap dark:text-white">AllTech</span>
+        </div>
+
+        <ul class="space-y-2 font-medium">
+            <!-- Itens de Navegação -->
             <li>
-                <button type="button" onclick="toggleSubMenu('dashboardSub','iconDashboard')" class="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fa-solid fa-chart-pie fa-lg"></i>
-                    <span class="ml-4 flex-1 text-left">Dashboard</span>
-                    <i id="iconDashboard" class="fa-solid fa-chevron-down ml-auto transition-transform"></i>
-                </button>
-                <ul id="dashboardSub" class="ml-8 mt-2 space-y-2 hidden submenu">
-                    <li><a href="{% url 'dashboard' %}" class="block hover:text-blue-500">Visão Financeira</a></li>
-                    <li><a href="#" class="block hover:text-blue-500">Visão Gerencial</a></li>
-                </ul>
-            </li>
-            <li><a href="{% url 'cliente_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-users fa-lg"></i>
-                <span class="ml-4">Clientes</span></a>
-            </li>
-            <li><a href="{% url 'contrato_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-file-contract fa-lg"></i>
-                <span class="ml-4">Contratos</span></a>
-            </li>
-            <li><a href="{% url 'item_contrato_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-list fa-lg"></i>
-                <span class="ml-4">Item Contrato</span></a>
-            </li>
-            <li><a href="{% url 'item_fornecedor_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-truck fa-lg"></i>
-                <span class="ml-4">Fornecedor</span></a>
-            </li>
-            <li><a href="{% url 'ordem_servico_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-screwdriver-wrench fa-lg"></i>
-                <span class="ml-4">Ordem de Serviço</span></a>
-            </li>
-            <li><a href="{% url 'ordem_fornecimento_list' %}" class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                <i class="fa-solid fa-box-open fa-lg"></i>
-                <span class="ml-4">Ordem de Fornecimento</span></a>
+                <a href="{% url 'dashboard' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-tachometer-alt fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Dashboard</span>
+                </a>
             </li>
             <li>
-                <button type="button" onclick="toggleSubMenu('dataSub','iconData')" class="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fa-solid fa-database fa-lg"></i>
-                    <span class="ml-4 flex-1 text-left">Manipulação de Dados</span>
-                    <i id="iconData" class="fa-solid fa-chevron-down ml-auto transition-transform"></i>
-                </button>
-                <ul id="dataSub" class="ml-8 mt-2 space-y-2 hidden submenu">
-                    <li><a href="{% url 'import_export' %}" class="block hover:text-blue-500">Importar/Exportar Dados</a></li>
-                    <li><a href="{% url 'logs_import_export' %}" class="block hover:text-blue-500">Logs</a></li>
-                </ul>
+                <a href="{% url 'cliente_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-users fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Clientes</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'contrato_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-file-contract fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Contratos</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'item_contrato_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-tasks fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Itens de Contrato</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'item_fornecedor_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-box-open fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Itens de Fornecedor</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'ordem_servico_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-tools fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Ordens de Serviço</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'ordem_fornecimento_list' %}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="fas fa-truck-loading fa-fw text-gray-500 dark:text-gray-400"></i>
+                    <span class="ms-3 nav-text">Ordens de Fornecimento</span>
+                </a>
             </li>
         </ul>
     </div>
 </aside>
 
-<!-- Topbar -->
-<nav class="fixed top-0 z-50 w-full bg-white dark:bg-gray-800 shadow-md">
-    <div class="px-4 py-3 flex justify-between items-center">
-        <button id="hamburger-button" class="text-gray-600 dark:text-gray-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12h18M3 6h18M3 18h18"></path>
-            </svg>
-        </button>
-        <img src="{% static 'img/logo_alltech_branco.png' %}" class="h-8" alt="Alltech Logo">
-        <div class="flex items-center gap-4">
-            <button onclick="toggleDarkMode()" class="text-gray-600 dark:text-gray-400">
-                <svg class="w-[40px] h-[40px] text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                    <path fill-rule="evenodd" d="M13 3a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0V3ZM6.343 4.929A1 1 0 0 0 4.93 6.343l1.414 1.414a1 1 0 0 0 1.414-1.414L6.343 4.929Zm12.728 1.414a1 1 0 0 0-1.414-1.414l-1.414 1.414a1 1 0 0 0 1.414 1.414l1.414-1.414ZM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm-9 4a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2H3Zm16 0a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2h-2ZM7.757 17.657a1 1 0 1 0-1.414-1.414l-1.414 1.414a1 1 0 1 0 1.414 1.414l1.414-1.414Zm9.9-1.414a1 1 0 0 0-1.414 1.414l1.414 1.414a1 1 0 0 0 1.414-1.414l-1.414-1.414ZM13 19a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0v-2Z" clip-rule="evenodd"/>
-                </svg>
-            </button>
+<!-- Conteúdo Principal -->
+<main id="main-content" class="p-4 ml-64">
+    <div class="mt-14"> <!-- Margem no topo para não ficar atrás dos botões fixos -->
+        {% block content %}
+        <!-- O conteúdo específico de cada página será inserido aqui -->
+        {% endblock %}
+    </div>
+</main>
 
-            <button id="userMenuButton">
-                <svg class="w-[40px] h-[40px] text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.948 8.948 0 0 0 12 21Zm3-11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                </svg>
-            </button>
-            <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1">
-                    <a href="/admin/auth/user/" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Configurações</a>
-                    <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+<!-- Botões de Ação no Canto Superior Direito -->
+<div class="fixed top-4 right-4 z-50 flex items-center space-x-4">
+
+    <!-- Botão Dark/Light Mode -->
+    <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5 me-4">
+        <i id="theme-toggle-dark-icon" class="hidden fa-solid fa-moon fa-lg"></i>
+        <i id="theme-toggle-light-icon" class="hidden fa-solid fa-sun fa-lg"></i>
+    </button>
+
+    <!-- Menu do Usuário -->
+    <div>
+        <button type="button" class="flex text-sm bg-gray-800 rounded-full focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
+            <span class="sr-only">Open user menu</span>
+            <img class="w-8 h-8 rounded-full" src="https://ui-avatars.com/api/?name={{ user.get_full_name|default:'User' }}&background=0D8ABC&color=fff" alt="user photo">
+         </button>
+        <!-- Dropdown menu -->
+        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
+            <div class="px-4 py-3">
+                <span class="block text-sm text-gray-900 dark:text-white">{{ user.get_full_name|default:'Usuário' }}</span>
+                <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ user.email|default:'email@example.com' }}</span>
             </div>
+            <ul class="py-2" aria-labelledby="user-menu-button">
+                <li>
+                    <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Sair</a>
+                </li>
+            </ul>
         </div>
     </div>
-</nav>
+</div>
 
-<main class="p-4 sm:ml-64 mt-20">
-    {% block content %}{% endblock %}
-</main>
-<script>
-        const userMenuButton = document.getElementById('userMenuButton');
-    const userMenu = document.getElementById('userMenu');
-
-    userMenuButton.addEventListener('click', () => {
-        userMenu.classList.toggle('hidden');
-    });
-
-    window.addEventListener('click', function(e) {
-        if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
-            userMenu.classList.add('hidden');
-        }
-    });
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- LÓGICA DO TEMA (LIGHT/DARK MODE) ---
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+    // Função para atualizar os ícones de tema
+    function updateThemeIcons() {
+        if (document.documentElement.classList.contains('dark')) {
+            themeToggleLightIcon.classList.remove('hidden');
+            themeToggleDarkIcon.classList.add('hidden');
+        } else {
+            themeToggleLightIcon.classList.add('hidden');
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+    }
+    // Inicializa os ícones no carregamento da página
+    updateThemeIcons();
+
+    // Lógica do Toggle de Tema (Dark/Light)
+    themeToggleButton.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('color-theme', isDark ? 'dark' : 'light');
+        updateThemeIcons();
+    });
+
+    // --- LÓGICA DO LOGOUT ---
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Idealmente, aqui você faria um POST para uma URL de logout
+            // Para simplicidade, estamos apenas redirecionando.
+            alert('Você será deslogado.');
+            window.location.href = '/logout/'; // Adapte esta URL se necessário
+        });
+    }
+
+    // --- LÓGICA DA SIDEBAR (MINIMIZAR/MAXIMIZAR) ---
+    const hamburgerButton = document.getElementById('hamburger-button');
+    const body = document.body;
+    const mainContent = document.getElementById('main-content');
+    const sidebar = document.getElementById('default-sidebar');
+
+    // Função para aplicar o estado salvo da sidebar
+    function applySidebarState() {
+        if (localStorage.getItem('sidebarState') === 'minimized') {
+            body.classList.add('sidebar-minimized');
+            mainContent.style.marginLeft = '80px';
+            hamburgerButton.style.left = '80px'; 
+        } else {
+            body.classList.remove('sidebar-minimized');
+            mainContent.style.marginLeft = '256px'; // w-64
+            hamburgerButton.style.left = '256px';
+        }
+    }
+
+    // Aplica o estado ao carregar a página
+    applySidebarState();
+    // Move o botão hamburguer para a posição correta, que depende do estado da sidebar
+    // A posição do botão hamburguer é relativa a sidebar
+    hamburgerButton.style.left = body.classList.contains('sidebar-minimized') ? '80px' : '256px';
+
+    hamburgerButton.addEventListener('click', function() {
+        body.classList.toggle('sidebar-minimized');
+        
+        // Salva o novo estado no localStorage
+        if (body.classList.contains('sidebar-minimized')) {
+            localStorage.setItem('sidebarState', 'minimized');
+        } else {
+            localStorage.setItem('sidebarState', 'expanded');
+        }
+        
+        // Reaplica o estado para ajustar margens e posições
+        applySidebarState();
+    });
+});
+</script>
+
+
+<!-- Bloco para scripts específicos da página, como gráficos do dashboard -->
+{% block scripts %}
+{% endblock %}
 
 </body>
 </html>
