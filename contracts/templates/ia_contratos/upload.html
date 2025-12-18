@@ -1,0 +1,417 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Upload de Documento{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'documento_contrato_list' %}" class="hover:text-blue-600">Análise com IA</a>
+            <span class="mx-2">/</span>
+            <span>Upload</span>
+        </nav>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            <i class="fas fa-cloud-upload-alt mr-2 text-purple-500"></i>Upload de Documento
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">
+            Envie documentos para extração automática de informações
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Formulário -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="p-4 mb-2 rounded-lg {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200{% elif message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200{% elif message.tags == 'info' %}bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200{% else %}bg-gray-50 border border-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'success' %}fa-check-circle{% elif message.tags == 'info' %}fa-info-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="mb-4">
+                        {% for error in form.non_field_errors %}
+                        <div class="p-4 mb-2 rounded-lg bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nome da Análise <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.nome_analise }}
+                        {% if form.nome_analise.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.nome_analise.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">Ex: Análise Contrato 009/2025 - CNPQ</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Número do Contrato (Opcional)
+                        </label>
+                        {{ form.numero_contrato_busca }}
+                        {% if form.numero_contrato_busca.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.numero_contrato_busca.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            Deixe em branco para criar novo contrato. Preencha para vincular a um contrato existente.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Arquivos <span class="text-red-500">*</span>
+                        </label>
+                        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-purple-500 transition" id="dropzone">
+                            <i class="fas fa-file-upload text-4xl text-gray-400 mb-3"></i>
+                            <p class="text-gray-600 dark:text-gray-400 mb-2">
+                                Arraste e solte os arquivos aqui ou
+                            </p>
+                            <input type="file" 
+                                   id="fileInput" 
+                                   name="arquivos" 
+                                   multiple 
+                                   accept=".pdf,.doc,.docx"
+                                   class="hidden">
+                            <button type="button" 
+                                    onclick="document.getElementById('fileInput').click()"
+                                    class="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-folder-open mr-1"></i> Selecionar Arquivos
+                            </button>
+                            <p class="text-xs text-gray-500 mt-2">
+                                Formatos aceitos: PDF, DOC, DOCX (máx. 50MB por arquivo)
+                            </p>
+                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Você pode adicionar arquivos incrementalmente. Cada arquivo será exibido individualmente.
+                            </p>
+                        </div>
+                        {% if form.arquivos.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.arquivos.errors.0 }}</p>
+                        {% endif %}
+                        
+                        <!-- Lista de Arquivos Carregados -->
+                        <div id="arquivosLista" class="mt-4 space-y-2 hidden">
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Arquivos Carregados (<span id="arquivosCount">0</span>)
+                            </h4>
+                            <div id="arquivosContainer" class="space-y-2">
+                                <!-- Arquivos serão adicionados aqui via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                        <a href="{% url 'documento_contrato_list' %}" 
+                            class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            Cancelar
+                        </a>
+                        <button type="submit" 
+                            id="submitBtn"
+                            disabled
+                            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-upload mr-1"></i> Criar Análise
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informações -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl shadow-md p-6 text-white">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-magic mr-2"></i>Como funciona?
+                </h3>
+                <ol class="space-y-3 text-sm">
+                    <li class="flex gap-3">
+                        <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">1</span>
+                        <span>Faça upload de múltiplos documentos de uma vez</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">2</span>
+                        <span>A IA extrai e consolida o texto de todos os documentos</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">3</span>
+                        <span>Analisa todos os artefatos juntos e identifica informações</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">4</span>
+                        <span>Vincula a contrato existente ou cria novo automaticamente</span>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-file-alt mr-2 text-blue-500"></i>Documentos Suportados
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Contratos
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Editais de Licitação
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Estudos Técnicos Preliminares (ETP)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Termos de Referência (TR)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Atas de Registro de Preços (ARP)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Propostas Comerciais
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> Termos Aditivos
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                <h4 class="font-medium text-amber-800 dark:text-amber-300 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i> Dica
+                </h4>
+                <p class="text-sm text-amber-700 dark:text-amber-400">
+                    Para melhores resultados, use documentos com texto selecionável (não escaneados como imagem).
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gerenciamento de arquivos
+let arquivosSelecionados = [];
+
+// Elementos DOM
+const fileInput = document.getElementById('fileInput');
+const arquivosLista = document.getElementById('arquivosLista');
+const arquivosContainer = document.getElementById('arquivosContainer');
+const arquivosCount = document.getElementById('arquivosCount');
+const submitBtn = document.getElementById('submitBtn');
+const form = document.querySelector('form');
+
+// Drag and Drop
+const dropzone = document.getElementById('dropzone');
+
+dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
+});
+
+dropzone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
+});
+
+dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/20');
+    const files = Array.from(e.dataTransfer.files);
+    adicionarArquivos(files);
+});
+
+// Quando arquivos são selecionados
+fileInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    adicionarArquivos(files);
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = '';
+});
+
+function adicionarArquivos(novosArquivos) {
+    novosArquivos.forEach(file => {
+        // Validação
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'doc', 'docx'].includes(ext)) {
+            alert(`Formato não suportado: ${file.name}. Use PDF ou Word (.doc, .docx)`);
+            return;
+        }
+        if (file.size > 50 * 1024 * 1024) {
+            alert(`Arquivo muito grande: ${file.name}. Limite: 50MB`);
+            return;
+        }
+        
+        // Verifica se já existe
+        if (arquivosSelecionados.some(f => f.name === file.name && f.size === file.size)) {
+            alert(`Arquivo ${file.name} já foi adicionado.`);
+            return;
+        }
+        
+        // Adiciona à lista
+        arquivosSelecionados.push(file);
+    });
+    
+    atualizarListaArquivos();
+}
+
+function removerArquivo(index) {
+    if (index >= 0 && index < arquivosSelecionados.length) {
+        arquivosSelecionados.splice(index, 1);
+        atualizarListaArquivos();
+    }
+}
+
+function atualizarListaArquivos() {
+    arquivosContainer.innerHTML = '';
+    arquivosCount.textContent = arquivosSelecionados.length;
+    
+    if (arquivosSelecionados.length === 0) {
+        arquivosLista.classList.add('hidden');
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    arquivosLista.classList.remove('hidden');
+    submitBtn.disabled = false;
+    
+    arquivosSelecionados.forEach((file, index) => {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const isPdf = ext === 'pdf';
+        const tamanhoMB = (file.size / (1024 * 1024)).toFixed(2);
+        
+        const card = document.createElement('div');
+        card.className = 'flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600';
+        card.setAttribute('data-index', index);
+        card.innerHTML = `
+            <div class="flex-shrink-0 p-2 rounded-lg ${isPdf ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300' : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'}">
+                <i class="fas ${isPdf ? 'fa-file-pdf' : 'fa-file-word'}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate" title="${file.name}">${file.name}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">${tamanhoMB} MB</p>
+            </div>
+            <button type="button" 
+                    class="remover-arquivo-btn flex-shrink-0 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                    data-index="${index}">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        arquivosContainer.appendChild(card);
+    });
+    
+    // Adiciona event listeners aos botões de remover
+    arquivosContainer.querySelectorAll('.remover-arquivo-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.getAttribute('data-index'));
+            removerArquivo(index);
+        });
+    });
+}
+
+// Intercepta o submit do formulário
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Validação do nome da análise
+    const nomeAnaliseInput = form.querySelector('[name="nome_analise"]');
+    if (!nomeAnaliseInput || !nomeAnaliseInput.value || !nomeAnaliseInput.value.trim()) {
+        alert('O nome da análise é obrigatório.');
+        if (nomeAnaliseInput) nomeAnaliseInput.focus();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-upload mr-1"></i> Criar Análise';
+        return false;
+    }
+    
+    if (arquivosSelecionados.length === 0) {
+        alert('Selecione pelo menos um arquivo.');
+        return false;
+    }
+    
+    // Desabilita o botão durante o envio
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Criando Análise...';
+    
+    // Cria um FormData e adiciona os dados do formulário
+    const formData = new FormData(form);
+    
+    // Remove o campo arquivos original (se houver)
+    formData.delete('arquivos');
+    
+    // Adiciona cada arquivo
+    arquivosSelecionados.forEach((file) => {
+        formData.append('arquivos', file);
+    });
+    
+    // Obtém a URL do formulário ou usa a URL atual
+    const formAction = form.action || window.location.pathname;
+    
+    // Envia via fetch
+    fetch(formAction, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        redirect: 'follow'
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error('Erro na resposta do servidor');
+        }
+    })
+    .then(html => {
+        if (html) {
+            // Verifica se há erros no HTML retornado
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Procura por mensagens de erro de várias formas
+            const errorMessages = doc.querySelectorAll('.error, .alert-danger, .text-red-500, .bg-red-50, .bg-red-900, .text-red-800, .text-red-200');
+            const formErrors = doc.querySelectorAll('input.is-invalid, select.is-invalid, textarea.is-invalid');
+            const errorTexts = doc.querySelectorAll('p.text-red-500, div.text-red-800, div.text-red-200, span.text-red-500');
+            
+            // Verifica se há mensagens do Django
+            const djangoMessages = doc.querySelectorAll('.messages .error, .messages .alert-danger, [class*="error"]');
+            
+            // Verifica se há erros de campo do formulário
+            const fieldErrors = doc.querySelectorAll('[class*="error"], [id*="error"]');
+            
+            // Verifica se o HTML contém texto de erro
+            const hasErrorText = html.includes('Erro') || html.includes('error') || html.includes('required') || html.includes('obrigatório');
+            
+            if (errorMessages.length > 0 || formErrors.length > 0 || errorTexts.length > 0 || djangoMessages.length > 0 || fieldErrors.length > 0 || hasErrorText) {
+                // Recarrega a página para mostrar os erros do formulário
+                window.location.reload();
+            } else {
+                // Se não houver erros, recarrega a página para mostrar mensagens de sucesso
+                window.location.reload();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar análise. Tente novamente.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-upload mr-1"></i> Criar Análise';
+    });
+    
+    return false;
+});
+</script>
+{% endblock %}
+

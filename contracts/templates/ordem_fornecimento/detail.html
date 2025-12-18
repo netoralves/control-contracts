@@ -1,64 +1,244 @@
-{# ordem_fornecimento/detail.html #}
+{% extends "contracts/base.html" %}
+{% load static math_extras humanize %}
 
-{% extends 'contracts/base.html' %}
-{% load humanize %}
+{% block title %}{{ ordem.numero_of }} - Detalhes da Ordem de Fornecimento{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-
+<div class="container mx-auto px-4 py-6">
     <!-- Cabeçalho -->
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            Detalhes da Ordem de Fornecimento
-        </h1>
-        <a href="{% url 'ordem_fornecimento_list' %}"
-           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
-            <i class="fa fa-arrow-left"></i> Voltar
-        </a>
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'ordem_fornecimento_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-shopping-cart mr-2"></i>{{ ordem.numero_of }}
+                </h1>
+                <span class="px-3 py-1 text-sm rounded-full font-medium
+                    {% if ordem.status == 'aberta' %}bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300
+                    {% elif ordem.status == 'execucao' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                    {% elif ordem.status == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                    {% elif ordem.status == 'faturada' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                    {% endif %}">
+                    {{ ordem.get_status_display }}
+                </span>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                {{ ordem.cliente.nome_fantasia|default:ordem.cliente.nome_razao_social }} - {{ ordem.contrato.numero_contrato }}
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'ordem_fornecimento_update' ordem.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit mr-1"></i> Editar
+            </a>
+            <a href="{% url 'ordem_fornecimento_delete' ordem.pk %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-trash mr-1"></i> Excluir
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Valor Unitário</p>
+                    <p class="text-2xl font-bold mt-1">{{ ordem.valor_unitario|currency_br }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-dollar-sign text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Valor Total</p>
+                    <p class="text-2xl font-bold mt-1">{{ ordem.valor_total|currency_br }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-calculator text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Quantidade</p>
+                    <p class="text-2xl font-bold mt-1">{{ ordem.quantidade }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-box text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-amber-100 text-sm">Vigência</p>
+                    <p class="text-2xl font-bold mt-1">{{ ordem.vigencia_produto|default:"-" }} {% if ordem.vigencia_produto %}meses{% endif %}</p>
+                </div>
+                <div class="bg-amber-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-calendar text-xl"></i>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Detalhes -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div>
-            <p><strong>Número OF:</strong> {{ ordem.numero_of }}</p>
-            <p><strong>Número OF Cliente:</strong> {{ ordem.numero_of_cliente }}</p>
-            <p><strong>Cliente:</strong> {{ ordem.cliente.nome_fantasia }}</p>
-            <p><strong>Contrato:</strong> {{ ordem.contrato.numero_contrato }}</p>
-            <p><strong>Item do Contrato:</strong> {{ ordem.item_contrato.descricao }}</p>
-            <p><strong>Item do Fornecedor:</strong> {{ ordem.item_fornecedor.descricao }}</p>
-            <p><strong>Unidade:</strong> {{ ordem.unidade }}</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Identificação -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-hashtag mr-2 text-blue-500"></i>Identificação
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Número da OF</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.numero_of }}</p>
+                </div>
+                {% if ordem.numero_of_cliente %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Número da OF do Cliente</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.numero_of_cliente }}</p>
+                </div>
+                {% endif %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <span class="px-2 py-1 text-xs rounded-full font-medium
+                            {% if ordem.status == 'aberta' %}bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300
+                            {% elif ordem.status == 'execucao' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                            {% elif ordem.status == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif ordem.status == 'faturada' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                            {% endif %}">
+                            {{ ordem.get_status_display }}
+                        </span>
+                    </p>
+                </div>
+            </div>
         </div>
-        <div>
-            <p><strong>Quantidade:</strong> {{ ordem.quantidade }}</p>
-            <p><strong>Valor Unitário:</strong> R$ {{ ordem.valor_unitario|floatformat:2|intcomma }}</p>
-            <p><strong>Valor Total:</strong> R$ {{ ordem.valor_total|floatformat:2|intcomma }}</p>
-            <p><strong>Vigência do Produto:</strong> {{ ordem.vigencia_produto }} meses</p>
-            <p><strong>Status:</strong> {{ ordem.get_status_display }}</p>
-            <p><strong>Data Ativação:</strong> {{ ordem.data_ativacao|date:"d/m/Y" }}</p>
-            <p><strong>Data Faturamento:</strong> {{ ordem.data_faturamento|date:"d/m/Y" }}</p>
+
+        <!-- Informações do Contrato -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-file-contract mr-2 text-green-500"></i>Informações do Contrato
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Cliente</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <a href="{% url 'cliente_detail' ordem.cliente.pk %}" class="text-blue-600 hover:underline">
+                            {{ ordem.cliente.nome_fantasia|default:ordem.cliente.nome_razao_social }}
+                        </a>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Contrato</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <a href="{% url 'gestao_contratos_detail' ordem.contrato.pk %}" class="text-blue-600 hover:underline">
+                            {{ ordem.contrato.numero_contrato }}
+                        </a>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Item do Contrato</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.item_contrato.descricao }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Itens do Fornecedor</p>
+                    <div class="font-medium text-gray-900 dark:text-white">
+                        {% if ordem.itens_fornecedor.all %}
+                            <ul class="list-disc list-inside">
+                                {% for item in ordem.itens_fornecedor.all %}
+                                <li>{{ item.item_fornecedor.descricao }} (Qtd: {{ item.quantidade }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <span class="text-gray-400">Nenhum item vinculado</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quantidade e Valores -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calculator mr-2 text-purple-500"></i>Quantidade e Valores
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Unidade</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.unidade }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Quantidade</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.quantidade }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Valor Unitário</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.valor_unitario|currency_br }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Valor Total</p>
+                    <p class="font-medium text-lg text-gray-900 dark:text-white">{{ ordem.valor_total|currency_br }}</p>
+                </div>
+                {% if ordem.vigencia_produto %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Vigência do Produto</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.vigencia_produto }} meses</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status e Datas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calendar-alt mr-2 text-amber-500"></i>Status e Datas
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <span class="px-2 py-1 text-xs rounded-full font-medium
+                            {% if ordem.status == 'aberta' %}bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300
+                            {% elif ordem.status == 'execucao' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                            {% elif ordem.status == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif ordem.status == 'faturada' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                            {% endif %}">
+                            {{ ordem.get_status_display }}
+                        </span>
+                    </p>
+                </div>
+                {% if ordem.data_ativacao %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Data de Ativação</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.data_ativacao|date:"d/m/Y" }}</p>
+                </div>
+                {% endif %}
+                {% if ordem.data_faturamento %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Data de Faturamento</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ ordem.data_faturamento|date:"d/m/Y" }}</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <!-- Observações -->
     {% if ordem.observacoes %}
-    <div class="mt-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Observações</h2>
-        <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded">
-            {{ ordem.observacoes }}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mt-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-align-left mr-2 text-indigo-500"></i>Observações
+        </h3>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ ordem.observacoes }}</p>
         </div>
     </div>
     {% endif %}
-
-    <!-- Ações -->
-    <div class="flex justify-end gap-2 mt-6">
-        <a href="{% url 'ordem_fornecimento_update' ordem.pk %}"
-           class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
-            <i class="fa fa-edit"></i> Editar
-        </a>
-        <a href="{% url 'ordem_fornecimento_delete' ordem.pk %}"
-           class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
-            <i class="fa fa-trash"></i> Excluir
-        </a>
-    </div>
 </div>
 {% endblock %}

@@ -1,0 +1,118 @@
+{# backlog/gerenciar.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold dark:text-white">Gerenciar Backlog</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Contrato: {{ contrato.numero_contrato }} - {{ contrato.cliente.nome_razao_social }}</p>
+            {% if backlog.titulo %}
+            <p class="text-gray-500 dark:text-gray-500 mt-1 text-sm">Backlog: {{ backlog.titulo }}</p>
+            {% endif %}
+        </div>
+        <a href="{% url 'gestao_contratos_detail' contrato.pk %}?tab=projetos" 
+           class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Voltar ao Contrato
+        </a>
+    </div>
+
+    <!-- Formulário para adicionar tarefa -->
+    <div class="mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold dark:text-white mb-4">Adicionar Tarefa ao Backlog</h2>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            
+            <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+                {% for field in form %}
+                    {% if field.name != 'backlog' and field.name != 'sprint' and field.name != 'ordem_servico' and field.name != 'centro_custo' %}
+                        <div class="{% if field.name == 'descricao' or field.name == 'observacoes' %}md:col-span-2{% endif %}">
+                            {% if field.name == 'horas_consumidas' %}
+                                <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ field.label }}
+                                </label>
+                                {{ field|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                                <p class="mt-1 text-xs text-gray-500">Calculado automaticamente</p>
+                            {% else %}
+                                <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ field.label }}
+                                    {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                                </label>
+                                {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                            {% endif %}
+                            
+                            {% if field.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                            {% endif %}
+                            {% if field.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                    <i class="fa-solid fa-plus mr-2"></i>Adicionar ao Backlog
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de tarefas do backlog -->
+    <div>
+        <h2 class="text-lg font-semibold dark:text-white mb-4">Tarefas do Backlog ({{ tarefas.count }})</h2>
+        {% if tarefas %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Título</th>
+                        <th class="px-4 py-3">Responsável</th>
+                        <th class="px-4 py-3">Prioridade</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Horas Planejadas</th>
+                        <th class="px-4 py-3">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarefa in tarefas %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3 dark:text-white">{{ tarefa.titulo }}</td>
+                        <td class="px-4 py-3 dark:text-white">{{ tarefa.responsavel.nome_completo|default:"-" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded text-xs
+                                {% if tarefa.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                {% elif tarefa.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                {{ tarefa.get_prioridade_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                Backlog
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 dark:text-white">{{ tarefa.horas_planejadas|floatformat:2 }}h</td>
+                        <td class="px-4 py-3">
+                            {% if tarefa.sprint and tarefa.sprint.projeto %}
+                                <a href="{% url 'tarefa_projeto_update' tarefa.sprint.projeto.pk tarefa.pk %}" class="text-blue-600 hover:underline text-sm">Editar</a>
+                            {% else %}
+                                <span class="text-gray-400 text-sm">Editar (após vincular a sprint)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa no backlog. Adicione tarefas usando o formulário acima.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

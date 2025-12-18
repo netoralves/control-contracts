@@ -1,0 +1,71 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+{% load math_extras %}
+
+{% block title %}Excluir Contrato - {{ contrato.numero_contrato }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <!-- Ícone de alerta -->
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Confirmar Exclusão</h2>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">
+                    Você está prestes a excluir o contrato abaixo. Esta ação não pode ser desfeita.
+                </p>
+            </div>
+            
+            <!-- Dados do contrato -->
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Número do Contrato</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ contrato.numero_contrato }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Cliente</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ contrato.cliente.nome_razao_social }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Valor Atual</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ contrato.valor_atual|currency_br }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Termos Aditivos</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ total_termos }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Aviso -->
+            {% if total_termos > 0 %}
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-amber-500 mt-0.5 mr-3"></i>
+                    <p class="text-sm text-amber-700 dark:text-amber-300">
+                        <strong>Atenção:</strong> Este contrato possui {{ total_termos }} termo(s) aditivo(s) que também serão excluídos.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Botões -->
+            <form method="post" class="flex justify-center gap-4">
+                {% csrf_token %}
+                <a href="{% url 'gestao_contratos_detail' contrato.pk %}" 
+                    class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </a>
+                <button type="submit" 
+                    class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                    <i class="fas fa-trash mr-1"></i> Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

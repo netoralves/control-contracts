@@ -1,0 +1,303 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Timesheet - {{ colaborador.nome_completo }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-project-diagram mr-2"></i>Timesheet de Projetos
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                Olá, <span class="font-semibold">{{ colaborador.nome_completo }}</span>! Lance horas faturáveis nas tarefas atribuídas a você.
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'timesheet_planilha' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-table mr-1"></i> Planilha de Horas (Faturável/Não Faturável)
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Tarefas Atribuídas</p>
+                    <p class="text-3xl font-bold mt-1">{{ tarefas.count }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-tasks text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Horas Planejadas</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_horas_planejadas|floatformat:1 }}h</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-calendar-check text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Horas Lançadas</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_horas_lancadas|floatformat:1 }}h</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-hourglass-half text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-amber-100 text-sm">Horas Restantes</p>
+                    <p class="text-3xl font-bold mt-1">{{ horas_restantes|floatformat:1 }}h</p>
+                </div>
+                <div class="bg-amber-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-clock text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ filtro_data_inicio|default:'' }}"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ filtro_data_fim|default:'' }}"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Projeto</label>
+                <select name="projeto" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">Todos os projetos</option>
+                    {% for projeto in projetos %}
+                    <option value="{{ projeto.id }}" {% if filtro_projeto == projeto.id|stringformat:"s" %}selected{% endif %}>
+                        {{ projeto.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sprint</label>
+                <select name="sprint" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">Todas as sprints</option>
+                    {% for sprint in sprints %}
+                    <option value="{{ sprint.id }}" {% if filtro_sprint == sprint.id|stringformat:"s" %}selected{% endif %}>
+                        {{ sprint.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
+                <a href="{% url 'timesheet_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Abas -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-4" aria-label="Tabs">
+                <button type="button" onclick="showTab('tarefas')" id="tab-tarefas"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
+                    <i class="fas fa-tasks mr-1"></i> Minhas Tarefas
+                </button>
+                <button type="button" onclick="showTab('lancamentos')" id="tab-lancamentos"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-history mr-1"></i> Lançamentos Recentes
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Minhas Tarefas -->
+    <div id="content-tarefas" class="tab-content">
+        {% if tarefas %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for tarefa in tarefas %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
+                <div class="p-5">
+                    <!-- Header da tarefa -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800 dark:text-white truncate" title="{{ tarefa.titulo }}">
+                                {{ tarefa.titulo }}
+                            </h3>
+                            {% if tarefa.sprint %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <i class="fas fa-project-diagram mr-1"></i>{{ tarefa.sprint.projeto.nome }}
+                                <span class="mx-1">•</span>
+                                <i class="fas fa-running mr-1"></i>{{ tarefa.sprint.nome }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if tarefa.status_sprint == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif tarefa.status_sprint == 'em_execucao' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ tarefa.get_status_sprint_display|default:"Pendente" }}
+                        </span>
+                    </div>
+                    
+                    <!-- Progresso -->
+                    <div class="mb-3">
+                        {% with total_lancado=tarefa.lancamentos_horas.all|length %}
+                        {% with horas_lancadas=tarefa.total_horas_lancadas %}
+                        <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span>{{ horas_lancadas|default:0|floatformat:1 }}h / {{ tarefa.horas_planejadas|default:0|floatformat:1 }}h</span>
+                            {% if tarefa.horas_planejadas and tarefa.horas_planejadas > 0 %}
+                            <span>{{ horas_lancadas|default:0|floatformat:0 }}%</span>
+                            {% endif %}
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            {% if tarefa.horas_planejadas and tarefa.horas_planejadas > 0 %}
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ horas_lancadas|default:0 }}%"></div>
+                            {% endif %}
+                        </div>
+                        {% endwith %}
+                        {% endwith %}
+                    </div>
+                    
+                    <!-- Datas -->
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        {% if tarefa.data_inicio_prevista %}
+                        <span><i class="far fa-calendar mr-1"></i>{{ tarefa.data_inicio_prevista|date:"d/m/Y" }}</span>
+                        {% if tarefa.data_termino_prevista %}
+                        <span class="mx-1">→</span>
+                        <span>{{ tarefa.data_termino_prevista|date:"d/m/Y" }}</span>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Ações -->
+                    <div class="flex gap-2">
+                        <a href="{% url 'timesheet_lancar_horas' tarefa.id %}" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded-lg text-sm transition">
+                            <i class="fas fa-plus mr-1"></i> Lançar Horas
+                        </a>
+                        <a href="{% url 'timesheet_tarefa_detail' tarefa.id %}" 
+                            class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 px-3 rounded-lg text-sm transition">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <i class="fas fa-inbox text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhuma tarefa atribuída</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Você não possui tarefas atribuídas no momento.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Lançamentos Recentes -->
+    <div id="content-lancamentos" class="tab-content hidden">
+        {% if lancamentos %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tarefa</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Projeto/Sprint</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Horário</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Horas</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for lancamento in lancamentos %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ lancamento.data|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                            <div class="truncate max-w-xs" title="{{ lancamento.tarefa.titulo }}">
+                                {{ lancamento.tarefa.titulo }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                            {% if lancamento.tarefa.sprint %}
+                            {{ lancamento.tarefa.sprint.projeto.nome }} / {{ lancamento.tarefa.sprint.nome }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ lancamento.hora_inicio|time:"H:i" }} - {{ lancamento.hora_termino|time:"H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {{ lancamento.horas_trabalhadas|floatformat:2 }}h
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex gap-2">
+                                <a href="{% url 'timesheet_editar_lancamento' lancamento.id %}" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'timesheet_excluir_lancamento' lancamento.id %}" 
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <i class="fas fa-history text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum lançamento encontrado</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Você ainda não possui lançamentos de horas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    // Remove active state from all tabs
+    document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected content
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    // Add active state to selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+}
+</script>
+{% endblock %}
+

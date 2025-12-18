@@ -1,446 +1,324 @@
 {% extends 'contracts/base.html' %}
-{% load static %}
+{% load static math_extras %}
 {% load humanize %}
 
 {% block extra_css %}
 <style>
-    /* Animações customizadas */
-    @keyframes slideInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* Layout otimizado para TV/Sala - sem scroll */
+    .dashboard-container {
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: #f3f4f6;
     }
     
-    .animate-slide-in {
-        animation: slideInUp 0.5s ease-out;
+    .dark .dashboard-container {
+        background: #111827;
     }
     
-    /* Gradientes para os cards */
-    .gradient-blue {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .dashboard-content {
+        flex: 1;
+        overflow: hidden;
+        padding: 0.5rem;
     }
     
-    .gradient-green {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    /* Cards KPI compactos */
+    .kpi-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
     
-    .gradient-orange {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.1;
     }
     
-    .gradient-purple {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    .kpi-label {
+        font-size: 0.7rem;
+        opacity: 0.95;
+        font-weight: 500;
     }
     
-    /* Hover effects */
-    .card-hover {
-        transition: all 0.3s ease;
+    /* Gráficos compactos */
+    .chart-container {
+        height: 180px;
+        position: relative;
+        min-height: 180px;
     }
     
-    .card-hover:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    /* Tabelas ultra-compactas */
+    .compact-table {
+        font-size: 0.7rem;
     }
     
-    /* Dark mode adjustments */
-    .dark .card-shadow {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    .compact-table th,
+    .compact-table td {
+        padding: 0.35rem 0.5rem;
+    }
+    
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.4s ease-in;
+    }
+    
+    /* Gradientes otimizados */
+    .gradient-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .gradient-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .gradient-orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .gradient-purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    
+    /* Scroll interno apenas nas tabelas */
+    .scroll-container {
+        max-height: 140px;
+        overflow-y: auto;
+    }
+    
+    /* Dark mode melhorado - forçar cores */
+    .dark .bg-white {
+        background-color: #1f2937 !important;
+    }
+    
+    .dark .text-gray-900 {
+        color: #f9fafb !important;
+    }
+    
+    .dark .text-gray-700 {
+        color: #d1d5db !important;
+    }
+    
+    .dark .border-gray-200 {
+        border-color: #4b5563 !important;
+    }
+    
+    .dark .border-gray-100 {
+        border-color: #374151 !important;
+    }
+    
+    /* Garantir contraste em modo escuro */
+    .dark .bg-gray-50 {
+        background-color: #374151 !important;
+    }
+    
+    .dark .text-gray-500 {
+        color: #9ca3af !important;
+    }
+    
+    .dark .text-gray-400 {
+        color: #6b7280 !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <!-- Header com Boas-vindas e Ações Rápidas -->
-        <div class="mb-8 animate-slide-in">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+{{ grafico_faturamento|json_script:"faturamento-data" }}
+{{ grafico_contratos_por_cliente|json_script:"cliente-data" }}
+{{ grafico_status_os_of|json_script:"status-data" }}
+{{ grafico_fornecedores|json_script:"fornecedores-data" }}
+
+<div class="dashboard-container">
+    <!-- Header Ultra Compacto -->
+    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-1.5">
+        <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                        Dashboard de Contratos
-                    </h1>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">
-                        Bem-vindo! Aqui está o resumo dos seus contratos.
-                    </p>
+                <h1 class="text-lg font-bold text-gray-900 dark:text-white">Dashboard de Contratos</h1>
+                <p class="text-xs text-gray-600 dark:text-gray-400">Monitoramento em Tempo Real</p>
                 </div>
-                
-                <!-- Ações Rápidas -->
-                <div class="mt-4 sm:mt-0 flex space-x-3">
-                    <button class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Novo Contrato
-                    </button>
-                    <button class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        Exportar
-                    </button>
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                {{ "now"|date:"d/m/Y H:i" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="dashboard-content">
+        <div class="h-full flex flex-col gap-1.5">
+            
+            <!-- Primeira Linha: 8 KPIs Principais -->
+            <div class="grid grid-cols-8 gap-1.5 flex-shrink-0">
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="gradient-blue rounded p-1.5">
+                        <p class="kpi-label text-white">Clientes</p>
+                        <p class="kpi-value text-white">{{ total_clientes|default:"0" }}</p>
+                    </div>
+                        </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="gradient-green rounded p-1.5">
+                        <p class="kpi-label text-white">Contratos Ativos</p>
+                        <p class="kpi-value text-white">{{ contratos_ativos|default:"0" }}</p>
+                </div>
+            </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="gradient-orange rounded p-1.5">
+                        <p class="kpi-label text-white">Valor Total</p>
+                        <p class="kpi-value text-white text-xs leading-tight">{{ valor_total_contratos|default_if_none:0|currency_br }}</p>
+                    </div>
+                        </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="gradient-purple rounded p-1.5">
+                        <p class="kpi-label text-white">Faturado</p>
+                        <p class="kpi-value text-white text-xs leading-tight">{{ valor_total_faturado|default_if_none:0|currency_br }}</p>
+                </div>
+            </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="bg-blue-600 rounded p-1.5">
+                        <p class="kpi-label text-white">Utilização</p>
+                        <p class="kpi-value text-white">{{ taxa_utilizacao|default:"0" }}%</p>
+                        <div class="w-full bg-blue-800 bg-opacity-50 rounded-full h-0.5 mt-0.5">
+                            {% with taxa_util=taxa_utilizacao|default:0 %}
+                            <div class="bg-white h-0.5 rounded-full transition-all" style="width: {{ taxa_util }}%"></div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                        </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="bg-green-600 rounded p-1.5">
+                        <p class="kpi-label text-white">Saldo</p>
+                        <p class="kpi-value text-white text-xs leading-tight">{{ saldo_disponivel_total|default_if_none:0|currency_br }}</p>
+                </div>
+            </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="bg-orange-600 rounded p-1.5">
+                        <p class="kpi-label text-white">Baixa Util.</p>
+                        <p class="kpi-value text-white">{{ contratos_baixa_utilizacao_count|default:"0" }}</p>
+                    </div>
+                        </div>
+
+                <div class="kpi-card bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in">
+                    <div class="bg-purple-600 rounded p-1.5">
+                        <p class="kpi-label text-white">Tempo Médio</p>
+                        <p class="kpi-value text-white">{{ tempo_medio_execucao_os|default:"0" }}d</p>
                 </div>
             </div>
         </div>
 
-        <!-- Cards de KPIs com ícones e gradientes -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Total Clientes -->
-            <div class="card-hover animate-slide-in" style="animation-delay: 0.1s">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-                    <div class="gradient-blue p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-white text-sm font-medium opacity-90">Total Clientes</p>
-                                <p class="text-3xl font-bold text-white mt-1">{{ total_clientes|default:"0" }}</p>
-                            </div>
-                            <div class="bg-white bg-opacity-30 rounded-lg p-3">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700">
-                        <div class="flex items-center text-sm">
-                            <span class="text-green-600 dark:text-green-400 font-medium">+12%</span>
-                            <span class="text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contratos Ativos -->
-            <div class="card-hover animate-slide-in" style="animation-delay: 0.2s">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-                    <div class="gradient-green p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-white text-sm font-medium opacity-90">Contratos Ativos</p>
-                                <p class="text-3xl font-bold text-white mt-1">{{ contratos_ativos|default:"0" }}</p>
-                            </div>
-                            <div class="bg-white bg-opacity-30 rounded-lg p-3">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700">
-                        <div class="flex items-center text-sm">
-                            <span class="text-green-600 dark:text-green-400 font-medium">+8%</span>
-                            <span class="text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Valor Total Contratos -->
-            <div class="card-hover animate-slide-in" style="animation-delay: 0.3s">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-                    <div class="gradient-orange p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-white text-sm font-medium opacity-90">Valor Total Contratos</p>
-                                <p class="text-3xl font-bold text-white mt-1">R$ {{ valor_total_contratos|floatformat:2|default:"0,00" }}</p>
-                            </div>
-                            <div class="bg-white bg-opacity-30 rounded-lg p-3">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700">
-                        <div class="flex items-center text-sm">
-                            <span class="text-green-600 dark:text-green-400 font-medium">+15%</span>
-                            <span class="text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Valor Total Faturado -->
-            <div class="card-hover animate-slide-in" style="animation-delay: 0.4s">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-                    <div class="gradient-purple p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-white text-sm font-medium opacity-90">Valor Total Faturado</p>
-                                <p class="text-3xl font-bold text-white mt-1">R$ {{ valor_total_faturado|floatformat:2|default:"0,00" }}</p>
-                            </div>
-                            <div class="bg-white bg-opacity-30 rounded-lg p-3">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700">
-                        <div class="flex items-center text-sm">
-                            <span class="text-green-600 dark:text-green-400 font-medium">+20%</span>
-                            <span class="text-gray-600 dark:text-gray-400 ml-2">vs mês anterior</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Seção de Gráficos -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Segunda Linha: 4 Gráficos -->
+            <div class="grid grid-cols-4 gap-1.5 flex-1 min-h-0">
             <!-- Gráfico de Faturamento -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-slide-in" style="animation-delay: 0.5s">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                        Evolução do Faturamento
-                    </h2>
-                    <div class="flex items-center space-x-2">
-                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </button>
-                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                            </svg>
-                        </button>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Evolução Faturamento</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="faturamentoChart"></canvas>
                     </div>
                 </div>
-                <div class="relative h-80">
-                    <canvas id="faturamentoChart"></canvas>
+
+                <!-- Gráfico de Contratos por Cliente -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Top Clientes</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="contratoClienteChart"></canvas>
                 </div>
             </div>
 
-            <!-- Gráfico de Contratos por Cliente -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-slide-in" style="animation-delay: 0.6s">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                        Contratos por Cliente
-                    </h2>
-                    <div class="flex items-center space-x-2">
-                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                        </button>
-                        <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                            </svg>
-                        </button>
+                <!-- Gráfico de Status OS/OF -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Status OS/OF</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="statusOsOfChart"></canvas>
                     </div>
                 </div>
-                <div class="relative h-80">
-                    <canvas id="contratoClienteChart"></canvas>
+
+                <!-- Gráfico de Fornecedores -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Top Fornecedores</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="fornecedoresChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Tabela de Contratos Recentes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg animate-slide-in" style="animation-delay: 0.7s">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                        Contratos Recentes
-                    </h2>
-                    <a href="#" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm">
-                        Ver todos →
-                    </a>
+            <!-- Terceira Linha: 3 Tabelas -->
+            <div class="grid grid-cols-3 gap-1.5 flex-shrink-0" style="height: 160px;">
+                <!-- Contratos Baixa Utilização -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="text-xs font-semibold text-gray-900 dark:text-white">Baixa Utilização</h3>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ contratos_baixa_utilizacao_count }}</span>
                 </div>
-                
-                <!-- Tabela responsiva -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="scroll-container flex-1">
+                        <table class="compact-table w-full">
                         <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Cliente
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Número
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Valor
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Data
-                                </th>
-                                <th class="relative px-6 py-3">
-                                    <span class="sr-only">Ações</span>
-                                </th>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-0.5">Contrato</th>
+                                    <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-0.5">Util.</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                            {% for contrato in contratos_recentes %}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <div class="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                <span class="text-gray-600 dark:text-gray-300 font-medium">
-                                                    {{ contrato.cliente.nome|slice:":2"|upper }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                {{ contrato.cliente.nome }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                                    {{ contrato.numero }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                                    R$ {{ contrato.valor|floatformat:2 }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        {% if contrato.status == 'ativo' %}
-                                            bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
-                                        {% elif contrato.status == 'pendente' %}
-                                            bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100
-                                        {% else %}
-                                            bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100
-                                        {% endif %}">
-                                        {{ contrato.get_status_display }}
+                            <tbody>
+                                {% for contrato in contratos_baixa_utilizacao|slice:":5" %}
+                                <tr class="border-b border-gray-100 dark:border-gray-700">
+                                    <td class="text-xs text-gray-900 dark:text-white py-0.5">{{ contrato.numero|truncatechars:15 }}</td>
+                                    <td class="text-xs py-0.5">
+                                        <span class="px-1 py-0.5 rounded bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100">
+                                            {{ contrato.taxa_utilizacao }}%
                                     </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    {{ contrato.data_inicio|date:"d/m/Y" }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="#" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                                        Visualizar
-                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                    Nenhum contrato encontrado
-                                </td>
+                                    <td colspan="2" class="text-xs text-gray-500 dark:text-gray-400 py-1 text-center">Nenhum</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
 
-        <!-- Widgets Adicionais -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-            <!-- Próximos Vencimentos -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-slide-in" style="animation-delay: 0.8s">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Próximos Vencimentos
-                </h3>
-                <div class="space-y-3">
-                    {% for vencimento in proximos_vencimentos %}
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                {{ vencimento.cliente }}
-                            </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                Contrato #{{ vencimento.numero }}
-                            </p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-semibold text-red-600 dark:text-red-400">
-                                {{ vencimento.dias_restantes }} dias
-                            </p>
-                        </div>
+                <!-- Top Itens Consumidos -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Top Itens Consumidos</h3>
+                    <div class="scroll-container flex-1">
+                        <table class="compact-table w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-0.5">Item</th>
+                                    <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-0.5">Qtd</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_itens_consumidos|slice:":5" %}
+                                <tr class="border-b border-gray-100 dark:border-gray-700">
+                                    <td class="text-xs text-gray-900 dark:text-white py-0.5">{{ item.descricao|truncatechars:20 }}</td>
+                                    <td class="text-xs text-gray-900 dark:text-white py-0.5 text-right">{{ item.quantidade_consumida|floatformat:1 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-xs text-gray-500 dark:text-gray-400 py-1 text-center">Nenhum</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Próximos Vencimentos -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-2 fade-in flex flex-col">
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">Próximos Vencimentos</h3>
+                    <div class="scroll-container flex-1">
+                        <div class="space-y-1">
+                            {% for vencimento in proximos_vencimentos|slice:":5" %}
+                            <div class="flex items-center justify-between p-1 bg-gray-50 dark:bg-gray-700 rounded text-xs">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ vencimento.numero|truncatechars:12 }}</p>
+            </div>
+                                <span class="font-semibold text-red-600 dark:text-red-400">{{ vencimento.dias_restantes }}d</span>
                     </div>
                     {% empty %}
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">
-                        Nenhum vencimento próximo
-                    </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center py-2">Nenhum</p>
                     {% endfor %}
-                </div>
-            </div>
-
-            <!-- Atividades Recentes -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-slide-in" style="animation-delay: 0.9s">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Atividades Recentes
-                </h3>
-                <div class="space-y-3">
-                    {% for atividade in atividades_recentes %}
-                    <div class="flex items-start space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
-                                <svg class="w-4 h-4 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-900 dark:text-white">
-                                {{ atividade.descricao }}
-                            </p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {{ atividade.data|timesince }} atrás
-                            </p>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">
-                        Nenhuma atividade recente
-                    </p>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Resumo Financeiro -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 animate-slide-in" style="animation-delay: 1s">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Resumo Financeiro
-                </h3>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">A Receber</span>
-                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">
-                                R$ {{ a_receber|floatformat:2|default:"0,00" }}
-                            </span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: 65%"></div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Em Atraso</span>
-                            <span class="text-sm font-semibold text-red-600 dark:text-red-400">
-                                R$ {{ em_atraso|floatformat:2|default:"0,00" }}
-                            </span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-red-500 h-2 rounded-full" style="width: 25%"></div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Recebido</span>
-                            <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                R$ {{ recebido|floatformat:2|default:"0,00" }}
-                            </span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounded-full" style="width: 80%"></div>
                         </div>
                     </div>
                 </div>
@@ -450,162 +328,476 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Configuração do tema para os gráficos
-    const isDarkMode = document.documentElement.classList.contains('dark');
+    console.log('Script de gráficos iniciado');
+    
+    // Aguardar Chart.js e DOM estarem prontos
+    function initCharts() {
+        console.log('initCharts chamado, verificando Chart.js...');
+        
+        // Verificar se Chart.js está carregado
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js não está carregado ainda, tentando novamente em 100ms...');
+            setTimeout(initCharts, 100);
+            return;
+        }
+        
+        console.log('Chart.js carregado com sucesso!');
+        console.log('Estado do DOM:', document.readyState);
+        
+        // Aguardar DOM estar pronto
+        if (document.readyState === 'loading') {
+            console.log('DOM ainda carregando, aguardando DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', createCharts);
+        } else {
+            console.log('DOM já está pronto, criando gráficos agora...');
+            createCharts();
+        }
+    }
+    
+    function createCharts() {
+        console.log('=== INICIANDO CRIAÇÃO DOS GRÁFICOS ===');
+        // Função para detectar modo escuro
+        function checkDarkMode() {
+            const htmlElement = document.documentElement;
+            return htmlElement.classList.contains('dark') || 
+                   window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        
+        // Configuração do tema - detectar corretamente
+        const isDarkMode = checkDarkMode();
     const textColor = isDarkMode ? '#E5E7EB' : '#374151';
     const gridColor = isDarkMode ? '#374151' : '#E5E7EB';
+        const bgColor = isDarkMode ? '#1f2937' : '#ffffff';
     
-    // Configuração padrão para todos os gráficos
     Chart.defaults.color = textColor;
     Chart.defaults.borderColor = gridColor;
     
-    // Dados dos gráficos
-    const faturamentoData = JSON.parse(`{{ grafico_faturamento|escapejs|default:"{}" }}`);
-    const contratoClienteData = JSON.parse(`{{ grafico_contratos_por_cliente|escapejs|default:"{}" }}`);
-    
-    // Gráfico de Faturamento
-    const ctxFaturamento = document.getElementById('faturamentoChart').getContext('2d');
-    const faturamentoChart = new Chart(ctxFaturamento, {
-        type: 'line',
-        data: {
-            ...faturamentoData,
-            datasets: [{
-                ...faturamentoData.datasets[0],
-                borderColor: '#3B82F6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#3B82F6',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
+        // Configuração padrão para gráficos compactos
+        const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 8,
+                        padding: 3,
+                        font: { size: 9 },
+                        usePointStyle: true,
+                        color: textColor
+                    }
                 },
                 tooltip: {
-                    backgroundColor: isDarkMode ? '#1F2937' : '#fff',
+                    backgroundColor: bgColor,
                     titleColor: textColor,
                     bodyColor: textColor,
                     borderColor: gridColor,
                     borderWidth: 1,
-                    padding: 12,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            return 'Faturamento: R$ ' + context.parsed.y.toLocaleString('pt-BR', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                            });
-                        }
-                    }
+                    padding: 6,
+                    titleFont: { size: 10 },
+                    bodyFont: { size: 9 },
+                    displayColors: true
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: {
-                        color: gridColor,
-                        drawBorder: false
-                    },
+                    grid: { color: gridColor, drawBorder: false },
                     ticks: {
-                        callback: function(value) {
-                            return 'R$ ' + value.toLocaleString('pt-BR');
-                        }
+                        color: textColor,
+                        font: { size: 8 },
+                        maxTicksLimit: 4
                     }
                 },
                 x: {
-                    grid: {
-                        display: false
+                    grid: { display: false },
+                    ticks: { 
+                        color: textColor,
+                        font: { size: 8 },
+                        maxRotation: 45,
+                        minRotation: 45
                     }
                 }
             }
+        };
+        
+        // Função para parsear dados com fallback robusto
+        function parseChartData(jsonString, defaultData) {
+            try {
+                if (!jsonString || jsonString === '{}' || jsonString.trim() === '') {
+                    return defaultData;
+                }
+                const data = JSON.parse(jsonString);
+                // Validar estrutura
+                if (data && typeof data === 'object') {
+                    if (data.labels && Array.isArray(data.labels) && data.labels.length > 0) {
+                        return data;
+                    }
+                    // Se tem datasets mas sem labels, criar labels padrão
+                    if (data.datasets && Array.isArray(data.datasets) && data.datasets.length > 0) {
+                        const firstDataset = data.datasets[0];
+                        if (firstDataset.data && Array.isArray(firstDataset.data)) {
+                            if (!data.labels || data.labels.length === 0) {
+                                data.labels = firstDataset.data.map((_, i) => `Item ${i + 1}`);
+                            }
+                            return data;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.warn('Erro ao parsear dados do gráfico:', e, 'JSON:', jsonString);
+            }
+            return defaultData;
         }
-    });
-    
-    // Gráfico de Contratos por Cliente
-    const ctxContrato = document.getElementById('contratoClienteChart').getContext('2d');
-    const contratoClienteChart = new Chart(ctxContrato, {
+        
+        // Verificar se os elementos json_script existem
+        console.log('Verificando elementos json_script...');
+        const allScripts = document.querySelectorAll('script[type="application/json"]');
+        console.log('Total de scripts json encontrados:', allScripts.length);
+        allScripts.forEach(script => {
+            console.log('Script encontrado:', script.id, 'Conteúdo:', script.textContent ? 'Tem conteúdo' : 'VAZIO');
+        });
+        
+        // Função auxiliar para carregar dados do json_script
+        function loadJsonScript(id, defaultData) {
+            try {
+                const script = document.getElementById(id);
+                console.log(`Tentando carregar ${id}:`, script ? 'Elemento encontrado' : 'Elemento NÃO encontrado');
+                if (script) {
+                    console.log(`Conteúdo do script ${id}:`, script.textContent ? script.textContent.substring(0, 100) + '...' : 'VAZIO');
+                }
+                if (script && script.textContent && script.textContent.trim()) {
+                    const data = JSON.parse(script.textContent);
+                    console.log(`Dados carregados de ${id}:`, data);
+                    return data;
+                } else {
+                    console.warn(`Elemento ${id} não encontrado ou vazio, usando dados padrão`);
+                    return defaultData;
+                }
+            } catch(e) {
+                console.error(`Erro ao carregar ${id}:`, e, e.stack);
+                return defaultData;
+            }
+        }
+        
+        // Dados padrão para cada gráfico
+        const defaultFaturamento = { 
+            labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"], 
+            datasets: [{ label: "Faturamento", data: [0, 0, 0, 0, 0, 0], borderColor: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.1)' }] 
+        };
+        
+        const defaultCliente = { 
+            labels: ["Sem Dados"], 
+            datasets: [{ label: "Valor (R$)", data: [1], backgroundColor: ["rgba(255, 99, 132, 0.6)"] }] 
+        };
+        
+        const defaultStatus = { 
+            labels: ["Abertas", "Em Execução", "Finalizadas", "Faturadas"],
+            datasets: [
+                { label: "OS", data: [0, 0, 0, 0], backgroundColor: "rgba(59, 130, 246, 0.6)" },
+                { label: "OF", data: [0, 0, 0, 0], backgroundColor: "rgba(16, 185, 129, 0.6)" }
+            ]
+        };
+        
+        const defaultFornecedores = { 
+            labels: ["Sem Dados"], 
+            datasets: [{ label: "Valor Faturado (R$)", data: [1], backgroundColor: ["rgba(255, 99, 132, 0.6)"] }] 
+        };
+        
+        // Carregar dados dos gráficos
+        let faturamentoData = loadJsonScript('faturamento-data', defaultFaturamento);
+        let contratoClienteData = loadJsonScript('cliente-data', defaultCliente);
+        let statusOsOfData = loadJsonScript('status-data', defaultStatus);
+        let fornecedoresData = loadJsonScript('fornecedores-data', defaultFornecedores);
+        
+        // Garantir estrutura válida
+        if (!faturamentoData.labels || !Array.isArray(faturamentoData.labels)) {
+            faturamentoData.labels = defaultFaturamento.labels;
+        }
+        if (!faturamentoData.datasets || !Array.isArray(faturamentoData.datasets) || faturamentoData.datasets.length === 0) {
+            faturamentoData.datasets = defaultFaturamento.datasets;
+        }
+        
+        if (!contratoClienteData.labels || !Array.isArray(contratoClienteData.labels)) {
+            contratoClienteData.labels = defaultCliente.labels;
+        }
+        if (!contratoClienteData.datasets || !Array.isArray(contratoClienteData.datasets) || contratoClienteData.datasets.length === 0) {
+            contratoClienteData.datasets = defaultCliente.datasets;
+        }
+        
+        if (!statusOsOfData.labels || !Array.isArray(statusOsOfData.labels)) {
+            statusOsOfData.labels = defaultStatus.labels;
+        }
+        if (!statusOsOfData.datasets || !Array.isArray(statusOsOfData.datasets) || statusOsOfData.datasets.length === 0) {
+            statusOsOfData.datasets = defaultStatus.datasets;
+        }
+        
+        if (!fornecedoresData.labels || !Array.isArray(fornecedoresData.labels)) {
+            fornecedoresData.labels = defaultFornecedores.labels;
+        }
+        if (!fornecedoresData.datasets || !Array.isArray(fornecedoresData.datasets) || fornecedoresData.datasets.length === 0) {
+            fornecedoresData.datasets = defaultFornecedores.datasets;
+        }
+        
+        // Log final para debug
+        console.log('Dados finais dos gráficos:', {
+            faturamento: faturamentoData,
+            clientes: contratoClienteData,
+            status: statusOsOfData,
+            fornecedores: fornecedoresData
+        });
+        
+        // Teste simples do Chart.js
+        console.log('Testando Chart.js:', typeof Chart !== 'undefined' ? 'OK' : 'FALHOU');
+        if (typeof Chart !== 'undefined') {
+            console.log('Versão do Chart.js:', Chart.version || 'desconhecida');
+        }
+        
+        // Gráfico de Faturamento - SEMPRE renderizar
+        const ctxFaturamento = document.getElementById('faturamentoChart');
+        console.log('Canvas faturamento encontrado:', ctxFaturamento ? 'SIM' : 'NÃO');
+        if (!ctxFaturamento) {
+            console.error('ERRO: Canvas faturamentoChart não encontrado no DOM!');
+            console.log('Procurando todos os canvas:', document.querySelectorAll('canvas'));
+        }
+        
+        if (ctxFaturamento && typeof Chart !== 'undefined') {
+            try {
+                console.log('Criando gráfico de faturamento com dados:', faturamentoData);
+                const faturamentoChart = new Chart(ctxFaturamento, {
+                    type: 'line',
+                    data: {
+                        labels: faturamentoData.labels || [],
+                        datasets: [{
+                            label: "Faturamento",
+                            data: faturamentoData.datasets?.[0]?.data || [],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 2,
+                            pointHoverRadius: 3
+                        }]
+                    },
+                    options: {
+                        ...chartOptions,
+                        plugins: {
+                            ...chartOptions.plugins,
+                            legend: { display: false }
+                        },
+                        scales: {
+                            ...chartOptions.scales,
+                            y: {
+                                ...chartOptions.scales.y,
+                                ticks: {
+                                    ...chartOptions.scales.y.ticks,
+                                    callback: function(value) {
+                                        if (value >= 1000000) return 'R$' + (value/1000000).toFixed(1) + 'M';
+                                        if (value >= 1000) return 'R$' + (value/1000).toFixed(0) + 'k';
+                                        return 'R$' + value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('✓ Gráfico de faturamento criado com sucesso!');
+            } catch(e) {
+                console.error('✗ ERRO ao criar gráfico de faturamento:', e);
+                console.error('Stack trace:', e.stack);
+            }
+        } else {
+            if (!ctxFaturamento) {
+                console.error('✗ Canvas não encontrado');
+            }
+            if (typeof Chart === 'undefined') {
+                console.error('✗ Chart.js não está disponível');
+            }
+        }
+        
+        // Gráfico de Contratos por Cliente - SEMPRE renderizar
+        const ctxContrato = document.getElementById('contratoClienteChart');
+        console.log('Canvas contratoCliente encontrado:', ctxContrato ? 'SIM' : 'NÃO');
+        if (ctxContrato && typeof Chart !== 'undefined') {
+            try {
+                console.log('Criando gráfico de clientes com dados:', contratoClienteData);
+                const contratoChart = new Chart(ctxContrato, {
         type: 'doughnut',
         data: {
-            ...contratoClienteData,
+                        labels: contratoClienteData.labels || [],
             datasets: [{
-                ...contratoClienteData.datasets[0],
-                backgroundColor: [
-                    '#3B82F6',
-                    '#10B981',
-                    '#F59E0B',
-                    '#EF4444',
-                    '#8B5CF6',
-                    '#EC4899'
-                ],
-                borderWidth: 0,
-                hoverOffset: 4
+                            label: "Valor (R$)",
+                            data: contratoClienteData.datasets?.[0]?.data || [],
+                            backgroundColor: contratoClienteData.datasets?.[0]?.backgroundColor || [
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(139, 92, 246, 0.8)'
+                            ],
+                            borderWidth: 0
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+                        ...chartOptions,
             plugins: {
+                            ...chartOptions.plugins,
                 legend: {
-                    position: 'right',
+                                position: 'bottom',
                     labels: {
-                        padding: 15,
-                        usePointStyle: true,
-                        font: {
-                            size: 12
+                                    boxWidth: 6, 
+                                    padding: 2, 
+                                    font: { size: 8 },
+                                    color: textColor
+                                }
+                            }
                         }
                     }
-                },
-                tooltip: {
-                    backgroundColor: isDarkMode ? '#1F2937' : '#fff',
-                    titleColor: textColor,
-                    bodyColor: textColor,
-                    borderColor: gridColor,
-                    borderWidth: 1,
-                    padding: 12,
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ': ' + value + ' (' + percentage + '%)';
-                        }
-                    }
-                }
+                });
+                console.log('✓ Gráfico de clientes criado com sucesso!');
+            } catch(e) {
+                console.error('✗ ERRO ao criar gráfico de clientes:', e);
+                console.error('Stack trace:', e.stack);
             }
+        } else {
+            if (!ctxContrato) console.error('✗ Canvas contratoClienteChart não encontrado');
+            if (typeof Chart === 'undefined') console.error('✗ Chart.js não disponível');
         }
-    });
+        
+        // Gráfico de Status OS/OF - SEMPRE renderizar
+        const ctxStatusOsOf = document.getElementById('statusOsOfChart');
+        console.log('Canvas statusOsOf encontrado:', ctxStatusOsOf ? 'SIM' : 'NÃO');
+        if (ctxStatusOsOf && typeof Chart !== 'undefined') {
+            try {
+                console.log('Criando gráfico de status OS/OF com dados:', statusOsOfData);
+                const statusChart = new Chart(ctxStatusOsOf, {
+                    type: 'bar',
+                    data: {
+                        labels: statusOsOfData.labels || [],
+                        datasets: statusOsOfData.datasets || []
+                    },
+                    options: {
+                        ...chartOptions,
+                        plugins: {
+                            ...chartOptions.plugins,
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    boxWidth: 6, 
+                                    padding: 2, 
+                                    font: { size: 8 },
+                                    color: textColor
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('✓ Gráfico de status OS/OF criado com sucesso!');
+            } catch(e) {
+                console.error('✗ ERRO ao criar gráfico de status OS/OF:', e);
+                console.error('Stack trace:', e.stack);
+            }
+        } else {
+            if (!ctxStatusOsOf) console.error('✗ Canvas statusOsOfChart não encontrado');
+            if (typeof Chart === 'undefined') console.error('✗ Chart.js não disponível');
+        }
+        
+        // Gráfico de Fornecedores - SEMPRE renderizar
+        const ctxFornecedores = document.getElementById('fornecedoresChart');
+        console.log('Canvas fornecedores encontrado:', ctxFornecedores ? 'SIM' : 'NÃO');
+        if (ctxFornecedores && typeof Chart !== 'undefined') {
+            try {
+                console.log('Criando gráfico de fornecedores com dados:', fornecedoresData);
+                const fornecedoresChart = new Chart(ctxFornecedores, {
+                    type: 'bar',
+                    data: {
+                        labels: fornecedoresData.labels || [],
+                        datasets: fornecedoresData.datasets || []
+                    },
+                    options: {
+                        ...chartOptions,
+                        indexAxis: 'y',
+                        plugins: {
+                            ...chartOptions.plugins,
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                ...chartOptions.scales.x,
+                                ticks: {
+                                    ...chartOptions.scales.x.ticks,
+                                    callback: function(value) {
+                                        if (value >= 1000000) return 'R$' + (value/1000000).toFixed(1) + 'M';
+                                        if (value >= 1000) return 'R$' + (value/1000).toFixed(0) + 'k';
+                                        return 'R$' + value;
+                                    }
+                                }
+                            },
+                            y: {
+                                ...chartOptions.scales.y,
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+                console.log('✓ Gráfico de fornecedores criado com sucesso!');
+            } catch(e) {
+                console.error('✗ ERRO ao criar gráfico de fornecedores:', e);
+                console.error('Stack trace:', e.stack);
+            }
+        } else {
+            if (!ctxFornecedores) console.error('✗ Canvas fornecedoresChart não encontrado');
+            if (typeof Chart === 'undefined') console.error('✗ Chart.js não disponível');
+        }
     
     // Atualizar gráficos quando o tema mudar
+        const htmlElement = document.documentElement;
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
-                const isDark = document.documentElement.classList.contains('dark');
-                const newTextColor = isDark ? '#E5E7EB' : '#374151';
-                const newGridColor = isDark ? '#374151' : '#E5E7EB';
-                
-                // Atualizar cores dos gráficos
-                Chart.defaults.color = newTextColor;
-                Chart.defaults.borderColor = newGridColor;
-                
-                faturamentoChart.update();
-                contratoClienteChart.update();
+                    // Recarregar página para aplicar novo tema
+                    setTimeout(() => location.reload(), 100);
             }
         });
     });
     
-    observer.observe(document.documentElement, { attributes: true });
+        observer.observe(htmlElement, { attributes: true });
+        
+        // Observar mudanças no sistema de preferência de tema
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', function() {
+            setTimeout(() => location.reload(), 100);
+        });
+        
+        // Auto-refresh a cada 5 minutos
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
+        
+        console.log('=== FINALIZADA CRIAÇÃO DOS GRÁFICOS ===');
+    }
+    
+    // Iniciar quando a página carregar
+    console.log('Chamando initCharts()...');
+    initCharts();
+    
+    // Também tentar quando a página estiver totalmente carregada
+    window.addEventListener('load', function() {
+        console.log('Window load event disparado');
+        if (typeof Chart !== 'undefined') {
+            console.log('Chart.js disponível no window.load, verificando gráficos...');
+            // Verificar se os gráficos foram criados
+            const charts = document.querySelectorAll('canvas');
+            console.log('Canvas encontrados:', charts.length);
+            charts.forEach((canvas, index) => {
+                console.log(`Canvas ${index + 1}:`, canvas.id, 'Chart instance:', Chart.getChart(canvas));
+            });
+        }
+    });
 </script>
-{% endblock %}
+{% endblock scripts %}

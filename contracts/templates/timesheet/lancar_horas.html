@@ -1,0 +1,152 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Lançar Horas - {{ tarefa.titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'timesheet_list' %}" class="hover:text-blue-600">Timesheet</a>
+            <span class="mx-2">/</span>
+            <span>Lançar Horas</span>
+        </nav>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            <i class="fas fa-plus-circle mr-2 text-blue-600"></i>Lançar Horas
+        </h1>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Formulário -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <!-- Info da Tarefa -->
+                <div class="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 mb-6">
+                    <h3 class="font-semibold text-blue-800 dark:text-blue-200">{{ tarefa.titulo }}</h3>
+                    {% if tarefa.sprint %}
+                    <p class="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                        <i class="fas fa-project-diagram mr-1"></i>{{ tarefa.sprint.projeto.nome }}
+                        <span class="mx-1">•</span>
+                        <i class="fas fa-running mr-1"></i>{{ tarefa.sprint.nome }}
+                    </p>
+                    {% endif %}
+                    <div class="flex gap-4 mt-2 text-sm text-blue-600 dark:text-blue-300">
+                        <span><i class="fas fa-clock mr-1"></i>Planejado: {{ tarefa.horas_planejadas|default:0|floatformat:1 }}h</span>
+                        <span><i class="fas fa-hourglass-half mr-1"></i>Lançado: {{ total_lancado|floatformat:1 }}h</span>
+                        <span><i class="fas fa-hourglass-end mr-1"></i>Restante: {{ horas_restantes|floatformat:1 }}h</span>
+                    </div>
+                </div>
+
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Data <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="data" value="{% if form.data.value %}{{ form.data.value|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                            {% if form.data.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.data.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Hora Início <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" name="hora_inicio" value="{{ form.hora_inicio.value }}" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                            {% if form.hora_inicio.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.hora_inicio.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Hora Término <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" name="hora_termino" value="{{ form.hora_termino.value }}" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                            {% if form.hora_termino.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.hora_termino.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Descrição do Trabalho
+                        </label>
+                        <textarea name="descricao" rows="4" 
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Descreva as atividades realizadas...">{{ form.descricao.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                        <a href="{% url 'timesheet_list' %}" 
+                            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
+                            Cancelar
+                        </a>
+                        <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                            <i class="fas fa-save mr-1"></i> Salvar Lançamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lançamentos Anteriores -->
+        <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-history mr-2"></i>Lançamentos Anteriores
+                </h3>
+                
+                {% if lancamentos_tarefa %}
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    {% for lancamento in lancamentos_tarefa %}
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium text-gray-800 dark:text-white">
+                                    {{ lancamento.data|date:"d/m/Y" }}
+                                </p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ lancamento.hora_inicio|time:"H:i" }} - {{ lancamento.hora_termino|time:"H:i" }}
+                                </p>
+                            </div>
+                            <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-medium px-2 py-1 rounded">
+                                {{ lancamento.horas_trabalhadas|floatformat:2 }}h
+                            </span>
+                        </div>
+                        {% if lancamento.descricao %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate">
+                            {{ lancamento.descricao }}
+                        </p>
+                        {% endif %}
+                        <div class="flex gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <a href="{% url 'timesheet_editar_lancamento' lancamento.id %}" 
+                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                <i class="fas fa-edit mr-1"></i>Editar
+                            </a>
+                            <a href="{% url 'timesheet_excluir_lancamento' lancamento.id %}" 
+                                class="text-xs text-red-600 hover:text-red-800 dark:text-red-400">
+                                <i class="fas fa-trash mr-1"></i>Excluir
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
+                    Nenhum lançamento anterior
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

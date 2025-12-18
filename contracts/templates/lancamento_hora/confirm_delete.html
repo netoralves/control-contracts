@@ -1,0 +1,27 @@
+{# lancamento_hora/confirm_delete.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <h1 class="text-2xl font-bold dark:text-white mb-4">Confirmar Exclusão</h1>
+    
+    <p class="text-gray-700 dark:text-gray-300 mb-4">
+        Tem certeza que deseja excluir o lançamento de hora de <strong>{{ lancamento.colaborador.nome_completo }}</strong> 
+        na data <strong>{{ lancamento.data|date:"d/m/Y" }}</strong>?
+    </p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex gap-2">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">
+                Confirmar Exclusão
+            </button>
+            <a href="{% if lancamento.tarefa.ordem_servico %}{% url 'ordem_servico_detail' lancamento.tarefa.ordem_servico.pk %}{% else %}{% url 'tarefa_list' %}{% endif %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

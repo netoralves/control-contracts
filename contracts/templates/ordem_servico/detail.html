@@ -1,43 +1,319 @@
 {# ordem_servico/detail.html #}
 {% extends 'contracts/base.html' %}
-{% load static %}
+{% load static math_extras %}
 
 {% block content %}
-<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-    <h1 class="text-2xl font-bold mb-6">Detalhes da Ordem de Serviço</h1>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><strong>Número:</strong> <p>{{ ordem.numero_os }}</p></div>
-        <div><strong>Cliente:</strong> <p>{{ ordem.cliente.nome_fantasia }}</p></div>
-        <div><strong>Contrato:</strong> <p>{{ ordem.contrato.numero_contrato }}</p></div>
-        <div><strong>Item Contrato:</strong> <p>{{ ordem.item_contrato }}</p></div>
-        <div><strong>Item Fornecedor:</strong> <p>{{ ordem.item_fornecedor }}</p></div>
-        <div><strong>Status:</strong> <p>{{ ordem.get_status_display }}</p></div>
-        <div><strong>Quantidade:</strong> <p>{{ ordem.quantidade }}</p></div>
-        <div><strong>Valor Unitário:</strong> <p>R$ {{ ordem.valor_unitario|floatformat:2 }}</p></div>
-        <div><strong>Valor Total:</strong> <p>R$ {{ ordem.valor_total|floatformat:2 }}</p></div>
-        <div><strong>Data Início:</strong> <p>{{ ordem.data_inicio }}</p></div>
-        <div><strong>Hora Início:</strong> <p>{{ ordem.hora_inicio }}</p></div>
-        <div><strong>Data Término:</strong> <p>{{ ordem.data_termino|default:"-" }}</p></div>
-        <div><strong>Hora Término:</strong> <p>{{ ordem.hora_termino|default:"-" }}</p></div>
-        <div><strong>Data Emissão TRD:</strong> <p>{{ ordem.data_emissao_trd|default:"-" }}</p></div>
-        <div><strong>Data Faturamento:</strong> <p>{{ ordem.data_faturamento|default:"-" }}</p></div>
-        <div><strong>Gerente de Projetos:</strong> <p>{{ ordem.gerente_projetos }}</p></div>
-        {% if ordem.tipo_os == "Serviço" %}
-        <div><strong>Consultor Técnico:</strong> <p>{{ ordem.consultor_tecnico }}</p></div>
-        <div><strong>Horas Consultor:</strong> <p>{{ ordem.horas_consultor }}</p></div>
-        <div><strong>Horas Gerente:</strong> <p>{{ ordem.horas_gerente }}</p></div>
-        <div><strong>Horas Totais:</strong> <p>{{ ordem.horas_totais }}</p></div>
-        {% endif %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold dark:text-white">OS {{ ordem.numero_os }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ ordem.cliente.nome_fantasia|default:ordem.cliente.nome_razao_social }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'ordem_servico_update' ordem.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-edit mr-2"></i>Editar OS
+            </a>
+            <a href="{% url 'ordem_servico_list' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
     </div>
 
-    <div class="flex space-x-2 mt-6">
-        <a href="{% url 'ordem_servico_update' ordem.pk %}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-            Editar
-        </a>
-        <a href="{% url 'ordem_servico_list' %}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-            Voltar
-        </a>
+    <!-- Informações Principais -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
+            <p class="text-lg font-semibold dark:text-white">
+                <span class="px-2 py-1 rounded {% if ordem.status == 'faturada' %}bg-green-100 text-green-800{% elif ordem.status == 'finalizada' %}bg-blue-100 text-blue-800{% elif ordem.status == 'execucao' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ ordem.get_status_display }}
+                </span>
+            </p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Receita Prevista</p>
+            <p class="text-lg font-semibold dark:text-white">{{ ordem.receita_prevista|currency_br }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Margem de Contribuição</p>
+            <p class="text-lg font-semibold dark:text-white {% if ordem.is_exequivel %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ ordem.margem_contribuicao|currency_br }} ({{ ordem.percentual_margem|floatformat:2 }}%)
+            </p>
+        </div>
+    </div>
+
+    <!-- Planejado x Realizado -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ horas_planejadas_total|floatformat:2 }}h</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Horas Planejadas</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ horas_realizadas_total|floatformat:2 }}h</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Horas Realizadas</p>
+        </div>
+        <div class="bg-{% if diferenca_horas >= 0 %}purple{% else %}red{% endif %}-50 dark:bg-{% if diferenca_horas >= 0 %}purple{% else %}red{% endif %}-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-{% if diferenca_horas >= 0 %}purple{% else %}red{% endif %}-600 dark:text-{% if diferenca_horas >= 0 %}purple{% else %}red{% endif %}-400">
+                {% if diferenca_horas >= 0 %}+{% endif %}{{ diferenca_horas|floatformat:2 }}h
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Diferença</p>
+        </div>
+        <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ percentual_execucao|floatformat:1 }}%</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">% Execução</p>
+        </div>
+    </div>
+
+    <!-- Estatísticas de Tarefas -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ total_tarefas }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Total Tarefas</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ tarefas_concluidas }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Concluídas</p>
+        </div>
+        <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ tarefas_em_andamento }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Em Andamento</p>
+        </div>
+        <div class="bg-red-50 dark:bg-red-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ tarefas_pendentes }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Pendentes</p>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="tabs" data-tabs-toggle="#tab-content" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg active" id="informacoes-tab" data-tabs-target="#informacoes" type="button" role="tab">
+                    Informações
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="tarefas-tab" data-tabs-target="#tarefas" type="button" role="tab">
+                    Tarefas ({{ total_tarefas }})
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Conteúdo das Abas -->
+    <div id="tab-content">
+        <!-- Aba Informações -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="informacoes" role="tabpanel">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Dados da OS</h3>
+                    <div class="space-y-2">
+                        <p><strong class="text-gray-700 dark:text-gray-300">Número OS:</strong> {{ ordem.numero_os }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Cliente:</strong> 
+                            <a href="{% url 'cliente_detail' ordem.cliente.pk %}" class="text-blue-600 hover:underline">
+                                {{ ordem.cliente.nome_fantasia|default:ordem.cliente.nome_razao_social }}
+                            </a>
+                        </p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Contrato:</strong> 
+                            <a href="{% url 'gestao_contratos_detail' ordem.contrato.pk %}" class="text-blue-600 hover:underline">
+                                {{ ordem.contrato.numero_contrato }}
+                            </a>
+                        </p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Item Contrato:</strong> {{ ordem.item_contrato.descricao }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Quantidade:</strong> {{ ordem.quantidade }} {{ ordem.item_contrato.unidade }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Valor da OS:</strong> {{ ordem.receita_prevista|currency_br }}</p>
+                        {% if ordem.sprint %}
+                        <p><strong class="text-gray-700 dark:text-gray-300">Sprint Vinculada:</strong> 
+                            <a href="{% url 'sprint_detail' ordem.sprint.projeto.pk ordem.sprint.pk %}" class="text-blue-600 hover:underline">
+                                {{ ordem.sprint.nome }}
+                            </a>
+                            <span class="text-sm text-gray-500">({{ ordem.sprint.projeto.nome }})</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Timesheet e Custos</h3>
+                    <div class="space-y-2">
+                        {% if ordem.tipo_os == "Serviço" %}
+                        <p><strong class="text-gray-700 dark:text-gray-300">Item Fornecedor (Consultor):</strong> {{ ordem.item_fornecedor_consultor|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Horas Consultor:</strong> {{ ordem.horas_consultor|default:"0" }}h</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Custo Consultor:</strong> {{ ordem.custo_consultor|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Item Fornecedor (Gerente):</strong> {{ ordem.item_fornecedor_gerente|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Horas Gerente:</strong> {{ ordem.horas_gerente|default:"0" }}h</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Custo Gerente:</strong> {{ ordem.custo_gerente|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Custo Total:</strong> {{ ordem.custo_total_os|currency_br }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Análise de Exequibilidade</h3>
+                    <div class="space-y-2">
+                        <p><strong class="text-gray-700 dark:text-gray-300">Receita Prevista:</strong> {{ ordem.receita_prevista|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Impostos (15%):</strong> {{ ordem.impostos|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Royalties (12%):</strong> {{ ordem.royalties|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Custo Total:</strong> {{ ordem.custo_total_os|currency_br }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Margem de Contribuição:</strong> 
+                            <span class="{% if ordem.is_exequivel %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ ordem.margem_contribuicao|currency_br }} ({{ ordem.percentual_margem|floatformat:2 }}%)
+                            </span>
+                        </p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Exequível:</strong> 
+                            <span class="{% if ordem.is_exequivel %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if ordem.is_exequivel %}Sim{% else %}Não{% endif %}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Datas e Status</h3>
+                    <div class="space-y-2">
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data Início:</strong> {{ ordem.data_inicio|date:"d/m/Y"|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Hora Início:</strong> {{ ordem.hora_inicio|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data Término:</strong> {{ ordem.data_termino|date:"d/m/Y"|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Hora Término:</strong> {{ ordem.hora_termino|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data Emissão TRD:</strong> {{ ordem.data_emissao_trd|date:"d/m/Y"|default:"-" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data Faturamento:</strong> {{ ordem.data_faturamento|date:"d/m/Y"|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Tarefas -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="tarefas" role="tabpanel">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold dark:text-white">Tarefas da OS</h2>
+                <a href="{% url 'tarefa_os_create' ordem.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
+                    <i class="fa-solid fa-plus mr-2"></i>Nova Tarefa
+                </a>
+            </div>
+            {% if tarefas %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Título</th>
+                            <th class="px-4 py-3">Responsável</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Prioridade</th>
+                            <th class="px-4 py-3">Horas Planejadas</th>
+                            <th class="px-4 py-3">Horas Consumidas</th>
+                            <th class="px-4 py-3">% Conclusão</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in tarefas %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.titulo }}</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.responsavel.nome_completo|default:"-" }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs
+                                    {% if tarefa.status == 'concluida' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% elif tarefa.status == 'em_andamento' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% elif tarefa.status == 'pausada' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {{ tarefa.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs
+                                    {% if tarefa.prioridade == 'critica' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    {% elif tarefa.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% elif tarefa.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {{ tarefa.get_prioridade_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.horas_planejadas|floatformat:2 }}h</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.horas_consumidas|floatformat:2 }}h</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.percentual_conclusao|floatformat:1 }}%</td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    <a href="{% url 'tarefa_os_update' ordem.pk tarefa.pk %}" class="text-blue-600 hover:underline">Editar</a>
+                                    <a href="{% url 'lancamento_hora_create' tarefa.pk %}" class="text-green-600 hover:underline">Lançar Hora</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Lançamentos de horas da tarefa -->
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <td colspan="8" class="px-4 py-3">
+                                <div class="ml-8">
+                                    <p class="text-sm font-semibold dark:text-white mb-2">Lançamentos de Horas:</p>
+                                    {% if tarefa.lancamentos_horas.all %}
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-xs">
+                                            <thead class="bg-gray-200 dark:bg-gray-700">
+                                                <tr>
+                                                    <th class="px-2 py-1 text-left">Data</th>
+                                                    <th class="px-2 py-1 text-left">Colaborador</th>
+                                                    <th class="px-2 py-1 text-left">Hora Início</th>
+                                                    <th class="px-2 py-1 text-left">Hora Término</th>
+                                                    <th class="px-2 py-1 text-right">Horas</th>
+                                                    <th class="px-2 py-1 text-center">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for lancamento in tarefa.lancamentos_horas.all %}
+                                                <tr class="border-b border-gray-300 dark:border-gray-600">
+                                                    <td class="px-2 py-1 dark:text-white">{{ lancamento.data|date:"d/m/Y" }}</td>
+                                                    <td class="px-2 py-1 dark:text-white">{{ lancamento.colaborador.nome_completo }}</td>
+                                                    <td class="px-2 py-1 dark:text-white">{{ lancamento.hora_inicio|time:"H:i" }}</td>
+                                                    <td class="px-2 py-1 dark:text-white">{{ lancamento.hora_termino|time:"H:i" }}</td>
+                                                    <td class="px-2 py-1 text-right dark:text-white">{{ lancamento.horas_trabalhadas|floatformat:2 }}h</td>
+                                                    <td class="px-2 py-1 text-center">
+                                                        <a href="{% url 'lancamento_hora_update' lancamento.pk %}" class="text-blue-600 hover:underline text-xs mr-2">Editar</a>
+                                                        <a href="{% url 'lancamento_hora_delete' lancamento.pk %}" class="text-red-600 hover:underline text-xs">Excluir</a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Nenhum lançamento de hora registrado.</p>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa cadastrada para esta OS.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
+
+<script>
+// Inicializar abas
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('[data-tabs-toggle] button');
+    const tabContents = document.querySelectorAll('[role="tabpanel"]');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-tabs-target');
+            
+            // Remover classes ativas
+            tabs.forEach(t => {
+                t.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                t.classList.add('hover:text-gray-600', 'hover:border-gray-300');
+            });
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Adicionar classes ativas
+            this.classList.add('active', 'border-blue-600', 'text-blue-600');
+            this.classList.remove('hover:text-gray-600', 'hover:border-gray-300');
+            document.querySelector(targetId).classList.remove('hidden');
+        });
+    });
+});
+</script>
 {% endblock %}

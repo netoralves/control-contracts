@@ -1,0 +1,411 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+{% load math_extras %}
+
+{% block title %}Plano de Trabalho - {{ plano.projeto.nome|default:plano.projeto.contrato.numero_contrato }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'gestao_contratos_detail' contrato.pk %}" class="hover:text-blue-600">Contrato</a>
+            <span class="mx-2">/</span>
+            <a href="{% url 'projeto_detail' projeto.pk %}" class="hover:text-blue-600">Projeto</a>
+            <span class="mx-2">/</span>
+            <span>Plano de Trabalho</span>
+        </nav>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    Plano de Trabalho - {{ projeto.nome }}
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">
+                    {{ contrato.numero_contrato }} - {{ contrato.cliente.nome_razao_social }}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                {% if plano.status == 'pendente_aprovacao' %}
+                <form method="post" action="{% url 'plano_trabalho_aprovar' plano.pk %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-check mr-1"></i> Aprovar Plano
+                    </button>
+                </form>
+                <button onclick="document.getElementById('rejeitarModal').classList.remove('hidden')" 
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times mr-1"></i> Rejeitar
+                </button>
+                {% endif %}
+                {% if plano.status == 'aprovado' or plano.status == 'em_execucao' or plano.status == 'concluido' %}
+                <a href="{% url 'plano_trabalho_update' plano.pk %}" 
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-edit mr-1"></i> Editar Plano
+                </a>
+                {% endif %}
+                <a href="{% url 'plano_trabalho_exportar_pdf' plano.pk %}" 
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-file-pdf mr-1"></i> Exportar PDF
+                </a>
+                {% if plano.projeto %}
+                <a href="{% url 'projeto_detail' plano.projeto.pk %}" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-project-diagram mr-1"></i> Ver Projeto
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <div class="flex items-center gap-4">
+            <div class="p-4 rounded-xl {% if plano.status == 'aprovado' %}bg-green-100 dark:bg-green-900{% elif plano.status == 'rejeitado' %}bg-red-100 dark:bg-red-900{% elif plano.status == 'pendente_aprovacao' %}bg-amber-100 dark:bg-amber-900{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">
+                <i class="fas {% if plano.status == 'aprovado' %}fa-check-circle text-green-600{% elif plano.status == 'rejeitado' %}fa-times-circle text-red-600{% elif plano.status == 'pendente_aprovacao' %}fa-clock text-amber-600{% else %}fa-file-alt text-gray-600{% endif %} text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ plano.get_status_display }}</p>
+                {% if plano.aprovado_por %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Aprovado por {{ plano.aprovado_por.get_full_name|default:plano.aprovado_por.username }} em {{ plano.data_aprovacao|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Período</p>
+                <p class="font-medium text-gray-900 dark:text-white">
+                    {{ plano.data_inicio_prevista|date:"d/m/Y" }} - {{ plano.data_fim_prevista|date:"d/m/Y" }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo do Contrato -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-file-alt mr-2 text-blue-500"></i>Resumo do Contrato
+        </h3>
+        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">{{ plano.resumo_contrato }}</p>
+    </div>
+
+    <!-- Pontos de Atenção -->
+    {% if plano.pontos_atencao %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-exclamation-triangle mr-2 text-amber-500"></i>Pontos de Atenção
+        </h3>
+        <div class="space-y-4">
+            {% for ponto in plano.pontos_atencao %}
+            <div class="border-l-4 {% if ponto.prioridade == 'critica' %}border-red-500{% elif ponto.prioridade == 'alta' %}border-orange-500{% else %}border-yellow-500{% endif %} pl-4 py-2">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ ponto.titulo }}</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ ponto.descricao }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                            <strong>Ação recomendada:</strong> {{ ponto.acao_recomendada }}
+                        </p>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded-full ml-4
+                        {% if ponto.prioridade == 'critica' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                        {% elif ponto.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                        {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">
+                        {{ ponto.prioridade|upper }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Processo de Execução -->
+    {% if plano.processo_execucao %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-tasks mr-2 text-indigo-500"></i>Processo de Execução
+        </h3>
+        <div class="space-y-4">
+            {% for etapa in plano.processo_execucao %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold">
+                        {{ etapa.ordem }}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ etapa.etapa }}</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ etapa.descricao }}</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded">
+                                <i class="fas fa-clock mr-1"></i>{{ etapa.duracao_dias }} dias
+                            </span>
+                            {% if etapa.entregaveis %}
+                            <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
+                                <i class="fas fa-box mr-1"></i>{{ etapa.entregaveis|length }} entregável(is)
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if etapa.entregaveis %}
+                        <ul class="mt-2 space-y-1">
+                            {% for entregavel in etapa.entregaveis %}
+                            <li class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                                <i class="fas fa-check-circle text-green-500 text-xs"></i>{{ entregavel }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cláusulas Críticas -->
+    {% if clausulas_criticas %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Cláusulas Críticas
+        </h3>
+        <div class="space-y-4">
+            {% for clausula in clausulas_criticas %}
+            <div class="border-l-4 {% if clausula.impacto == 'critico' %}border-red-500{% elif clausula.impacto == 'alto' %}border-orange-500{% else %}border-yellow-500{% endif %} pl-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ clausula.titulo }}</h4>
+                            {% if clausula.numero_clausula %}
+                            <span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded">
+                                Cláusula {{ clausula.numero_clausula }}
+                            </span>
+                            {% endif %}
+                            <span class="px-2 py-1 text-xs rounded-full
+                                {% if clausula.impacto == 'critico' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                                {% elif clausula.impacto == 'alto' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                                {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">
+                                {{ clausula.get_impacto_display }}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ clausula.descricao }}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            <strong>Ação necessária:</strong> {{ clausula.acao_necessaria }}
+                        </p>
+                        {% if clausula.prazo_atencao %}
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                            <i class="fas fa-calendar-alt mr-1"></i>Prazo: {{ clausula.prazo_atencao|date:"d/m/Y" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SLAs Importantes -->
+    {% if slas_importantes %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-clock mr-2 text-purple-500"></i>SLAs Importantes
+        </h3>
+        <div class="space-y-4">
+            {% for sla in slas_importantes %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ sla.nome }}</h4>
+                    <span class="px-2 py-1 text-xs rounded-full
+                        {% if sla.prioridade == 'critica' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                        {% elif sla.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                        {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                        {{ sla.get_prioridade_display }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ sla.descricao }}</p>
+                <div class="flex gap-4 text-sm mb-3">
+                    <div>
+                        <span class="text-gray-500">Resposta:</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ sla.tempo_resposta_horas }}h</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Solução:</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ sla.tempo_solucao_horas }}h</span>
+                    </div>
+                </div>
+                {% if sla.alerta_ativo %}
+                <div class="mb-3 text-xs text-amber-600 dark:text-amber-400">
+                    <i class="fas fa-bell mr-1"></i>Alerta {{ sla.alerta_antes_horas }}h antes do prazo
+                </div>
+                {% endif %}
+                
+                <!-- Penalizações/Glosas -->
+                {% if sla.penalizacoes.all %}
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <h5 class="text-sm font-semibold text-gray-800 dark:text-white mb-2">Penalizações/Glosas:</h5>
+                    <div class="space-y-2">
+                        {% for penal in sla.penalizacoes.all %}
+                        <div class="bg-red-50 dark:bg-red-900/20 p-2 rounded text-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ penal.descricao }}</span>
+                                <span class="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 text-xs rounded">
+                                    {{ penal.get_tipo_display }}
+                                </span>
+                            </div>
+                            <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                {% if penal.percentual %}
+                                <span class="font-medium">{{ penal.percentual }}%</span> do valor
+                                {% endif %}
+                                {% if penal.valor_fixo %}
+                                <span class="font-medium">R$ {{ penal.valor_fixo|floatformat:2 }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">{{ penal.condicao_aplicacao }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Matriz RACI -->
+    {% if matriz_raci %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-users-cog mr-2 text-indigo-500"></i>Matriz RACI
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Fase</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Atividade</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">R</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">A</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">C</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">I</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for raci in matriz_raci %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 text-xs rounded">
+                                {{ raci.get_fase_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ raci.atividade }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ raci.responsavel|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ raci.aprovador|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ raci.consultado|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ raci.informado|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cronograma -->
+    {% if plano.cronograma_detalhado %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-calendar-alt mr-2 text-teal-500"></i>Cronograma
+        </h3>
+        <div class="space-y-3">
+            {% for marco in plano.cronograma_detalhado %}
+            <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div class="flex-shrink-0 w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ marco.data|date:"d/m/Y" }}
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ marco.nome }}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ marco.descricao }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Plano de Comunicação -->
+    {% if plano.plano_comunicacao %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-comments mr-2 text-green-500"></i>Plano de Comunicação
+        </h3>
+        {% if plano.plano_comunicacao.stakeholders %}
+        <div class="mb-6">
+            <h4 class="font-medium text-gray-800 dark:text-white mb-3">Stakeholders</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for stakeholder in plano.plano_comunicacao.stakeholders %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">{{ stakeholder.nome }}</h5>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ stakeholder.papel }}</p>
+                    <div class="mt-2 flex gap-2">
+                        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
+                            {{ stakeholder.frequencia_comunicacao }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if plano.plano_comunicacao.reunioes %}
+        <div>
+            <h4 class="font-medium text-gray-800 dark:text-white mb-3">Reuniões</h4>
+            <div class="space-y-3">
+                {% for reuniao in plano.plano_comunicacao.reunioes %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">{{ reuniao.tipo }}</h5>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ reuniao.objetivo }}</p>
+                    <div class="mt-2 flex gap-2">
+                        <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-xs rounded">
+                            {{ reuniao.frequencia }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Rejeitar -->
+<div id="rejeitarModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Rejeitar Plano de Trabalho</h3>
+        <form method="post" action="{% url 'plano_trabalho_rejeitar' plano.pk %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Observações
+                </label>
+                <textarea name="observacoes" rows="4" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="Informe o motivo da rejeição..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('rejeitarModal').classList.add('hidden')" 
+                    class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                    Rejeitar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

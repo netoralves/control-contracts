@@ -1,0 +1,121 @@
+{# projeto_publico/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ projeto.nome }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Orçamento Total: R$ {{ projeto.orcamento_total|floatformat:2 }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'contrato_publico_create' %}?projeto={{ projeto.pk }}" 
+               class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-plus mr-2"></i>Novo Contrato
+            </a>
+            <a href="{% url 'projeto_publico_update' projeto.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-edit mr-2"></i>Editar
+            </a>
+            <a href="{% url 'projeto_publico_list' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações do Projeto -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Orçamento Total</p>
+            <p class="text-lg font-semibold dark:text-white">R$ {{ projeto.orcamento_total|floatformat:2 }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Total de Contratos</p>
+            <p class="text-lg font-semibold dark:text-white">{{ contratos.count }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Valor Total dos Contratos</p>
+            <p class="text-lg font-semibold dark:text-white">R$ {{ projeto.valor_total_contratos|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <!-- Alertas de Renovação Pendente -->
+    {% if contratos_pendentes %}
+    <div class="mb-6 bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold dark:text-white mb-2">
+            <i class="fa-solid fa-exclamation-triangle mr-2"></i>Contratos com Renovação Pendente
+        </h2>
+        <ul class="list-disc list-inside text-yellow-800 dark:text-yellow-200">
+            {% for contrato in contratos_pendentes %}
+            <li>
+                <a href="{% url 'contrato_publico_detail' contrato.pk %}" class="font-semibold underline">
+                    {{ contrato.numero_contrato }}
+                </a>
+                - Vence em {{ contrato.data_fim_atual|date:"d/m/Y" }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Lista de Contratos -->
+    <div class="mb-6">
+        <h2 class="text-xl font-bold dark:text-white mb-4">Contratos do Projeto</h2>
+        {% if contratos %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Número do Contrato</th>
+                        <th class="px-4 py-3">Valor Inicial</th>
+                        <th class="px-4 py-3">Valor Atual</th>
+                        <th class="px-4 py-3">Data Início</th>
+                        <th class="px-4 py-3">Data Fim Atual</th>
+                        <th class="px-4 py-3">Regime Legal</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contrato in contratos %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3 dark:text-white font-medium">{{ contrato.numero_contrato }}</td>
+                        <td class="px-4 py-3 dark:text-white">R$ {{ contrato.valor_inicial|floatformat:2 }}</td>
+                        <td class="px-4 py-3 dark:text-white">R$ {{ contrato.valor_atual|floatformat:2 }}</td>
+                        <td class="px-4 py-3 dark:text-white">{{ contrato.data_inicio|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3 dark:text-white">{{ contrato.data_fim_atual|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {{ contrato.get_regime_legal_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if contrato.renovacao_pendente %}
+                            <span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                Renovação Pendente
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                Ativo
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <a href="{% url 'contrato_publico_detail' contrato.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                                <a href="{% url 'contrato_publico_update' contrato.pk %}" class="text-yellow-600 hover:underline">Editar</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">Nenhum contrato cadastrado. <a href="{% url 'contrato_publico_create' %}?projeto={{ projeto.pk }}" class="text-blue-600 hover:underline">Criar primeiro contrato</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

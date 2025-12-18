@@ -1,0 +1,78 @@
+{# sla/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load math_extras %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold dark:text-white">{{ sla.titulo }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">SLA do Contrato {{ sla.contrato.numero_contrato }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'sla_update' sla.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-edit mr-2"></i>Editar
+            </a>
+            <a href="{% url 'sla_list' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Contrato</p>
+            <p class="text-lg font-semibold dark:text-white">
+                <a href="{% url 'gestao_contratos_detail' sla.contrato.pk %}" class="text-blue-600 hover:underline">
+                    {{ sla.contrato.numero_contrato }}
+                </a>
+            </p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Tipo</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sla.get_tipo_display }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Meta</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sla.meta }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Valor da Penalidade</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sla.valor_penalidade|currency_br|default:"Não definido" }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Data de Início</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sla.data_inicio|date:"d/m/Y" }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Data de Fim</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sla.data_fim|date:"d/m/Y"|default:"Não definido" }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
+            <p class="text-lg font-semibold dark:text-white">
+                <span class="px-2 py-1 rounded {% if sla.ativo %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                    {% if sla.ativo %}Ativo{% else %}Inativo{% endif %}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    {% if sla.descricao %}
+    <div class="mb-6">
+        <h2 class="text-xl font-bold dark:text-white mb-2">Descrição</h2>
+        <p class="text-gray-700 dark:text-gray-300">{{ sla.descricao|linebreaks }}</p>
+    </div>
+    {% endif %}
+
+    {% if sla.observacoes %}
+    <div class="mb-6">
+        <h2 class="text-xl font-bold dark:text-white mb-2">Observações</h2>
+        <p class="text-gray-700 dark:text-gray-300">{{ sla.observacoes|linebreaks }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,58 +1,537 @@
-{# cliente/form.html #}
-{% extends 'contracts/base.html' %}
+{% extends "contracts/base.html" %}
+{% load static %}
 
-{% load static form_filters %}
+{% block title %}{% if cliente %}Editar{% else %}Novo{% endif %} Cliente{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-        {% if form.instance.pk %}Editar Cliente{% else %}Novo Cliente{% endif %}
-    </h1>
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'cliente_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-user-tie mr-2"></i>{% if cliente %}Editar Cliente{% else %}Novo Cliente{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {% if cliente %}Atualize os dados do cliente {{ cliente.nome_razao_social }}{% else %}Cadastre um novo cliente{% endif %}
+            </p>
+        </div>
+    </div>
 
-    <form method="post">
+    <!-- Mensagens de erro -->
+    {% if form.errors or formset.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                    {% if formset.errors %}
+                        {% for error in formset.non_form_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        {% for form in formset %}
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                <li>Contato {{ forloop.parentloop.counter }} - {{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <form method="post" class="space-y-6" id="cliente-form">
         {% csrf_token %}
-        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
-            {% for field in form %}
+        
+        <!-- Dados Básicos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Nome/Razão Social -->
                 <div>
-                    {% if field.name == 'ativo' %}
-                        {# Tratamento específico para o campo checkbox 'ativo' #}
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                        </label>
-                        <div class="flex items-center">
-                            {{ field|add_class:"w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" }}
-                        </div>
-                    {% else %}
-                        {# Tratamento padrão para os outros campos #}
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                    {% endif %}
-                    
-                    {% if field.help_text %}
-                        <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
-                    {% endif %}
-                    {% if field.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                    <label for="id_nome_razao_social" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.nome_razao_social.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.nome_razao_social }}
+                    {% if form.nome_razao_social.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.nome_razao_social.errors.0 }}</p>
                     {% endif %}
                 </div>
-            {% endfor %}
+                
+                <!-- Nome Fantasia -->
+                <div>
+                    <label for="id_nome_fantasia" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.nome_fantasia.label }}
+                    </label>
+                    {{ form.nome_fantasia }}
+                    {% if form.nome_fantasia.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.nome_fantasia.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Tipo Cliente -->
+                <div>
+                    <label for="id_tipo_cliente" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.tipo_cliente.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.tipo_cliente }}
+                    {% if form.tipo_cliente.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.tipo_cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Tipo Pessoa -->
+                <div>
+                    <label for="id_tipo_pessoa" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.tipo_pessoa.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.tipo_pessoa }}
+                    {% if form.tipo_pessoa.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.tipo_pessoa.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- CNPJ/CPF -->
+                <div>
+                    <label for="id_cnpj_cpf" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cnpj_cpf.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cnpj_cpf }}
+                    {% if form.cnpj_cpf.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.cnpj_cpf.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Natureza Jurídica -->
+                <div>
+                    <label for="id_natureza_juridica" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.natureza_juridica.label }}
+                    </label>
+                    {{ form.natureza_juridica }}
+                    {% if form.natureza_juridica.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.natureza_juridica.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <div class="flex items-center space-x-4">
-            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 
-                focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 
-                text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                Salvar
+        <!-- Inscrições -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-file-alt mr-2 text-purple-500"></i>Inscrições
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Inscrição Estadual -->
+                <div>
+                    <label for="id_inscricao_estadual" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.inscricao_estadual.label }}
+                    </label>
+                    {{ form.inscricao_estadual }}
+                    {% if form.inscricao_estadual.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.inscricao_estadual.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Inscrição Municipal -->
+                <div>
+                    <label for="id_inscricao_municipal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.inscricao_municipal.label }}
+                    </label>
+                    {{ form.inscricao_municipal }}
+                    {% if form.inscricao_municipal.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.inscricao_municipal.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Endereço -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-map-marker-alt mr-2 text-green-500"></i>Endereço
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Endereço -->
+                <div class="md:col-span-2">
+                    <label for="id_endereco" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.endereco.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.endereco }}
+                    {% if form.endereco.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.endereco.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Número -->
+                <div>
+                    <label for="id_numero" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.numero }}
+                    {% if form.numero.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.numero.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Complemento -->
+                <div>
+                    <label for="id_complemento" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.complemento.label }}
+                    </label>
+                    {{ form.complemento }}
+                    {% if form.complemento.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.complemento.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Bairro -->
+                <div>
+                    <label for="id_bairro" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.bairro.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.bairro }}
+                    {% if form.bairro.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.bairro.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Cidade -->
+                <div>
+                    <label for="id_cidade" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cidade.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cidade }}
+                    {% if form.cidade.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.cidade.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Estado -->
+                <div>
+                    <label for="id_estado" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.estado.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.estado }}
+                    {% if form.estado.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.estado.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- CEP -->
+                <div>
+                    <label for="id_cep" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cep.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cep }}
+                    {% if form.cep.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.cep.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- País -->
+                <div>
+                    <label for="id_pais" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.pais.label }}
+                    </label>
+                    {{ form.pais }}
+                    {% if form.pais.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.pais.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Contatos do Cliente -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-address-book mr-2 text-indigo-500"></i>Contatos do Cliente
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Adicione um ou mais contatos do cliente. Você pode marcar um contato como principal.
+            </p>
+            
+            {{ formset.management_form }}
+            <div id="contatos-container" class="space-y-4">
+                {% for form_contato in formset %}
+                <div class="contato-form border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50 relative">
+                    <!-- Botão X para remover -->
+                    <button type="button" class="remove-contato absolute top-2 right-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 rounded-full p-1.5 hover:bg-red-100 dark:hover:bg-red-900/40 transition" title="Remover contato">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                    
+                    {% if form_contato.non_field_errors %}
+                    <div class="mb-2 text-red-500 text-sm">{{ form_contato.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pr-8">
+                        <!-- Nome -->
+                        <div>
+                            <label for="{{ form_contato.nome.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ form_contato.nome.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form_contato.nome }}
+                            {% if form_contato.nome.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form_contato.nome.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Email -->
+                        <div>
+                            <label for="{{ form_contato.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ form_contato.email.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form_contato.email }}
+                            {% if form_contato.email.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form_contato.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Telefone -->
+                        <div>
+                            <label for="{{ form_contato.telefone.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ form_contato.telefone.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form_contato.telefone }}
+                            {% if form_contato.telefone.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form_contato.telefone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Função -->
+                        <div>
+                            <label for="{{ form_contato.funcao.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ form_contato.funcao.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form_contato.funcao }}
+                            {% if form_contato.funcao.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form_contato.funcao.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <!-- Principal -->
+                        <div class="flex items-center">
+                            <label for="{{ form_contato.principal.id_for_label }}" class="flex items-center cursor-pointer">
+                                {{ form_contato.principal }}
+                                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {{ form_contato.principal.label }}
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <!-- Ativo -->
+                        <div class="flex items-center">
+                            <label for="{{ form_contato.ativo.id_for_label }}" class="flex items-center cursor-pointer">
+                                {{ form_contato.ativo }}
+                                <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {{ form_contato.ativo.label }}
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos hidden para DELETE e ID -->
+                    {% if form_contato.DELETE %}
+                    <input type="hidden" name="{{ form_contato.DELETE.name }}" id="{{ form_contato.DELETE.id_for_label }}" value="{{ form_contato.DELETE.value|default:'' }}">
+                    {% endif %}
+                    {{ form_contato.id }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" id="add-contato" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
+                <i class="fas fa-plus mr-2"></i>Adicionar Contato
             </button>
-            <a href="{% url 'cliente_list' %}" class="text-gray-900 bg-white border border-gray-300 
-                focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium 
-                rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 
-                dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                Cancelar
+        </div>
+
+        <!-- Gestão de Clientes -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-users-cog mr-2 text-amber-500"></i>Gestão de Clientes
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Gerente Comercial -->
+                <div>
+                    <label for="id_gerente_comercial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.gerente_comercial.label }}
+                    </label>
+                    {{ form.gerente_comercial }}
+                    {% if form.gerente_comercial.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.gerente_comercial.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Gerente de Sucessos -->
+                <div>
+                    <label for="id_gerente_sucessos" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.gerente_sucessos.label }}
+                    </label>
+                    {{ form.gerente_sucessos }}
+                    {% if form.gerente_sucessos.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.gerente_sucessos.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-toggle-on mr-2 text-green-500"></i>Status
+            </h3>
+            
+            <div class="flex items-center">
+                <label for="id_ativo" class="flex items-center cursor-pointer">
+                    {{ form.ativo }}
+                    <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ form.ativo.label }}
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'cliente_list' %}" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-lg font-medium transition">
+                <i class="fas fa-times mr-2"></i>Cancelar
             </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                <i class="fas fa-save mr-2"></i>Salvar Cliente
+            </button>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formsetContainer = document.getElementById('contatos-container');
+    const addButton = document.getElementById('add-contato');
+    const totalFormsInput = document.querySelector('#id_contatos-TOTAL_FORMS');
+    let formCount = parseInt(totalFormsInput.value) || 0;
+    
+    // Função para atualizar o total de formulários
+    function updateTotalForms() {
+        const forms = formsetContainer.querySelectorAll('.contato-form:not([style*="display: none"])');
+        totalFormsInput.value = forms.length;
+    }
+    
+    // Função para remover formulário
+    function removeContatoForm(button) {
+        const form = button.closest('.contato-form');
+        const deleteInput = form.querySelector('input[name*="-DELETE"]');
+        
+        // Se o formulário já existe no banco (tem ID), marcar para exclusão
+        const idInput = form.querySelector('input[name*="-id"]');
+        if (idInput && idInput.value) {
+            if (deleteInput) {
+                deleteInput.checked = true;
+                deleteInput.value = 'on';
+            }
+            form.style.display = 'none';
+        } else {
+            // Se é um novo formulário, remover completamente
+            form.remove();
+        }
+        
+        updateTotalForms();
+    }
+    
+    // Função para clonar e adicionar novo formulário
+    function addContatoForm() {
+        const firstForm = formsetContainer.querySelector('.contato-form');
+        if (!firstForm) {
+            console.error('Formulário base não encontrado');
+            return;
+        }
+        
+        const newForm = firstForm.cloneNode(true);
+        const formRegex = RegExp(`contatos-(\\d+)-`, 'g');
+        
+        // Limpar valores e atualizar índices
+        newForm.querySelectorAll('input, select, label').forEach(function(element) {
+            if (element.name) {
+                element.name = element.name.replace(formRegex, `contatos-${formCount}-`);
+            }
+            if (element.id) {
+                element.id = element.id.replace(formRegex, `contatos-${formCount}-`);
+            }
+            if (element.htmlFor) {
+                element.htmlFor = element.htmlFor.replace(formRegex, `contatos-${formCount}-`);
+            }
+            
+            // Limpar valores
+            if (element.type === 'checkbox') {
+                element.checked = false;
+            } else if (element.type === 'hidden') {
+                if (element.name && element.name.includes('id')) {
+                    element.value = '';
+                } else if (element.name && element.name.includes('DELETE')) {
+                    element.value = '';
+                }
+            } else {
+                element.value = '';
+            }
+        });
+        
+        // Limpar erros
+        newForm.querySelectorAll('.text-red-500').forEach(function(error) {
+            error.remove();
+        });
+        
+        // Resetar display
+        newForm.style.display = '';
+        newForm.style.opacity = '1';
+        newForm.querySelectorAll('input:not([name*="DELETE"]), select').forEach(function(input) {
+            input.disabled = false;
+        });
+        
+        // Adicionar event listener ao botão de remover
+        const removeButton = newForm.querySelector('.remove-contato');
+        if (removeButton) {
+            removeButton.addEventListener('click', function() {
+                removeContatoForm(this);
+            });
+        }
+        
+        formsetContainer.appendChild(newForm);
+        formCount++;
+        updateTotalForms();
+    }
+    
+    // Adicionar event listeners aos botões de remover existentes
+    if (formsetContainer) {
+        formsetContainer.querySelectorAll('.remove-contato').forEach(function(button) {
+            button.addEventListener('click', function() {
+                removeContatoForm(this);
+            });
+        });
+    }
+    
+    if (addButton) {
+        addButton.addEventListener('click', addContatoForm);
+    }
+});
+</script>
 {% endblock %}

@@ -1,5 +1,6 @@
 {# item_contrato/detail.html #}
 {% extends 'contracts/base.html' %}
+{% load math_extras %}
 {% block content %}
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -13,15 +14,15 @@
         <div><strong>Tipo:</strong><p>{{ item.tipo }}</p></div>
         <div><strong>Unidade:</strong><p>{{ item.unidade }}</p></div>
         <div><strong>Quantidade:</strong><p>{{ item.quantidade }}</p></div>
-        <div><strong>Valor Unitário (R$):</strong><p>R$ {{ item.valor_unitario }}</p></div>
-        <div><strong>Valor Total (R$):</strong><p>R$ {{ item.valor_total }}</p></div>
+        <div><strong>Valor Unitário (R$):</strong><p>{{ item.valor_unitario|currency_br }}</p></div>
+        <div><strong>Valor Total (R$):</strong><p>{{ item.valor_total|currency_br }}</p></div>
         {% if item.tipo in 'Hardware,Software,Solução' %}
         <div><strong>Vigência Produto (meses):</strong><p>{{ item.vigencia_produto }}</p></div>
         {% endif %}
         <div><strong>Quantidade Consumida:</strong><p>{{ item.quantidade_consumida }}</p></div>
         <div><strong>Saldo de Quantidade:</strong><p>{{ item.saldo_quantidade }}</p></div>
-        <div><strong>Valor Faturado (R$):</strong><p>R$ {{ item.valor_faturado }}</p></div>
-        <div><strong>Valor Saldo (R$):</strong><p>R$ {{ item.valor_saldo }}</p></div>
+        <div><strong>Valor Faturado (R$):</strong><p>{{ item.valor_faturado|currency_br }}</p></div>
+        <div><strong>Valor Saldo (R$):</strong><p>{{ item.valor_saldo|currency_br }}</p></div>
     </div>
 
     <!-- Histórico de Consumo -->
@@ -48,8 +49,8 @@
                                     <td class="border px-4 py-2">{{ ordem.numero_os_of }}</td>
                                     <td class="border px-4 py-2">{{ ordem.unidade }}</td>
                                     <td class="border px-4 py-2">{{ ordem.quantidade }}</td>
-                                    <td class="border px-4 py-2">R$ {{ ordem.valor_unitario }}</td>
-                                    <td class="border px-4 py-2">R$ {{ ordem.valor_total }}</td>
+                                    <td class="border px-4 py-2">{{ ordem.valor_unitario|currency_br }}</td>
+                                    <td class="border px-4 py-2">{{ ordem.valor_total|currency_br }}</td>
                                     <td class="border px-4 py-2">
                                         {% if ordem.data_ativacao %}
                                             {{ item.vigencia_restante }} meses
@@ -86,8 +87,8 @@
                                     <td class="border px-4 py-2">{{ ordem.numero_os_of }}</td>
                                     <td class="border px-4 py-2">{{ ordem.unidade }}</td>
                                     <td class="border px-4 py-2">{{ ordem.quantidade }}</td>
-                                    <td class="border px-4 py-2">R$ {{ ordem.valor_unitario }}</td>
-                                    <td class="border px-4 py-2">R$ {{ ordem.valor_total }}</td>
+                                    <td class="border px-4 py-2">{{ ordem.valor_unitario|currency_br }}</td>
+                                    <td class="border px-4 py-2">{{ ordem.valor_total|currency_br }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -101,7 +102,7 @@
 
     <!-- Botões -->
     <div class="flex justify-between mt-6">
-        <a href="{% url 'item_contrato_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Voltar</a>
+        <a href="{% url 'gestao_contratos_detail' item.contrato.pk %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Voltar ao Contrato</a>
         <div class="flex gap-2">
             <a href="{% url 'item_contrato_update' item.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Editar</a>
             <a href="{% url 'item_contrato_delete' item.id %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">Excluir</a>

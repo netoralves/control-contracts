@@ -1,0 +1,63 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Excluir Ticket - {{ ticket.numero_ticket }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-2xl">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Confirmar Exclusão</h1>
+                <p class="text-gray-600 dark:text-gray-400">Esta ação não pode ser desfeita</p>
+            </div>
+        </div>
+
+        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p class="text-gray-800 dark:text-white font-medium mb-2">
+                Você está prestes a excluir o ticket:
+            </p>
+            <p class="text-gray-700 dark:text-gray-300">
+                <strong>Número:</strong> {{ ticket.numero_ticket|default:"-" }}<br>
+                <strong>Cliente:</strong> {{ ticket.cliente.nome_razao_social }}<br>
+                <strong>Contrato:</strong> {{ ticket.contrato.numero_contrato }}<br>
+                {% if ticket.sprint %}
+                    <strong>Sprint:</strong> {{ ticket.sprint.nome }}<br>
+                {% elif ticket.ordem_servico %}
+                    <strong>Ordem de Serviço:</strong> {{ ticket.ordem_servico.numero_os }}<br>
+                {% endif %}
+                <strong>Status:</strong> {{ ticket.get_status_display }}<br>
+                <strong>Criado em:</strong> {{ ticket.criado_em|date:"d/m/Y H:i" }}
+            </p>
+        </div>
+
+        <div class="mb-6">
+            <p class="text-gray-700 dark:text-gray-300">
+                Todos os dados relacionados a este ticket serão permanentemente excluídos, incluindo:
+            </p>
+            <ul class="list-disc list-inside mt-2 text-gray-600 dark:text-gray-400 space-y-1">
+                <li>Respostas do questionário NPS</li>
+                <li>Perguntas de satisfação</li>
+                <li>Elogios e críticas</li>
+                <li>Histórico de contato</li>
+            </ul>
+        </div>
+
+        <form method="post" class="flex gap-3">
+            {% csrf_token %}
+            <button type="submit" 
+                    class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors">
+                <i class="fas fa-trash mr-2"></i> Sim, excluir permanentemente
+            </button>
+            <a href="{% url 'customer_success_detail' ticket.pk %}" 
+               class="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-medium rounded-lg transition-colors text-center">
+                <i class="fas fa-times mr-2"></i> Cancelar
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

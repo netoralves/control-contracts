@@ -1,0 +1,32 @@
+{# tarefa/confirm_delete_projeto.html #}
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <h1 class="text-2xl font-bold dark:text-white mb-4">Confirmar Exclusão</h1>
+    
+    <div class="mb-6 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+        <p class="text-red-800 dark:text-red-200 font-semibold mb-2">
+            <i class="fa-solid fa-exclamation-triangle mr-2"></i>
+            Atenção: Esta ação não pode ser desfeita!
+        </p>
+        <p class="text-red-700 dark:text-red-300 text-sm">
+            Tem certeza que deseja excluir a tarefa <strong>{{ tarefa.titulo }}</strong>?
+        </p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex gap-2">
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-trash mr-2"></i>Confirmar Exclusão
+            </button>
+            <a href="{% url 'projeto_detail' projeto.pk %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-times mr-2"></i>Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

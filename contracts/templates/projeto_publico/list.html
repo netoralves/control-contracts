@@ -1,0 +1,95 @@
+{# projeto_publico/list.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projetos Públicos</h1>
+        <a href="{% url 'projeto_publico_create' %}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+            <i class="fa-solid fa-plus mr-2"></i>Novo Projeto
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <form method="get" class="mb-4">
+        <div class="flex gap-2">
+            <input type="text" name="search" value="{{ search_query }}" 
+                   placeholder="Buscar por nome..."
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-search mr-2"></i>Buscar
+            </button>
+            {% if search_query %}
+            <a href="{% url 'projeto_publico_list' %}" class="bg-gray-400 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-times mr-2"></i>Limpar
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Tabela -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                <tr>
+                    <th class="px-4 py-3">Nome</th>
+                    <th class="px-4 py-3">Orçamento Total</th>
+                    <th class="px-4 py-3">Total Contratos</th>
+                    <th class="px-4 py-3">Valor Total Contratos</th>
+                    <th class="px-4 py-3">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for projeto in page_obj %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-4 py-3 dark:text-white font-medium">{{ projeto.nome }}</td>
+                    <td class="px-4 py-3 dark:text-white">R$ {{ projeto.orcamento_total|floatformat:2 }}</td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.contratos.count }}</td>
+                    <td class="px-4 py-3 dark:text-white">R$ {{ projeto.valor_total_contratos|floatformat:2 }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            <a href="{% url 'projeto_publico_detail' projeto.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                            <a href="{% url 'projeto_publico_update' projeto.pk %}" class="text-yellow-600 hover:underline">Editar</a>
+                            <a href="{% url 'projeto_publico_delete' projeto.pk %}" class="text-red-600 hover:underline" onclick="return confirm('Tem certeza que deseja excluir este projeto?');">Excluir</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">
+                        Nenhum projeto encontrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-4 flex justify-center">
+        <nav class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white">
+                Anterior
+            </a>
+            {% endif %}
+            
+            <span class="px-3 py-2 bg-blue-600 text-white rounded-lg">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white">
+                Próxima
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{# sprint/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                {% if sprint %}Editar Sprint{% else %}Nova Sprint{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Projeto: {{ projeto.nome }}</p>
+        </div>
+        <a href="{% if sprint %}{% url 'sprint_detail' projeto.pk sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        <!-- Campos ocultos -->
+        {{ form.projeto }}
+        
+        {% if form.errors %}
+        <div class="mb-4 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+            <p class="text-red-800 dark:text-red-200 font-semibold mb-2">Erros no formulário:</p>
+            <ul class="list-disc list-inside text-red-700 dark:text-red-300">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if sprint and sprint.ordem_servico %}
+        <div class="mb-4 bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+            <p class="text-blue-800 dark:text-blue-200 text-sm">
+                <i class="fa-solid fa-info-circle mr-2"></i>
+                <strong>OS vinculada:</strong> {{ sprint.ordem_servico.numero_os }} - Os campos abaixo foram preenchidos com os dados da OS. Você pode editá-los conforme necessário.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                {% if field.name == 'nome' %}
+                    {# Nome da Sprint - coluna esquerda #}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% elif field.name == 'status' %}
+                    {# Status - coluna direita, ao lado do Nome #}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% elif field.name != 'projeto' %}
+                    <div class="{% if field.name == 'descricao' %}md:col-span-2{% elif field.name == 'ordem_servico' %}md:col-span-2{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> {% if sprint %}Salvar Alterações{% else %}Criar Sprint{% endif %}
+            </button>
+            <a href="{% if sprint %}{% url 'sprint_detail' projeto.pk sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

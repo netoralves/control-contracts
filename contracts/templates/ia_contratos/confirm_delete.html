@@ -1,0 +1,36 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Excluir Documento{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-lg mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <div class="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-trash text-red-600 dark:text-red-400 text-2xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                Excluir Documento?
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+                Tem certeza que deseja excluir a análise <strong>"{{ analise.nome }}"</strong> e todos os {{ analise.documentos.count }} documento(s) associados?
+                Esta ação não pode ser desfeita.
+            </p>
+            
+            <form method="post" class="flex justify-center gap-4">
+                {% csrf_token %}
+                <a href="{% url 'documento_contrato_detail' analise.pk %}" 
+                    class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                    class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

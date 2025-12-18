@@ -1,83 +1,459 @@
-{# cliente/detail.html #}
-{% extends 'contracts/base.html' %}
+{% extends "contracts/base.html" %}
 {% load static %}
+{% load math_extras %}
+
+{% block title %}{{ cliente.nome_fantasia|default:cliente.nome_razao_social }} - Detalhes do Cliente{% endblock %}
 
 {% block content %}
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-
+<div class="container mx-auto px-4 py-6">
     <!-- Cabeçalho -->
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
-            Detalhes do Cliente
-        </h1>
-        <div class="flex gap-2">
-            <a href="{% url 'cliente_update' cliente.id %}" 
-               class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none 
-               focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 
-               dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                Editar
-            </a>
-            <a href="{% url 'cliente_list' %}" 
-               class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 
-               focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 
-               dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 
-               dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                Voltar
-            </a>
-        </div>
-    </div>
-
-    <!-- Conteúdo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- Coluna Esquerda -->
-        <div class="space-y-4">
-            <div><strong class="text-gray-700 dark:text-gray-300">Razão Social:</strong><br>{{ cliente.nome_razao_social }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Nome Fantasia:</strong><br>{{ cliente.nome_fantasia }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Tipo Cliente:</strong><br>{{ cliente.tipo_cliente }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Tipo Pessoa:</strong><br>{{ cliente.tipo_pessoa }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">CNPJ/CPF:</strong><br>{{ cliente.cnpj_cpf }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Natureza Jurídica:</strong><br>{{ cliente.natureza_juridica }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Inscrição Estadual:</strong><br>{{ cliente.inscricao_estadual }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Inscrição Municipal:</strong><br>{{ cliente.inscricao_municipal }}</div>
-        </div>
-
-        <!-- Coluna Direita -->
-        <div class="space-y-4">
-            <div><strong class="text-gray-700 dark:text-gray-300">Endereço:</strong><br>{{ cliente.endereco }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Número:</strong><br>{{ cliente.numero }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Complemento:</strong><br>{{ cliente.complemento }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Bairro:</strong><br>{{ cliente.bairro }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Cidade:</strong><br>{{ cliente.cidade }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Estado:</strong><br>{{ cliente.estado }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">CEP:</strong><br>{{ cliente.cep }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">País:</strong><br>{{ cliente.pais }}</div>
-        </div>
-    </div>
-
-    <!-- Linha -->
-    <hr class="my-6 border-gray-200 dark:border-gray-600">
-
-    <!-- Dados do responsável e status -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <div class="space-y-4">
-            <div><strong class="text-gray-700 dark:text-gray-300">Nome Responsável:</strong><br>{{ cliente.nome_responsavel }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Cargo Responsável:</strong><br>{{ cliente.cargo_responsavel }}</div>
-        </div>
-
-        <div class="space-y-4">
-            <div><strong class="text-gray-700 dark:text-gray-300">Telefone Contato:</strong><br>{{ cliente.telefone_contato }}</div>
-            <div><strong class="text-gray-700 dark:text-gray-300">Email Contato:</strong><br>{{ cliente.email_contato }}</div>
-            <div>
-                <strong class="text-gray-700 dark:text-gray-300">Status:</strong><br>
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'cliente_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-user-tie mr-2"></i>{{ cliente.nome_fantasia|default:cliente.nome_razao_social }}
+                </h1>
                 {% if cliente.ativo %}
-                    <span class="text-green-600 font-medium">Ativo</span>
+                <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <i class="fas fa-check-circle mr-1"></i>Ativo
+                </span>
                 {% else %}
-                    <span class="text-red-600 font-medium">Inativo</span>
+                <span class="px-3 py-1 text-sm rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    <i class="fas fa-times-circle mr-1"></i>Inativo
+                </span>
                 {% endif %}
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                {{ cliente.nome_razao_social }}
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'cliente_update' cliente.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit mr-1"></i> Editar
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Total Contratos</p>
+                    <p class="text-2xl font-bold mt-1">{{ total_contratos }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-file-contract text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Contratos Ativos</p>
+                    <p class="text-2xl font-bold mt-1">{{ contratos_ativos }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Abas -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                <button type="button" onclick="showTab('detalhes')" id="tab-detalhes"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    <i class="fas fa-info-circle mr-1"></i> Detalhes
+                </button>
+                <button type="button" onclick="showTab('contratos')" id="tab-contratos"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-file-contract mr-1"></i> Contratos ({{ total_contratos }})
+                </button>
+                <button type="button" onclick="showTab('tickets')" id="tab-tickets"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-headset mr-1"></i> Tickets CS ({{ total_tickets }})
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Detalhes -->
+    <div id="content-detalhes" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Dados Básicos -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Nome/Razão Social</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.nome_razao_social }}</p>
+                        </div>
+                        {% if cliente.nome_fantasia %}
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Nome Fantasia</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.nome_fantasia }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Tipo de Cliente</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.get_tipo_cliente_display }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Tipo de Pessoa</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.get_tipo_pessoa_display }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">CNPJ/CPF</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.cnpj_cpf }}</p>
+                    </div>
+                    {% if cliente.natureza_juridica %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Natureza Jurídica</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.natureza_juridica }}</p>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Data de Cadastro</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.data_cadastro|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gestão de Clientes -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-users-cog mr-2 text-amber-500"></i>Gestão de Clientes
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Gerente Comercial</p>
+                        <p class="font-medium text-gray-900 dark:text-white">
+                            {{ cliente.gerente_comercial.nome_completo|default:"Não definido" }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Gerente de Sucessos</p>
+                        <p class="font-medium text-gray-900 dark:text-white">
+                            {{ cliente.gerente_sucessos.nome_completo|default:"Não definido" }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                        <p class="font-medium">
+                            {% if cliente.ativo %}
+                            <span class="px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Ativo</span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Inativo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inscrições -->
+            {% if cliente.inscricao_estadual or cliente.inscricao_municipal %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-file-alt mr-2 text-purple-500"></i>Inscrições
+                </h3>
+                <div class="space-y-4">
+                    {% if cliente.inscricao_estadual %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Inscrição Estadual</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.inscricao_estadual }}</p>
+                    </div>
+                    {% endif %}
+                    {% if cliente.inscricao_municipal %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Inscrição Municipal</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.inscricao_municipal }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Endereço -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-map-marker-alt mr-2 text-green-500"></i>Endereço
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Endereço</p>
+                        <p class="font-medium text-gray-900 dark:text-white">
+                            {{ cliente.endereco }}, {{ cliente.numero }}
+                            {% if cliente.complemento %}- {{ cliente.complemento }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Bairro</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.bairro }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Cidade</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.cidade }}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Estado</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.estado }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">CEP</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ cliente.cep }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">País</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ cliente.pais }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contatos do Cliente -->
+        {% if cliente.contatos.exists %}
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-address-book mr-2 text-indigo-500"></i>Contatos do Cliente
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for contato in cliente.contatos.all %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 {% if contato.principal %}bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700{% else %}bg-gray-50 dark:bg-gray-700/50{% endif %}">
+                    {% if contato.principal %}
+                    <div class="flex items-center mb-2">
+                        <span class="px-2 py-1 text-xs font-semibold bg-indigo-600 text-white rounded">Principal</span>
+                    </div>
+                    {% endif %}
+                    <div class="space-y-2">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Nome</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ contato.nome }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">E-mail</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                <a href="mailto:{{ contato.email }}" class="text-blue-600 hover:underline dark:text-blue-400">{{ contato.email }}</a>
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Telefone</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                <a href="tel:{{ contato.telefone }}" class="text-blue-600 hover:underline dark:text-blue-400">{{ contato.telefone }}</a>
+                            </p>
+                        </div>
+                        {% if contato.funcao %}
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Função</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ contato.funcao }}</p>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center gap-4 pt-2">
+                            <span class="text-xs {% if contato.ativo %}text-green-600 dark:text-green-400{% else %}text-gray-400{% endif %}">
+                                <i class="fas fa-circle text-xs mr-1"></i>
+                                {% if contato.ativo %}Ativo{% else %}Inativo{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Contratos -->
+    <div id="content-contratos" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    <i class="fas fa-file-contract mr-2 text-blue-500"></i>Contratos
+                </h3>
+                <a href="{% url 'gestao_contratos_create' %}?cliente={{ cliente.pk }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition">
+                    <i class="fas fa-plus mr-1"></i> Novo Contrato
+                </a>
+            </div>
+            {% if contratos %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Nº Contrato</th>
+                            <th class="px-4 py-3">Data Assinatura</th>
+                            <th class="px-4 py-3">Vigência</th>
+                            <th class="px-4 py-3">Situação</th>
+                            <th class="px-4 py-3">Valor Global</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contrato in contratos %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ contrato.numero_contrato }}</td>
+                            <td class="px-4 py-3">{{ contrato.data_assinatura|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3">{{ contrato.vigencia }} meses</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs font-medium {% if contrato.situacao == 'Ativo' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                    {{ contrato.situacao }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">{{ contrato.valor_global|currency_br }}</td>
+                            <td class="px-4 py-3">
+                                <a href="{% url 'gestao_contratos_detail' contrato.pk %}" class="text-blue-600 hover:underline dark:text-blue-400">
+                                    <i class="fas fa-eye mr-1"></i>Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhum contrato cadastrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Tickets CS -->
+    <div id="content-tickets" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    <i class="fas fa-headset mr-2 text-indigo-500"></i>Tickets de Customer Success
+                </h3>
+                <a href="{% url 'customer_success_criar_ticket' %}?cliente={{ cliente.pk }}" 
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition">
+                    <i class="fas fa-plus mr-1"></i> Novo Ticket
+                </a>
+            </div>
+            {% if tickets_cs %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Nº Ticket</th>
+                            <th class="px-4 py-3">Contrato</th>
+                            <th class="px-4 py-3">Vinculação</th>
+                            <th class="px-4 py-3">Motivador</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">NPS</th>
+                            <th class="px-4 py-3">Data Criação</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets_cs %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                {{ ticket.numero_ticket|default:"-" }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <a href="{% url 'gestao_contratos_detail' ticket.contrato.pk %}" class="text-blue-600 hover:underline dark:text-blue-400">
+                                    {{ ticket.contrato.numero_contrato }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if ticket.ordem_servico %}
+                                    <span class="text-xs">OS: {{ ticket.ordem_servico.numero_os }}</span>
+                                {% elif ticket.sprint %}
+                                    <span class="text-xs">Sprint: {{ ticket.sprint.nome }}</span>
+                                {% else %}
+                                    <span class="text-xs text-gray-400">Manual</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs font-medium 
+                                    {% if ticket.motivador_contato == 'voluntario_cs' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                    {% elif ticket.motivador_contato == 'solicitacao_comercial' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                    {{ ticket.get_motivador_contato_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs font-medium 
+                                    {% if ticket.status == 'concluido' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    {% elif ticket.status == 'respondido' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                    {% elif ticket.status == 'em_contato' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {{ ticket.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if ticket.pergunta_nps is not None %}
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium {% if ticket.nps_categoria == 'Promotor' %}text-green-600 dark:text-green-400
+                                            {% elif ticket.nps_categoria == 'Neutro' %}text-yellow-600 dark:text-yellow-400
+                                            {% else %}text-red-600 dark:text-red-400{% endif %}">
+                                            {{ ticket.pergunta_nps }}/10
+                                        </span>
+                                        <span class="text-xs px-2 py-1 rounded 
+                                            {% if ticket.nps_categoria == 'Promotor' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                            {% elif ticket.nps_categoria == 'Neutro' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                            {{ ticket.nps_categoria }}
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <span class="text-gray-400 text-xs">Sem resposta</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">{{ ticket.criado_em|date:"d/m/Y H:i" }}</td>
+                            <td class="px-4 py-3">
+                                <a href="{% url 'customer_success_detail' ticket.pk %}" class="text-blue-600 hover:underline dark:text-blue-400">
+                                    <i class="fas fa-eye mr-1"></i>Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-headset text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">Nenhum ticket de Customer Success cadastrado.</p>
+                <a href="{% url 'customer_success_criar_ticket' %}?cliente={{ cliente.pk }}" 
+                   class="inline-flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition">
+                    <i class="fas fa-plus mr-2"></i> Criar Primeiro Ticket
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<script>
+function showTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    // Remove active state from all tabs
+    document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected content
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    // Add active state to selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+}
+</script>
 {% endblock %}

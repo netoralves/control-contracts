@@ -1,16 +1,28 @@
-{# item_fornecedor/detail.html #}
-{% extends 'contracts/base.html' %}
+{% extends "contracts/base.html" %}
+{% load static math_extras %}
+
+{% block title %}{{ item.sku|default:item.descricao }} - Detalhes do Item de Fornecedor{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-
-    <h1 class="text-2xl font-bold mb-6 dark:text-white">Detalhes do Item de Fornecedor</h1>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Fornecedor</h2>
-            <p class="text-lg dark:text-white">
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'item_fornecedor_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-box-open mr-2"></i>{{ item.sku|default:item.descricao|truncatewords:5 }}
+                </h1>
+                <span class="px-3 py-1 text-sm rounded-full 
+                    {% if item.tipo == 'produto' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                    {% elif item.tipo == 'servico' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                    {% else %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% endif %}">
+                    {{ item.get_tipo_display }}
+                </span>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
                 {% if item.fornecedor == 'Outro Fornecedor' %}
                     {{ item.outro_fornecedor }}
                 {% else %}
@@ -18,53 +30,124 @@
                 {% endif %}
             </p>
         </div>
-
-        <div>
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Tipo</h2>
-            <p class="text-lg dark:text-white">{{ item.tipo }}</p>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'item_fornecedor_update' item.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit mr-1"></i> Editar
+            </a>
+            <a href="{% url 'item_fornecedor_delete' item.pk %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-trash mr-1"></i> Excluir
+            </a>
         </div>
-
-        <div>
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">SKU</h2>
-            <p class="text-lg dark:text-white">{{ item.sku }}</p>
-        </div>
-
-        <div>
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Unidade</h2>
-            <p class="text-lg dark:text-white">{{ item.unidade }}</p>
-        </div>
-
-        <div>
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Valor Unitário</h2>
-            <p class="text-lg dark:text-white">R$ {{ item.valor_unitario }}</p>
-        </div>
-
-        <div class="md:col-span-2">
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Descrição</h2>
-            <p class="text-lg dark:text-white">{{ item.descricao }}</p>
-        </div>
-
-        <div class="md:col-span-2">
-            <h2 class="font-semibold text-gray-600 dark:text-gray-300">Observações</h2>
-            <p class="text-lg dark:text-white">{{ item.observacoes|default:"-" }}</p>
-        </div>
-
     </div>
 
-    <div class="flex justify-end gap-2 mt-6">
-        <a href="{% url 'item_fornecedor_update' item.id %}"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg">
-            Editar
-        </a>
-        <a href="{% url 'item_fornecedor_delete' item.id %}"
-            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-            Excluir
-        </a>
-        <a href="{% url 'item_fornecedor_list' %}"
-            class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">
-            Voltar
-        </a>
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Valor Unitário</p>
+                    <p class="text-2xl font-bold mt-1">{{ item.valor_unitario|currency_br }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-dollar-sign text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Unidade</p>
+                    <p class="text-2xl font-bold mt-1">{{ item.unidade|default:"-" }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-ruler text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">SKU</p>
+                    <p class="text-2xl font-bold mt-1">{{ item.sku|default:"-"|truncatechars:10 }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-barcode text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-amber-100 text-sm">Tipo</p>
+                    <p class="text-2xl font-bold mt-1">{{ item.get_tipo_display }}</p>
+                </div>
+                <div class="bg-amber-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-tag text-xl"></i>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Detalhes -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Informações Principais -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Informações Principais
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Fornecedor</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        {% if item.fornecedor == 'Outro Fornecedor' %}
+                            {{ item.outro_fornecedor }}
+                        {% else %}
+                            {{ item.fornecedor }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Tipo</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if item.tipo == 'produto' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                            {% elif item.tipo == 'servico' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                            {% else %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% endif %}">
+                            {{ item.get_tipo_display }}
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">SKU</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ item.sku|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Unidade</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ item.unidade|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Valor Unitário</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ item.valor_unitario|currency_br }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Descrição e Observações -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-align-left mr-2 text-purple-500"></i>Descrição e Observações
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Descrição</p>
+                    <p class="text-sm text-gray-900 dark:text-white">{{ item.descricao }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Observações</p>
+                    <p class="text-sm text-gray-900 dark:text-white">{{ item.observacoes|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

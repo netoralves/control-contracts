@@ -1,0 +1,366 @@
+{# projeto/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load static math_extras %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold dark:text-white">{{ projeto.nome }}</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">{{ projeto.contrato.numero_contrato }} - {{ projeto.contrato.cliente.nome_fantasia|default:projeto.contrato.cliente.nome_razao_social }}</p>
+            </div>
+            {% if dias_restantes_contrato is not None %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium {% if dias_restantes_contrato < 0 %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif meses_restantes <= 3 %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+                <i class="fa-solid fa-clock mr-1"></i>
+                {% if dias_restantes_contrato < 0 %}
+                    Encerrado há {{ dias_restantes_contrato|slice:"1:" }} dias
+                {% elif dias_restantes_contrato == 0 %}
+                    Último dia!
+                {% else %}
+                    {{ dias_restantes_contrato }} dias restantes
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+        <div class="flex gap-2">
+            {% if plano_trabalho %}
+            <a href="{% url 'plano_trabalho_detail' plano_trabalho.pk %}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-project-diagram mr-2"></i>Ver Plano de Trabalho
+            </a>
+            {% else %}
+            <a href="{% url 'plano_trabalho_gerar' projeto.pk %}" 
+               class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-robot mr-2"></i>Gerar Plano com IA
+            </a>
+            {% endif %}
+            <a href="{% url 'projeto_update' projeto.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-edit mr-2"></i>Editar
+            </a>
+            <a href="{% url 'projeto_list' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações Principais -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
+            <p class="text-lg font-semibold dark:text-white">
+                <span class="px-2 py-1 rounded {% if projeto.status == 'concluido' %}bg-green-100 text-green-800{% elif projeto.status == 'em_andamento' %}bg-blue-100 text-blue-800{% elif projeto.status == 'pausado' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ projeto.get_status_display }}
+                </span>
+            </p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Gerente de Projeto</p>
+            <p class="text-lg font-semibold dark:text-white">{{ projeto.gerente_projeto.nome_completo|default:"Não definido" }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Data Início</p>
+            <p class="text-lg font-semibold dark:text-white">{{ projeto.data_inicio|date:"d/m/Y" }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Data Fim Prevista</p>
+            <p class="text-lg font-semibold dark:text-white">{{ projeto.data_fim_prevista|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+        <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ total_tarefas_projeto }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Tarefas do Projeto</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ total_sprints }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Total Sprints</p>
+        </div>
+        <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ sprints_pendentes }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Sprints Pendentes</p>
+        </div>
+        <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ sprints_execucao }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Em Execução</p>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ sprints_finalizadas }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Finalizadas</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ sprints_faturadas }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Faturadas</p>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="tabs" data-tabs-toggle="#tab-content" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg active" id="tarefas-tab" data-tabs-target="#tarefas" type="button" role="tab">
+                    Tarefas ({{ todas_tarefas.count }})
+                </button>
+            </li>
+            {% if backlog_origem %}
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="backlog-tab" data-tabs-target="#backlog" type="button" role="tab">
+                    Backlog de Origem
+                </button>
+            </li>
+            {% endif %}
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="sprints-tab" data-tabs-target="#sprints" type="button" role="tab">
+                    Sprints ({{ total_sprints }})
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="informacoes-tab" data-tabs-target="#informacoes" type="button" role="tab">
+                    Informações
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Conteúdo das Abas -->
+    <div id="tab-content">
+        <!-- Aba Tarefas -->
+        <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="tarefas" role="tabpanel">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold dark:text-white">Tarefas do Projeto</h2>
+                <a href="{% url 'tarefa_projeto_create' projeto.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
+                    <i class="fa-solid fa-plus mr-2"></i>Nova Tarefa
+                </a>
+            </div>
+            
+            {% if todas_tarefas %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Nome da Tarefa</th>
+                            <th class="px-4 py-3">Descrição</th>
+                            <th class="px-4 py-3">Responsável</th>
+                            <th class="px-4 py-3">Ciclo Atual</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in todas_tarefas %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-4 py-3 dark:text-white font-medium">{{ tarefa.titulo }}</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.descricao|truncatewords:15 }}</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.responsavel.nome_completo|default:"-" }}</td>
+                            <td class="px-4 py-3">
+                                {% if tarefa.sprint %}
+                                    <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        Sprint: {{ tarefa.sprint.nome }}
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                        Backlog
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if tarefa.sprint and tarefa.status_sprint %}
+                                    <span class="px-2 py-1 rounded text-xs
+                                        {% if tarefa.status_sprint == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif tarefa.status_sprint == 'em_execucao' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                        {{ tarefa.get_status_sprint_display|default:"Não Iniciada" }}
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 py-1 rounded text-xs
+                                        {% if tarefa.status == 'concluida' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif tarefa.status == 'em_andamento' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                        {{ tarefa.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    <a href="{% url 'tarefa_projeto_detail' projeto.pk tarefa.pk %}" class="text-blue-600 hover:underline text-sm">Ver</a>
+                                    <a href="{% url 'tarefa_projeto_update' projeto.pk tarefa.pk %}" class="text-yellow-600 hover:underline text-sm">Editar</a>
+                                    <a href="{% url 'tarefa_projeto_delete' projeto.pk tarefa.pk %}" class="text-red-600 hover:underline text-sm" onclick="return confirm('Tem certeza que deseja excluir esta tarefa?');">Excluir</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa cadastrada. <a href="{% url 'tarefa_projeto_create' projeto.pk %}" class="text-blue-600 hover:underline">Criar primeira tarefa</a></p>
+            {% endif %}
+        </div>
+
+        <!-- Aba Backlog -->
+        {% if backlog_origem %}
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="backlog" role="tabpanel">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold dark:text-white">Backlog do Projeto</h2>
+                <a href="{% url 'backlog_gerenciar' projeto.contrato.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
+                    <i class="fa-solid fa-plus mr-2"></i>Gerenciar Backlog
+                </a>
+            </div>
+            {% if tarefas_backlog %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Título</th>
+                            <th class="px-4 py-3">Responsável</th>
+                            <th class="px-4 py-3">Prioridade</th>
+                            <th class="px-4 py-3">Horas Planejadas</th>
+                            <th class="px-4 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in tarefas_backlog %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.titulo }}</td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.responsavel.nome_completo|default:"-" }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs
+                            {% if tarefa.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% elif tarefa.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {{ tarefa.get_prioridade_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 dark:text-white">{{ tarefa.horas_planejadas|floatformat:2 }}h</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                    Backlog
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa no backlog. <a href="{% url 'backlog_gerenciar' projeto.contrato.pk %}" class="text-blue-600 hover:underline">Adicionar tarefas</a></p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Aba Sprints -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="sprints" role="tabpanel">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold dark:text-white">Sprints do Projeto</h2>
+                <a href="{% url 'sprint_create' projeto.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
+                    <i class="fa-solid fa-plus mr-2"></i>Nova Sprint
+                </a>
+            </div>
+            {% if sprints %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for sprint in sprints %}
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold dark:text-white">{{ sprint.nome }}</h3>
+                        <span class="px-2 py-1 rounded text-xs
+                            {% if sprint.status == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            {% elif sprint.status == 'ativa' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                            {{ sprint.get_status_display }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        {{ sprint.data_inicio|date:"d/m/Y" }} - {{ sprint.data_fim|date:"d/m/Y" }}
+                    </p>
+                    <div class="mb-3">
+                        <p class="text-sm dark:text-white">Tarefas: {{ sprint.total_tarefas }}</p>
+                        <p class="text-sm dark:text-white">Concluídas: {{ sprint.tarefas_concluidas }}</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ sprint.percentual_conclusao }}%"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <a href="{% url 'sprint_detail' projeto.pk sprint.pk %}" class="text-blue-600 hover:underline text-sm">Ver Detalhes</a>
+                        <a href="{% url 'sprint_update' projeto.pk sprint.pk %}" class="text-yellow-600 hover:underline text-sm">Editar</a>
+                        <a href="{% url 'sprint_delete' projeto.pk sprint.pk %}" class="text-red-600 hover:underline text-sm" onclick="return confirm('Tem certeza que deseja excluir esta sprint? A OS vinculada também será excluída.');">Excluir</a>
+                        {% if sprint.status == 'ativa' %}
+                        <a href="{% url 'sprint_fechar' projeto.pk sprint.pk %}" class="text-green-600 hover:underline text-sm">Fechar Sprint</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma sprint criada. <a href="{% url 'sprint_create' projeto.pk %}" class="text-blue-600 hover:underline">Criar primeira sprint</a></p>
+            {% endif %}
+        </div>
+
+        <!-- Aba Informações -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="informacoes" role="tabpanel">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Dados do Projeto</h3>
+                    <div class="space-y-2">
+                        <p><strong class="text-gray-700 dark:text-gray-300">Nome:</strong> {{ projeto.nome }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Contrato:</strong> 
+                            <a href="{% url 'gestao_contratos_detail' projeto.contrato.pk %}" class="text-blue-600 hover:underline">
+                                {{ projeto.contrato.numero_contrato }}
+                            </a>
+                        </p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Gerente de Projeto:</strong> {{ projeto.gerente_projeto.nome_completo|default:"Não definido" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Status:</strong> {{ projeto.get_status_display }}</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Datas</h3>
+                    <div class="space-y-2">
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data de Início:</strong> {{ projeto.data_inicio|date:"d/m/Y"|default:"Sincronizada com contrato" }}</p>
+                        <p><strong class="text-gray-700 dark:text-gray-300">Data de Fim Prevista:</strong> {{ projeto.data_fim_prevista|date:"d/m/Y"|default:"Sincronizada com contrato" }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 italic">* Datas sincronizadas automaticamente com o contrato</p>
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <h3 class="text-lg font-semibold dark:text-white mb-3">Descrição</h3>
+                    <p class="text-gray-700 dark:text-gray-300">{{ projeto.descricao|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Inicializar abas
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('[data-tabs-toggle] button');
+    const tabContents = document.querySelectorAll('[role="tabpanel"]');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-tabs-target');
+            
+            // Remover classes ativas
+            tabs.forEach(t => {
+                t.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                t.classList.add('hover:text-gray-600', 'hover:border-gray-300');
+            });
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Adicionar classes ativas
+            this.classList.add('active', 'border-blue-600', 'text-blue-600');
+            this.classList.remove('hover:text-gray-600', 'hover:border-gray-300');
+            document.querySelector(targetId).classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}
+

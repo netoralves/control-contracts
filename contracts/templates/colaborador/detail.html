@@ -1,0 +1,255 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}{{ colaborador.nome_completo }} - Detalhes do Colaborador{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'colaborador_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-user-tie mr-2"></i>{{ colaborador.nome_completo }}
+                </h1>
+                {% if colaborador.ativo %}
+                <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <i class="fas fa-check-circle mr-1"></i>Ativo
+                </span>
+                {% else %}
+                <span class="px-3 py-1 text-sm rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    <i class="fas fa-times-circle mr-1"></i>Inativo
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                {{ colaborador.cargo }}
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'colaborador_update' colaborador.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit mr-1"></i> Editar
+            </a>
+            {% if colaborador.user %}
+            <a href="{% url 'colaborador_password_change' colaborador.pk %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-key mr-1"></i> Alterar Senha
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Clientes Comercial</p>
+                    <p class="text-2xl font-bold mt-1">{{ clientes_comercial|default:0 }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Clientes Sucessos</p>
+                    <p class="text-2xl font-bold mt-1">{{ clientes_sucessos|default:0 }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Contratos Gerenciados</p>
+                    <p class="text-2xl font-bold mt-1">{{ contratos_gerenciados|default:0 }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-file-contract text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100 text-sm">Tarefas</p>
+                    <p class="text-2xl font-bold mt-1">{{ tarefas|default:0 }}</p>
+                </div>
+                <div class="bg-yellow-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-tasks text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm">Lançamentos de Horas</p>
+                    <p class="text-2xl font-bold mt-1">{{ lancamentos_horas|default:0 }}</p>
+                </div>
+                <div class="bg-orange-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-clock text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                <button type="button" onclick="showTab('detalhes')" id="tab-detalhes"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    <i class="fas fa-info-circle mr-1"></i> Detalhes
+                </button>
+                {% if colaborador.user %}
+                <button type="button" onclick="showTab('grupos')" id="tab-grupos"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-users-cog mr-1"></i> Grupos ({{ colaborador.user.groups.count }})
+                </button>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Detalhes -->
+    <div id="content-detalhes" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Dados Básicos -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Nome Completo</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.nome_completo }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Cargo</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.cargo }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">E-mail</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Telefone</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.telefone|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                            <p class="font-medium text-gray-900 dark:text-white">
+                                {% if colaborador.ativo %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                    Ativo
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                    Inativo
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Data de Cadastro</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.data_cadastro|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Usuário -->
+            {% if colaborador.user %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-user mr-2 text-green-500"></i>Informações do Usuário
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Nome de Usuário</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.user.username }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">E-mail do Usuário</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.user.email|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Último Login</p>
+                        <p class="font-medium text-gray-900 dark:text-white">
+                            {% if colaborador.user.last_login %}
+                                {{ colaborador.user.last_login|date:"d/m/Y H:i" }}
+                            {% else %}
+                                Nunca
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Data de Criação</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ colaborador.user.date_joined|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Grupos -->
+    {% if colaborador.user %}
+    <div id="content-grupos" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-users-cog mr-2 text-red-500"></i>Grupos e Permissões
+            </h3>
+            {% if colaborador.user.groups.all %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for grupo in colaborador.user.groups.all %}
+                    <a href="{% url 'grupo_detail' grupo.pk %}" class="flex items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+                        <i class="fas fa-users-cog text-red-500 mr-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ grupo.name }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">Este colaborador não está associado a nenhum grupo.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function showTab(tabName) {
+    // Esconder todos os conteúdos
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remover borda ativa de todas as abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+    
+    // Mostrar conteúdo selecionado
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    
+    // Ativar aba selecionada
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+}
+
+// Mostrar primeira aba por padrão
+document.addEventListener('DOMContentLoaded', function() {
+    showTab('detalhes');
+});
+</script>
+{% endblock %}

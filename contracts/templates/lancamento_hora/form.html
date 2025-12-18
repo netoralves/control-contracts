@@ -1,0 +1,105 @@
+{# lancamento_hora/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                {% if form.instance.pk %}Editar Lançamento de Hora{% else %}Novo Lançamento de Hora{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Tarefa: {{ tarefa.titulo }}</p>
+        </div>
+        <a href="{% if tarefa.ordem_servico %}{% url 'ordem_servico_detail' tarefa.ordem_servico.pk %}{% else %}{% url 'tarefa_list' %}{% endif %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        <!-- Campo tarefa oculto -->
+        {{ form.tarefa }}
+        
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                {% if field.name != 'tarefa' and field.name != 'horas_trabalhadas' %}
+                    <div class="{% if field.name == 'descricao' %}md:col-span-2{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% elif field.name == 'horas_trabalhadas' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                        </label>
+                        {{ field|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        <p class="mt-1 text-xs text-gray-500">Calculado automaticamente baseado nas horas de início e término</p>
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% if tarefa.ordem_servico %}{% url 'ordem_servico_detail' tarefa.ordem_servico.pk %}{% else %}{% url 'tarefa_list' %}{% endif %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Calcular horas trabalhadas automaticamente
+document.addEventListener('DOMContentLoaded', function() {
+    const dataInput = document.getElementById('id_data');
+    const horaInicioInput = document.getElementById('id_hora_inicio');
+    const horaTerminoInput = document.getElementById('id_hora_termino');
+    const horasTrabalhadasInput = document.getElementById('id_horas_trabalhadas');
+    
+    function calcularHoras() {
+        if (dataInput.value && horaInicioInput.value && horaTerminoInput.value) {
+            const inicio = new Date(dataInput.value + 'T' + horaInicioInput.value);
+            const termino = new Date(dataInput.value + 'T' + horaTerminoInput.value);
+            
+            // Se termino for menor que inicio, assumir que passou da meia-noite
+            if (termino < inicio) {
+                termino.setDate(termino.getDate() + 1);
+            }
+            
+            const diferenca = termino - inicio;
+            const horas = diferenca / (1000 * 60 * 60);
+            
+            if (horasTrabalhadasInput) {
+                horasTrabalhadasInput.value = horas.toFixed(2);
+            }
+        }
+    }
+    
+    if (dataInput && horaInicioInput && horaTerminoInput) {
+        dataInput.addEventListener('change', calcularHoras);
+        horaInicioInput.addEventListener('change', calcularHoras);
+        horaTerminoInput.addEventListener('change', calcularHoras);
+    }
+});
+</script>
+{% endblock %}
+

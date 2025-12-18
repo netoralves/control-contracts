@@ -1,0 +1,169 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+{% load math_extras %}
+
+{% block title %}Análise de Contratos com IA{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-robot mr-2 text-purple-500"></i>Análise de Contratos com IA
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">
+                Upload de documentos para extração automática de dados
+            </p>
+        </div>
+        <a href="{% url 'documento_contrato_upload' %}" 
+            class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span>Nova Análise</span>
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6">
+        <form method="get" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select name="status" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">Todos</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filtro_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-filter mr-1"></i> Filtrar
+            </button>
+        </form>
+    </div>
+
+    <!-- Lista de Análises -->
+    {% if analises %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nome da Análise</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Documentos</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Contrato</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Criado em</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for analise in analises %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">{{ analise.nome }}</p>
+                                <p class="text-xs text-gray-500">{{ analise.documentos.count }} documento(s)</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        <div class="flex flex-wrap gap-1">
+                            {% for doc in analise.documentos.all|slice:":3" %}
+                            <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded">
+                                {{ doc.get_tipo_documento_display }}
+                            </span>
+                            {% endfor %}
+                            {% if analise.documentos.count > 3 %}
+                            <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded">
+                                +{{ analise.documentos.count|add:"-3" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if analise.status == 'analisado' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif analise.status == 'processando' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
+                            {% elif analise.status == 'erro' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                            {% elif analise.status == 'revisado' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ analise.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        {% if analise.contrato_gerado %}
+                        <a href="{% url 'gestao_contratos_detail' analise.contrato_gerado.pk %}" 
+                            class="text-blue-600 hover:underline">
+                            {{ analise.contrato_gerado.numero_contrato }}
+                        </a>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        {{ analise.criado_em|date:"d/m/Y H:i" }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <a href="{% url 'documento_contrato_detail' analise.pk %}" 
+                                class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if analise.status == 'pendente' %}
+                            <a href="{% url 'documento_contrato_analisar' analise.pk %}" 
+                                class="text-purple-600 hover:text-purple-800 dark:text-purple-400" title="Analisar com IA">
+                                <i class="fas fa-magic"></i>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'documento_contrato_delete' analise.pk %}" 
+                                class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if analises.has_other_pages %}
+    <div class="mt-4 flex justify-center">
+        <nav class="flex gap-1">
+            {% if analises.has_previous %}
+            <a href="?page={{ analises.previous_page_number }}" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {{ analises.number }} / {{ analises.paginator.num_pages }}
+            </span>
+            {% if analises.has_next %}
+            <a href="?page={{ analises.next_page_number }}" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
+        <i class="fas fa-robot text-gray-400 text-6xl mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-700 dark:text-gray-300">Nenhuma análise criada</h3>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 mb-6">
+            Faça upload de múltiplos documentos (contratos, editais, ETPs, TRs, ARPs, propostas, termos aditivos) para análise automática
+        </p>
+        <a href="{% url 'documento_contrato_upload' %}" 
+            class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl transition">
+            <i class="fas fa-cloud-upload-alt mr-2"></i> Nova Análise
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

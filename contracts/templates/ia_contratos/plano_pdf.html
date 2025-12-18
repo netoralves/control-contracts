@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Plano de Trabalho - {{ contrato.numero_contrato }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.6;
+            color: #1f2937;
+        }
+        .header {
+            background: linear-gradient(135deg, #0d4f3c 0%, #1a7a5e 100%);
+            color: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .header h1 {
+            color: white;
+            font-size: 28pt;
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+        .header p {
+            color: #e0f2e8;
+            font-size: 12pt;
+            margin: 5px 0 0 0;
+        }
+        .logo-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-alltech {
+            font-size: 32pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        .logo-all {
+            color: #FF6B35;
+            display: inline-block;
+        }
+        .logo-tech {
+            color: #1e3a5f;
+            display: inline-block;
+        }
+        .logo-subtitle {
+            font-size: 12pt;
+            color: #9ca3af;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        h1 {
+            color: #0d4f3c;
+            font-size: 20pt;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #FF6B35;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #1a7a5e;
+            font-size: 14pt;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        h3 {
+            color: #1e3a5f;
+            font-size: 11pt;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .info-box {
+            background-color: #f0f9f6;
+            border-left: 4px solid #FF6B35;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9pt;
+            page-break-inside: auto;
+        }
+        table th {
+            background-color: #1e3a5f;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #0f1f35;
+        }
+        table td {
+            padding: 10px 8px;
+            border: 1px solid #e5e7eb;
+            vertical-align: top;
+            word-wrap: break-word;
+            max-width: 200px;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        table tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .badge-critica {
+            background-color: #ef4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-alta {
+            background-color: #FF6B35;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-media {
+            background-color: #fbbf24;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-baixa {
+            background-color: #10b981;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #0d4f3c;
+            text-align: center;
+            color: #6b7280;
+            font-size: 8pt;
+        }
+        .footer strong {
+            color: #0d4f3c;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .highlight {
+            background-color: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header com Logo Alltech -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-alltech">
+                <span class="logo-all">ALL</span><span class="logo-tech">TECH</span>
+            </div>
+            <div class="logo-subtitle">Soluções em Tecnologia</div>
+        </div>
+        <h1>Plano de Trabalho</h1>
+        <p>Contrato: {{ contrato.numero_contrato }}</p>
+        <p>Cliente: {{ cliente.nome_razao_social }}</p>
+    </div>
+
+    <!-- Informações do Contrato -->
+    <div class="info-box">
+        <h2>Informações do Contrato</h2>
+        <table>
+            <tr>
+                <td><strong>Número do Contrato:</strong></td>
+                <td>{{ contrato.numero_contrato }}</td>
+                <td><strong>Data de Início:</strong></td>
+                <td>{{ plano.data_inicio_prevista|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td><strong>Cliente:</strong></td>
+                <td>{{ cliente.nome_razao_social }}</td>
+                <td><strong>Data de Término:</strong></td>
+                <td>{{ plano.data_fim_prevista|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td><strong>CNPJ/CPF:</strong></td>
+                <td>{{ cliente.cnpj_cpf }}</td>
+                <td><strong>Status:</strong></td>
+                <td>{{ plano.get_status_display }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Resumo do Contrato -->
+    <h1>Resumo do Contrato</h1>
+    <p>{{ plano.resumo_contrato }}</p>
+
+    <!-- Pontos de Atenção -->
+    {% if plano.pontos_atencao %}
+    <div class="page-break"></div>
+    <h1>Pontos de Atenção</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Descrição</th>
+                <th>Prioridade</th>
+                <th>Ação Recomendada</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ponto in plano.pontos_atencao %}
+            <tr>
+                <td><strong>{{ ponto.titulo }}</strong></td>
+                <td>{{ ponto.descricao }}</td>
+                <td>
+                    <span class="badge badge-{{ ponto.prioridade }}">
+                        {{ ponto.prioridade|upper }}
+                    </span>
+                </td>
+                <td>{{ ponto.acao_recomendada }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Cláusulas Críticas -->
+    {% if clausulas_criticas %}
+    <div class="page-break"></div>
+    <h1>Cláusulas Críticas</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Número da Cláusula</th>
+                <th>Descrição</th>
+                <th>Impacto</th>
+                <th>Ação Necessária</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for clausula in clausulas_criticas %}
+            <tr>
+                <td><strong>{{ clausula.titulo }}</strong></td>
+                <td>{{ clausula.numero_clausula|default:"-" }}</td>
+                <td>{{ clausula.descricao }}</td>
+                <td>
+                    <span class="badge badge-{{ clausula.impacto }}">
+                        {% if clausula.impacto == 'critico' %}CRÍTICO{% elif clausula.impacto == 'alto' %}ALTO{% else %}MÉDIO{% endif %}
+                    </span>
+                </td>
+                <td>{{ clausula.acao_necessaria }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Processo de Execução -->
+    {% if plano.processo_execucao %}
+    <div class="page-break"></div>
+    <h1>Processo de Execução</h1>
+    {% for etapa in plano.processo_execucao %}
+    <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 4px;">
+        <h2>{{ etapa.nome|default:etapa.etapa|default:"Etapa" }} - {{ etapa.fase|default:"" }}</h2>
+        <p><strong>Descrição:</strong> {{ etapa.descricao|default:"-" }}</p>
+        <p><strong>Duração:</strong> {{ etapa.duracao_dias|default:"-" }} dias</p>
+        {% if etapa.entregaveis %}
+        <p><strong>Entregáveis:</strong></p>
+        <ul>
+            {% for entregavel in etapa.entregaveis %}
+            <li>{{ entregavel }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- SLAs Importantes -->
+    {% if slas_importantes %}
+    <div class="page-break"></div>
+    <h1>SLAs Importantes</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Tempo de Resposta</th>
+                <th>Tempo de Solução</th>
+                <th>Prioridade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sla in slas_importantes %}
+            <tr>
+                <td><strong>{{ sla.nome }}</strong></td>
+                <td>{{ sla.descricao }}</td>
+                <td>{{ sla.tempo_resposta_horas }} horas</td>
+                <td>{{ sla.tempo_solucao_horas }} horas</td>
+                <td>
+                    <span class="badge badge-{{ sla.prioridade }}">
+                        {% if sla.prioridade == 'critica' %}CRÍTICA{% elif sla.prioridade == 'alta' %}ALTA{% elif sla.prioridade == 'media' %}MÉDIA{% else %}BAIXA{% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Matriz RACI -->
+    {% if matriz_raci %}
+    <div class="page-break"></div>
+    <h1>Matriz RACI</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Atividade</th>
+                <th>Fase</th>
+                <th>Responsável (R)</th>
+                <th>Aprovador (A)</th>
+                <th>Consultado (C)</th>
+                <th>Informado (I)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for raci in matriz_raci %}
+            <tr>
+                <td><strong>{{ raci.atividade }}</strong></td>
+                <td>
+                    {% if raci.fase == 'planejamento' %}Planejamento
+                    {% elif raci.fase == 'implantacao' %}Implantação
+                    {% elif raci.fase == 'execucao' %}Execução
+                    {% elif raci.fase == 'suporte' %}Suporte
+                    {% else %}{{ raci.fase }}{% endif %}
+                </td>
+                <td>{{ raci.responsavel|default:"-" }}</td>
+                <td>{{ raci.aprovador|default:"-" }}</td>
+                <td>{{ raci.consultado|default:"-" }}</td>
+                <td>{{ raci.informado|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Cronograma Detalhado -->
+    {% if plano.cronograma_detalhado %}
+    <div class="page-break"></div>
+    <h1>Cronograma Detalhado</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome do Marco</th>
+                <th>Data</th>
+                <th>Descrição</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for marco in plano.cronograma_detalhado %}
+            <tr>
+                <td><strong>{{ marco.nome }}</strong></td>
+                <td>{{ marco.data|date:"d/m/Y" }}</td>
+                <td>{{ marco.descricao }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Plano de Comunicação -->
+    {% if plano.plano_comunicacao %}
+    <div class="page-break"></div>
+    <h1>Plano de Comunicação</h1>
+    
+    {% if plano.plano_comunicacao.stakeholders %}
+    <h2>Stakeholders</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Papel</th>
+                <th>Frequência de Comunicação</th>
+                <th>Canais</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stakeholder in plano.plano_comunicacao.stakeholders %}
+            <tr>
+                <td><strong>{{ stakeholder.nome }}</strong></td>
+                <td>{{ stakeholder.papel }}</td>
+                <td>{{ stakeholder.frequencia_comunicacao }}</td>
+                <td>{{ stakeholder.canais|join:", " }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if plano.plano_comunicacao.reunioes %}
+    <h2>Reuniões</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Frequência</th>
+                <th>Participantes</th>
+                <th>Objetivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reuniao in plano.plano_comunicacao.reunioes %}
+            <tr>
+                <td><strong>{{ reuniao.tipo }}</strong></td>
+                <td>{{ reuniao.frequencia }}</td>
+                <td>{{ reuniao.participantes|join:", " }}</td>
+                <td>{{ reuniao.objetivo }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    {% endif %}
+
+    <!-- Template de Status Report -->
+    {% if plano.template_status_report %}
+    <div class="page-break"></div>
+    <h1>Template de Status Report</h1>
+    <div class="info-box">
+        <p style="white-space: pre-wrap;">{{ plano.template_status_report }}</p>
+    </div>
+    <p><strong>Frequência:</strong> {{ plano.frequencia_status_report|title }}</p>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>ALLTECH - Soluções em Tecnologia</strong></p>
+        <p>www.alltechsolucoes.com.br</p>
+        <p>Documento gerado em {{ "now"|date:"d/m/Y H:i" }}</p>
+        <p>Este documento foi gerado automaticamente pelo sistema de gestão de contratos.</p>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,57 @@
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Confirmar Exclusão
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+            Tem certeza que deseja excluir o grupo abaixo?
+        </p>
+    </div>
+
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Atenção!</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    <li>O grupo <strong>{{ grupo.name }}</strong> será excluído permanentemente.</li>
+                    <li><strong>{{ total_usuarios }}</strong> usuário(s) serão removidos deste grupo.</li>
+                    <li>As permissões do grupo serão removidas, mas os usuários manterão suas permissões individuais.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Informações do Grupo</h3>
+        <div class="space-y-2">
+            <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Nome:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-2">{{ grupo.name }}</span>
+            </div>
+            <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Permissões:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-2">{{ grupo.permissions.count }}</span>
+            </div>
+            <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Usuários:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-2">{{ total_usuarios }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="flex justify-end gap-2">
+        {% csrf_token %}
+        <a href="{% url 'grupo_detail' grupo.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-times"></i> Cancelar
+        </a>
+        <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+            <i class="fas fa-trash"></i> Confirmar Exclusão
+        </button>
+    </form>
+</div>
+{% endblock %}
+

@@ -1,0 +1,64 @@
+{# projeto_publico/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if projeto %}Editar Projeto Público{% else %}Novo Projeto Público{% endif %}
+        </h1>
+        <a href="{% if projeto %}{% url 'projeto_publico_detail' projeto.pk %}{% else %}{% url 'projeto_publico_list' %}{% endif %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        {% if form.errors %}
+        <div class="mb-4 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+            <p class="text-red-800 dark:text-red-200 font-semibold mb-2">Erros no formulário:</p>
+            <ul class="list-disc list-inside text-red-700 dark:text-red-300">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                <div class="{% if field.name == 'descricao' %}md:col-span-2{% endif %}">
+                    <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    
+                    {% if field.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% if projeto %}{% url 'projeto_publico_detail' projeto.pk %}{% else %}{% url 'projeto_publico_list' %}{% endif %}" 
+               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

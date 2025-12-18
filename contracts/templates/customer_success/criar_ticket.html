@@ -1,0 +1,359 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Novo Ticket de Contato - Customer Success{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'customer_success_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-plus-circle mr-2 text-emerald-500"></i>Novo Ticket de Contato
+                </h1>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                Crie um novo ticket para acompanhar o engajamento e expectativa do cliente
+            </p>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <form method="post" id="ticketForm">
+            {% csrf_token %}
+            
+            <!-- Card: Informações do Contato -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-info-circle mr-2 text-blue-500"></i>Informações do Contato
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.cliente.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.cliente }}
+                        {% if form.cliente.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.cliente.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.contrato.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.contrato }}
+                        {% if form.contrato.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.contrato.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.projeto.label }}
+                        </label>
+                        {{ form.projeto }}
+                        {% if form.projeto.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.projeto.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.motivador_contato.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.motivador_contato }}
+                        {% if form.motivador_contato.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.motivador_contato.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Sprint/OS (Opcional) -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-link mr-2 text-green-500"></i>Vincular a Sprint/OS (Opcional)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.sprint.label }}
+                        </label>
+                        {{ form.sprint }}
+                        {% if form.sprint.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.sprint.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.ordem_servico.label }}
+                        </label>
+                        {{ form.ordem_servico }}
+                        {% if form.ordem_servico.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.ordem_servico.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Gerente de Customer Success -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-user-tie mr-2 text-purple-500"></i>Responsável
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.gerente_sucessos.label }}
+                        </label>
+                        {{ form.gerente_sucessos }}
+                        {% if form.gerente_sucessos.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.gerente_sucessos.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensagens de Erro -->
+            {% if form.non_field_errors %}
+            <div class="mb-4 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
+                <p class="text-red-800 dark:text-red-200">{{ form.non_field_errors.0 }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Botões -->
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg transition">
+                    <i class="fas fa-save mr-1"></i> Criar Ticket
+                </button>
+                <a href="{% url 'customer_success_list' %}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-white px-6 py-2 rounded-lg transition">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Aguardar DOM estar completamente carregado
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== INICIANDO SCRIPT DE FILTROS DINÂMICOS ===');
+        
+        // Seletores dos campos
+        const clienteSelect = document.getElementById('id_cliente');
+        const contratoSelect = document.getElementById('id_contrato');
+        const projetoSelect = document.getElementById('id_projeto');
+        const sprintSelect = document.getElementById('id_sprint');
+        const osSelect = document.getElementById('id_ordem_servico');
+        
+        // Preservar valores selecionados (após erro de validação)
+        const contratoValue = contratoSelect ? contratoSelect.value : null;
+        const projetoValue = projetoSelect ? projetoSelect.value : null;
+        const sprintValue = sprintSelect ? sprintSelect.value : null;
+        const osValue = osSelect ? osSelect.value : null;
+        
+        console.log('Valores preservados:', {
+            contrato: contratoValue,
+            projeto: projetoValue,
+            sprint: sprintValue,
+            os: osValue
+        });
+        
+        // Verificar se todos os elementos existem
+        console.log('Elementos encontrados:', {
+            cliente: !!clienteSelect,
+            contrato: !!contratoSelect,
+            projeto: !!projetoSelect,
+            sprint: !!sprintSelect,
+            os: !!osSelect
+        });
+        
+        if (!clienteSelect || !contratoSelect || !projetoSelect || !sprintSelect || !osSelect) {
+            console.error('Alguns elementos do formulário não foram encontrados!');
+            return;
+        }
+        
+        // Função auxiliar para limpar select
+        function limparSelect(select) {
+            if (select) {
+                select.innerHTML = '<option value="">---------</option>';
+            }
+        }
+        
+        // Função auxiliar para adicionar opções ao select
+        function adicionarOpcoes(select, dados, campoId, campoTexto, valorPreservado = null) {
+            if (!select) {
+                console.error('Select não encontrado para adicionar opções');
+                return;
+            }
+            
+            if (!Array.isArray(dados)) {
+                console.error('Dados não são um array:', dados);
+                return;
+            }
+            
+            console.log(`Adicionando ${dados.length} opções ao campo ${select.id}, valor preservado: ${valorPreservado}`);
+            limparSelect(select);
+            
+            dados.forEach((item, index) => {
+                if (!item || !item[campoId] || !item[campoTexto]) {
+                    console.warn(`Item ${index} inválido:`, item);
+                    return;
+                }
+                
+                const option = document.createElement('option');
+                option.value = String(item[campoId]);
+                option.textContent = String(item[campoTexto]);
+                // Se este é o valor que deve ser preservado, marcá-lo como selecionado
+                if (valorPreservado && String(item[campoId]) === String(valorPreservado)) {
+                    option.selected = true;
+                    console.log(`  - Opção preservada e selecionada: ${item[campoId]} = ${item[campoTexto]}`);
+                }
+                select.appendChild(option);
+            });
+            
+            console.log(`Total de opções no campo ${select.id}: ${select.options.length}`);
+        }
+        
+        // Função auxiliar para fazer requisição
+        async function fazerRequisicao(url) {
+            try {
+                console.log('Fazendo requisição para:', url);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Resposta recebida:', data);
+                return data;
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                return null;
+            }
+        }
+        
+        // Cliente → Contrato
+        clienteSelect.addEventListener('change', async function() {
+            const clienteId = this.value;
+            console.log('\n--- Cliente selecionado:', clienteId);
+            
+            limparSelect(contratoSelect);
+            limparSelect(projetoSelect);
+            limparSelect(sprintSelect);
+            limparSelect(osSelect);
+            
+            if (clienteId) {
+                const data = await fazerRequisicao(`/api/contratos_por_cliente/?cliente_id=${clienteId}`);
+                if (data && data.contratos) {
+                    adicionarOpcoes(contratoSelect, data.contratos, 'id', 'numero', contratoValue);
+                }
+            }
+        });
+        
+        // Contrato → Projeto e OS
+        contratoSelect.addEventListener('change', async function() {
+            const contratoId = this.value;
+            console.log('\n--- Contrato selecionado:', contratoId);
+            
+            limparSelect(projetoSelect);
+            limparSelect(sprintSelect);
+            limparSelect(osSelect);
+            
+            if (contratoId) {
+                // Carregar projetos
+                console.log('Carregando projetos para contrato ID:', contratoId);
+                const projetosData = await fazerRequisicao(`/api/projetos_por_contrato/?contrato_id=${contratoId}`);
+                console.log('Dados de projetos recebidos:', projetosData);
+                
+                if (projetosData) {
+                    const projetos = projetosData.projetos || (Array.isArray(projetosData) ? projetosData : []);
+                    console.log('Projetos processados:', projetos);
+                    if (projetos.length > 0 && projetoSelect) {
+                        adicionarOpcoes(projetoSelect, projetos, 'id', 'nome', projetoValue);
+                        console.log('Projetos adicionados ao select. Total de opções:', projetoSelect.options.length);
+                    } else {
+                        console.warn('Nenhum projeto encontrado ou elemento projetoSelect não existe');
+                    }
+                } else {
+                    console.error('Falha ao carregar projetos: dados nulos');
+                }
+                
+                // Carregar todas as OS do contrato
+                console.log('Carregando OS para contrato ID:', contratoId);
+                const osData = await fazerRequisicao(`/api/ordens_servico_por_contrato/?contrato_id=${contratoId}`);
+                console.log('Dados de OS recebidos:', osData);
+                
+                if (osData) {
+                    const ordens = osData.ordens || (Array.isArray(osData) ? osData : []);
+                    console.log('OS processadas:', ordens);
+                    if (osSelect) {
+                        adicionarOpcoes(osSelect, ordens, 'id', 'numero_os', osValue);
+                        console.log('OS adicionadas ao select. Total de opções:', osSelect.options.length);
+                    } else {
+                        console.warn('Elemento osSelect não existe');
+                    }
+                } else {
+                    console.error('Falha ao carregar OS: dados nulos');
+                }
+            }
+        });
+        
+        // Projeto → Sprint e OS (filtradas)
+        projetoSelect.addEventListener('change', async function() {
+            const projetoId = this.value;
+            const contratoId = contratoSelect.value;
+            console.log('\n--- Projeto selecionado:', projetoId, 'Contrato:', contratoId);
+            
+            limparSelect(sprintSelect);
+            limparSelect(osSelect);
+            
+            if (projetoId) {
+                // Carregar sprints do projeto
+                const sprintsData = await fazerRequisicao(`/api/sprints_por_projeto/?projeto_id=${projetoId}`);
+                if (sprintsData) {
+                    const sprints = sprintsData.sprints || (Array.isArray(sprintsData) ? sprintsData : []);
+                    adicionarOpcoes(sprintSelect, sprints, 'id', 'nome', sprintValue);
+                }
+                
+                // Carregar OS filtradas por projeto
+                if (contratoId) {
+                    const osData = await fazerRequisicao(`/api/ordens_servico_por_contrato/?contrato_id=${contratoId}&projeto_id=${projetoId}`);
+                    if (osData) {
+                        const ordens = osData.ordens || (Array.isArray(osData) ? osData : []);
+                        adicionarOpcoes(osSelect, ordens, 'id', 'numero_os', osValue);
+                    }
+                }
+            } else if (contratoId) {
+                // Se projeto foi desmarcado, recarregar todas as OS do contrato
+                const osData = await fazerRequisicao(`/api/ordens_servico_por_contrato/?contrato_id=${contratoId}`);
+                if (osData) {
+                    const ordens = osData.ordens || (Array.isArray(osData) ? osData : []);
+                    adicionarOpcoes(osSelect, ordens, 'id', 'numero_os', osValue);
+                }
+            }
+        });
+        
+        console.log('=== SCRIPT DE FILTROS DINÂMICOS INICIALIZADO ===');
+        
+        // Teste manual: simular seleção de contrato para debug
+        // Descomente as linhas abaixo para testar manualmente
+        /*
+        setTimeout(() => {
+            console.log('=== TESTE MANUAL ===');
+            if (contratoSelect && contratoSelect.options.length > 1) {
+                contratoSelect.value = contratoSelect.options[1].value;
+                contratoSelect.dispatchEvent(new Event('change'));
+            }
+        }, 2000);
+        */
+    });
+})();
+</script>
+
+{% endblock %}

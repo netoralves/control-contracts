@@ -1,0 +1,708 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}{% if contrato %}Editar{% else %}Novo{% endif %} Contrato{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'gestao_contratos_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-file-contract mr-2"></i>{% if contrato %}Editar Contrato{% else %}Novo Contrato{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {% if contrato %}Atualize os dados do contrato {{ contrato.numero_contrato }}{% else %}Cadastre um novo contrato{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Mensagens de erro -->
+    {% if form.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Dados Básicos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Cliente -->
+                <div>
+                    <label for="id_cliente" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cliente.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cliente }}
+                    {% if form.cliente.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Número do Contrato -->
+                <div>
+                    <label for="id_numero_contrato" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_contrato.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.numero_contrato }}
+                    {% if form.numero_contrato.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.numero_contrato.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Regime Legal -->
+                <div>
+                    <label for="id_regime_legal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.regime_legal.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.regime_legal }}
+                    {% if form.regime_legal.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.regime_legal.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Origem do Contrato -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-route mr-2 text-teal-500"></i>Origem do Contrato
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Identifique como este contrato foi originado (licitação própria, ARP, RFP, etc.)
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Origem do Contrato -->
+                <div>
+                    <label for="id_origem_contrato" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.origem_contrato.label }}
+                    </label>
+                    {{ form.origem_contrato }}
+                    {% if form.origem_contrato.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.origem_contrato.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Detalhe da Origem -->
+                <div>
+                    <label for="id_origem_contrato_detalhe" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.origem_contrato_detalhe.label }}
+                    </label>
+                    {{ form.origem_contrato_detalhe }}
+                    {% if form.origem_contrato_detalhe.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.origem_contrato_detalhe.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Dados do Processo -->
+        <div id="dados-processo" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-folder-open mr-2 text-purple-500"></i>Dados do Processo
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Processo -->
+                <div>
+                    <label for="id_processo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.processo.label }}
+                    </label>
+                    {{ form.processo }}
+                </div>
+                
+                <!-- Pregão Eletrônico -->
+                <div>
+                    <label for="id_pregao_eletronico" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.pregao_eletronico.label }}
+                    </label>
+                    {{ form.pregao_eletronico }}
+                </div>
+                
+                <!-- ARP -->
+                <div>
+                    <label for="id_ata_registro_preco" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.ata_registro_preco.label }}
+                    </label>
+                    {{ form.ata_registro_preco }}
+                </div>
+                
+                <!-- Termo de Referência -->
+                <div>
+                    <label for="id_termo_referencia" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.termo_referencia.label }}
+                    </label>
+                    {{ form.termo_referencia }}
+                </div>
+            </div>
+            
+            <!-- Segunda linha: Campos adicionais para licitações -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                <!-- Modalidade de Licitação -->
+                <div>
+                    <label for="id_modalidade_licitacao" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.modalidade_licitacao.label }}
+                    </label>
+                    {{ form.modalidade_licitacao }}
+                    {% if form.modalidade_licitacao.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.modalidade_licitacao.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Número do Edital -->
+                <div>
+                    <label for="id_numero_edital" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_edital.label }}
+                    </label>
+                    {{ form.numero_edital }}
+                    {% if form.numero_edital.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.numero_edital.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Órgão Gerenciador da ARP -->
+                <div>
+                    <label for="id_orgao_gerenciador_arp" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.orgao_gerenciador_arp.label }}
+                    </label>
+                    {{ form.orgao_gerenciador_arp }}
+                    {% if form.orgao_gerenciador_arp.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.orgao_gerenciador_arp.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Número do RFP/RFQ -->
+                <div>
+                    <label for="id_numero_rfp_rfq" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_rfp_rfq.label }}
+                    </label>
+                    {{ form.numero_rfp_rfq }}
+                    {% if form.numero_rfp_rfq.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.numero_rfp_rfq.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Objeto -->
+            <div class="mt-4">
+                <label for="id_objeto" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ form.objeto.label }}
+                </label>
+                {{ form.objeto }}
+            </div>
+        </div>
+
+        <!-- Fornecedores -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-truck mr-2 text-indigo-500"></i>Fornecedores de Tecnologia/Serviços
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Selecione os fornecedores que atenderão este contrato. Os itens de fornecedores serão vinculados nas ordens de fornecimento.
+            </p>
+            
+            <!-- Lista de Fornecedores -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+                {% for checkbox in form.fornecedores %}
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                    {{ checkbox.tag }}
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ checkbox.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            
+            <!-- Outro Fornecedor -->
+            <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <label for="id_outro_fornecedor_nome" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <i class="fas fa-plus-circle mr-1 text-green-500"></i>{{ form.outro_fornecedor_nome.label }}
+                </label>
+                {{ form.outro_fornecedor_nome }}
+                {% if form.outro_fornecedor_nome.help_text %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ form.outro_fornecedor_nome.help_text }}</p>
+                {% endif %}
+                {% if form.outro_fornecedor_nome.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.outro_fornecedor_nome.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vigência e Valores -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calendar-check mr-2 text-green-500"></i>Vigência e Valores
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Data de Assinatura -->
+                <div>
+                    <label for="id_data_assinatura" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.data_assinatura.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.data_assinatura }}
+                    {% if form.data_assinatura.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.data_assinatura.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Vigência -->
+                <div>
+                    <label for="id_vigencia" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.vigencia.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.vigencia }}
+                    {% if form.vigencia.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.vigencia.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Valor Inicial -->
+                <div>
+                    <label for="id_valor_inicial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.valor_inicial.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.valor_inicial }}
+                    {% if form.valor_inicial.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.valor_inicial.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Gerente do Contrato -->
+                <div>
+                    <label for="id_gerente_contrato" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.gerente_contrato.label }}
+                    </label>
+                    {{ form.gerente_contrato }}
+                </div>
+            </div>
+            
+            <!-- Alerta sobre limites (Contratos Públicos) -->
+            <div id="alerta-limites-publicos" class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5 mr-3"></i>
+                    <div class="text-sm text-amber-700 dark:text-amber-300">
+                        <p class="font-semibold">Limites Legais (Contratos Públicos):</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li><strong>Lei 14.133/2021:</strong> Vigência máxima de 120 meses (10 anos)</li>
+                            <li><strong>Lei 13.303/2016:</strong> Vigência máxima de 60 meses (5 anos)</li>
+                            <li><strong>Aditivo de Valor:</strong> Limite de 25% do valor inicial atualizado (Art. 125)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerta para Contratos Privados -->
+            <div id="alerta-privado" class="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 hidden">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-indigo-500 mt-0.5 mr-3"></i>
+                    <div class="text-sm text-indigo-700 dark:text-indigo-300">
+                        <p class="font-semibold">Contrato Privado:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>Não há limite legal de vigência</li>
+                            <li>Aditivos de valor seguem acordo entre as partes</li>
+                            <li>Campos de processo/licitação são opcionais</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-4">
+            <a href="{% url 'gestao_contratos_list' %}" 
+                class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                <i class="fas fa-times mr-1"></i> Cancelar
+            </a>
+            <button type="submit" 
+                class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <i class="fas fa-save mr-1"></i> {% if contrato %}Atualizar{% else %}Salvar{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+/* Estilizar checkboxes */
+input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    cursor: pointer;
+}
+input[type="checkbox"]:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regimeLegal = document.getElementById('id_regime_legal');
+    const origemContrato = document.getElementById('id_origem_contrato');
+    const dadosProcesso = document.getElementById('dados-processo');
+    const alertaPublicos = document.getElementById('alerta-limites-publicos');
+    const alertaPrivado = document.getElementById('alerta-privado');
+    
+    // Mapeamento de origens válidas por regime legal
+    const origensPorRegime = {
+        'LEI_14133': [
+            'LIC_14133_PROPRIA',
+            'ARP_GERENCIADOR',
+            'ARP_PARTICIPANTE',
+            'ARP_ADESAO_CARONA',
+            'DISPENSA_14133',
+            'INEXIGIBILIDADE_14133',
+            'OUTRO'
+        ],
+        'LEI_13303': [
+            'LIC_13303_PROPRIA',
+            'CONTR_ESTATAL_DIRETA',
+            'OUTRO'
+        ],
+        'PRIVADO': [
+            'RFP_PRIVADA',
+            'RFQ_PRIVADA',
+            'NEGOCIACAO_DIRETA_PRIVADA',
+            'FRAMEWORK_PRIVADO',
+            'OUTRO'
+        ]
+    };
+    
+    // Armazenar todas as opções originais
+    let todasOpcoesOrigem = [];
+    if (origemContrato) {
+        todasOpcoesOrigem = Array.from(origemContrato.options).map(opt => ({
+            value: opt.value,
+            text: opt.text,
+            element: opt
+        }));
+    }
+    
+    function filtrarOpcoesOrigem() {
+        if (!origemContrato || !regimeLegal) return;
+        
+        const regime = regimeLegal.value;
+        const origensValidas = origensPorRegime[regime] || origensPorRegime['PRIVADO'];
+        const valorAtual = origemContrato.value;
+        
+        // Limpar opções atuais
+        origemContrato.innerHTML = '';
+        
+        // Adicionar opção vazia
+        const optionVazia = document.createElement('option');
+        optionVazia.value = '';
+        optionVazia.text = '---------';
+        origemContrato.appendChild(optionVazia);
+        
+        // Adicionar apenas opções válidas para o regime
+        todasOpcoesOrigem.forEach(opcao => {
+            if (opcao.value && origensValidas.includes(opcao.value)) {
+                const option = document.createElement('option');
+                option.value = opcao.value;
+                option.text = opcao.text;
+                origemContrato.appendChild(option);
+            }
+        });
+        
+        // Restaurar valor selecionado se ainda for válido
+        if (valorAtual && origensValidas.includes(valorAtual)) {
+            origemContrato.value = valorAtual;
+        } else {
+            origemContrato.value = '';
+            // Limpar campos dependentes quando origem é alterada
+            toggleCamposOrigem();
+        }
+    }
+    
+    // Campos do formulário
+    const campoProcesso = document.getElementById('id_processo');
+    const campoPregao = document.getElementById('id_pregao_eletronico');
+    const campoARP = document.getElementById('id_ata_registro_preco');
+    const campoTR = document.getElementById('id_termo_referencia');
+    const campoObjeto = document.getElementById('id_objeto');
+    
+    // Novos campos
+    const campoModalidade = document.getElementById('id_modalidade_licitacao');
+    const campoEdital = document.getElementById('id_numero_edital');
+    const campoOrgaoARP = document.getElementById('id_orgao_gerenciador_arp');
+    const campoRFP = document.getElementById('id_numero_rfp_rfq');
+    
+    // Mapeamento de origem do contrato para campos habilitados
+    const mapeamentoOrigem = {
+        // Licitações próprias (Lei 14.133)
+        'LIC_14133_PROPRIA': {
+            processo: true,
+            pregao: true,
+            arp: false,
+            tr: true,
+            modalidade: true,
+            edital: true,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        // ARPs (Ata de Registro de Preços)
+        'ARP_GERENCIADOR': {
+            processo: false,
+            pregao: false,
+            arp: true,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: true,
+            rfp: false,
+            objeto: true
+        },
+        'ARP_PARTICIPANTE': {
+            processo: false,
+            pregao: false,
+            arp: true,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: true,
+            rfp: false,
+            objeto: true
+        },
+        'ARP_ADESAO_CARONA': {
+            processo: false,
+            pregao: false,
+            arp: true,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: true,
+            rfp: false,
+            objeto: true
+        },
+        // Dispensas e Inexigibilidades
+        'DISPENSA_14133': {
+            processo: true,
+            pregao: false,
+            arp: false,
+            tr: true,
+            modalidade: true,
+            edital: true,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        'INEXIGIBILIDADE_14133': {
+            processo: true,
+            pregao: false,
+            arp: false,
+            tr: true,
+            modalidade: true,
+            edital: true,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        // Licitações próprias (Lei 13.303 - Estatais)
+        'LIC_13303_PROPRIA': {
+            processo: true,
+            pregao: true,
+            arp: false,
+            tr: true,
+            modalidade: true,
+            edital: true,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        'CONTR_ESTATAL_DIRETA': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        // Setor Privado
+        'RFP_PRIVADA': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: true,
+            objeto: true
+        },
+        'RFQ_PRIVADA': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: true,
+            objeto: true
+        },
+        'NEGOCIACAO_DIRETA_PRIVADA': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        'FRAMEWORK_PRIVADO': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        },
+        'OUTRO': {
+            processo: false,
+            pregao: false,
+            arp: false,
+            tr: false,
+            modalidade: false,
+            edital: false,
+            orgaoARP: false,
+            rfp: false,
+            objeto: true
+        }
+    };
+    
+    function toggleCamposRegime() {
+        const regime = regimeLegal.value;
+        
+        if (regime === 'PRIVADO') {
+            // Contrato Privado
+            dadosProcesso.classList.add('opacity-50');
+            alertaPublicos.classList.add('hidden');
+            alertaPrivado.classList.remove('hidden');
+        } else {
+            // Contratos Públicos
+            dadosProcesso.classList.remove('opacity-50');
+            alertaPublicos.classList.remove('hidden');
+            alertaPrivado.classList.add('hidden');
+        }
+    }
+    
+    function toggleCamposOrigem() {
+        const origem = origemContrato.value;
+        const config = mapeamentoOrigem[origem] || mapeamentoOrigem['OUTRO'];
+        
+        // Função auxiliar para habilitar/desabilitar campo
+        function setCampoEstado(campo, habilitado) {
+            if (!campo) return;
+            
+            const container = campo.closest('div');
+            const labelElement = container ? container.querySelector('label') : null;
+            
+            campo.disabled = !habilitado;
+            campo.required = habilitado && campo.hasAttribute('data-required');
+            
+            // Estilização visual do campo
+            if (habilitado) {
+                campo.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-50', 'dark:bg-gray-600');
+                campo.classList.add('bg-gray-50', 'dark:bg-gray-700');
+                campo.style.cursor = 'text';
+                if (labelElement) {
+                    labelElement.classList.remove('text-gray-400', 'opacity-50');
+                    labelElement.classList.add('text-gray-700', 'dark:text-gray-300');
+                }
+                if (container) {
+                    container.classList.remove('opacity-50');
+                }
+            } else {
+                campo.classList.add('bg-gray-100', 'cursor-not-allowed', 'opacity-50', 'dark:bg-gray-600');
+                campo.classList.remove('bg-gray-50', 'dark:bg-gray-700');
+                campo.style.cursor = 'not-allowed';
+                if (!campo.value || campo.value.trim() === '') {
+                    campo.value = ''; // Limpar valor quando desabilitado (apenas se vazio)
+                }
+                if (labelElement) {
+                    labelElement.classList.add('text-gray-400', 'opacity-50');
+                    labelElement.classList.remove('text-gray-700', 'dark:text-gray-300');
+                }
+                if (container) {
+                    container.classList.add('opacity-50');
+                }
+            }
+        }
+        
+        // Aplicar estados aos campos
+        setCampoEstado(campoProcesso, config.processo);
+        setCampoEstado(campoPregao, config.pregao);
+        setCampoEstado(campoARP, config.arp);
+        setCampoEstado(campoTR, config.tr);
+        setCampoEstado(campoModalidade, config.modalidade);
+        setCampoEstado(campoEdital, config.edital);
+        setCampoEstado(campoOrgaoARP, config.orgaoARP);
+        setCampoEstado(campoRFP, config.rfp);
+        // Objeto sempre habilitado
+        setCampoEstado(campoObjeto, config.objeto);
+        
+        // Adicionar indicador visual no card "Dados do Processo"
+        const cardProcesso = document.getElementById('dados-processo');
+        if (cardProcesso) {
+            const camposHabilitados = Object.values(config).filter(v => v).length;
+            if (camposHabilitados === 1 && config.objeto) {
+                // Apenas objeto habilitado
+                cardProcesso.classList.add('opacity-60');
+            } else {
+                cardProcesso.classList.remove('opacity-60');
+            }
+        }
+    }
+    
+    // Event listeners
+    if (regimeLegal) {
+        regimeLegal.addEventListener('change', function() {
+            toggleCamposRegime();
+            filtrarOpcoesOrigem();
+        });
+        toggleCamposRegime(); // Executar ao carregar
+        filtrarOpcoesOrigem(); // Filtrar opções ao carregar
+    }
+    
+    if (origemContrato) {
+        origemContrato.addEventListener('change', toggleCamposOrigem);
+        toggleCamposOrigem(); // Executar ao carregar
+    }
+});
+</script>
+{% endblock %}

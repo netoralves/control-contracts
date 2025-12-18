@@ -1,0 +1,174 @@
+{% extends 'contracts/base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            <i class="fas fa-users-cog mr-2 text-red-500"></i>{{ grupo.name }}
+        </h1>
+        <div class="flex gap-2">
+            <a href="{% url 'grupo_update' grupo.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{% url 'grupo_delete' grupo.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                <i class="fas fa-trash"></i> Excluir
+            </a>
+            <a href="{% url 'grupo_list' %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                <i class="fa fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Total de Permissões</p>
+                    <p class="text-2xl font-bold mt-1">{{ total_permissoes }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-key text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Total de Usuários</p>
+                    <p class="text-2xl font-bold mt-1">{{ total_usuarios }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                <button type="button" onclick="showTab('permissoes')" id="tab-permissoes"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    <i class="fas fa-key mr-1"></i> Permissões ({{ total_permissoes }})
+                </button>
+                <button type="button" onclick="showTab('usuarios')" id="tab-usuarios"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-users mr-1"></i> Usuários ({{ total_usuarios }})
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Permissões -->
+    <div id="content-permissoes" class="tab-content">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-key mr-2 text-purple-500"></i>Permissões do Grupo
+            </h3>
+            
+            {% if permissoes_por_app %}
+                {% for app_label, permissoes in permissoes_por_app.items %}
+                <div class="mb-6">
+                    <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase">
+                        <i class="fas fa-folder mr-2"></i>{{ app_label }}
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {% for perm in permissoes %}
+                        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                {{ perm.content_type.model|capfirst }}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ perm.name }}
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">Nenhuma permissão atribuída a este grupo.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Usuários -->
+    <div id="content-usuarios" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-users mr-2 text-green-500"></i>Usuários do Grupo
+            </h3>
+            
+            {% if usuarios %}
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+                    <thead class="bg-gray-100 dark:bg-gray-700 dark:text-white">
+                        <tr>
+                            <th class="p-2 text-left">Usuário</th>
+                            <th class="p-2 text-left">Nome Completo</th>
+                            <th class="p-2 text-left">Email</th>
+                            <th class="p-2 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr class="border-t border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="p-2 dark:text-white">{{ usuario.username }}</td>
+                            <td class="p-2 dark:text-white">
+                                {% if usuario.colaborador %}
+                                    {{ usuario.colaborador.nome_completo }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="p-2 dark:text-white">{{ usuario.email|default:"-" }}</td>
+                            <td class="p-2 text-center">
+                                {% if usuario.colaborador %}
+                                <a href="{% url 'colaborador_detail' usuario.colaborador.pk %}" class="text-blue-600 hover:underline">
+                                    <i class="fas fa-eye"></i> Ver Colaborador
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">Nenhum usuário atribuído a este grupo.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Esconder todos os conteúdos
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remover borda ativa de todas as abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+    
+    // Mostrar conteúdo selecionado
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    
+    // Ativar aba selecionada
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+}
+
+// Mostrar primeira aba por padrão
+document.addEventListener('DOMContentLoaded', function() {
+    showTab('permissoes');
+});
+</script>
+{% endblock %}
+

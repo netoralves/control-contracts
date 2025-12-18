@@ -1,153 +1,305 @@
-{# ordem_fornecimento/list.html #}
-{% extends 'contracts/base.html' %}
-{% load static %}
+{% extends "contracts/base.html" %}
+{% load static math_extras %}
+
+{% block title %}Ordens de Fornecimento{% endblock %}
 
 {% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-shopping-cart mr-2"></i>Ordens de Fornecimento
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                Gestão de ordens de fornecimento de produtos
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <div class="relative">
+                <button id="of_colunas_btn" data-dropdown-toggle="of_colunas_dropdown"
+                        class="text-white bg-gray-700 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center inline-flex items-center transition">
+                    <i class="fa-solid fa-table-columns mr-2"></i>Colunas
+                    <svg class="w-2.5 h-2.5 ml-2" aria-hidden="true" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div id="of_colunas_dropdown"
+                     class="z-10 hidden bg-white rounded-lg shadow w-56 dark:bg-gray-700 absolute right-0">
+                    <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200">
+                        {% for coluna in colunas %}
+                        <li>
+                            <div class="flex items-center">
+                                <input id="of-checkbox-{{ coluna.id }}" type="checkbox" value="{{ coluna.id }}"
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="of-checkbox-{{ coluna.id }}"
+                                       class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ coluna.label }}</label>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <a href="{% url 'ordem_fornecimento_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i> Nova OF
+            </a>
+            <a href="{% url 'export_ordem_fornecimento_csv' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-file-csv mr-1"></i> Exportar CSV
+            </a>
+        </div>
+    </div>
 
-{{ colunas|json_script:"colunas-data" }}
-
-<div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold text-white">Ordens de Fornecimento</h1>
-    <div class="flex gap-2">
-        <!-- Botão de Controle de Colunas -->
-        <div class="relative">
-            <button id="colunasDropdownButton" data-dropdown-toggle="colunasDropdown"
-                class="text-white bg-gray-700 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center"
-                type="button">
-                <i class="fa-solid fa-table-columns mr-2"></i>Colunas
-                <svg class="w-2.5 h-2.5 ml-2" aria-hidden="true" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-
-            <div id="colunasDropdown"
-                class="z-10 hidden bg-white rounded-lg shadow w-56 dark:bg-gray-700 absolute right-0">
-                <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="colunasDropdownButton">
-                    {% for coluna in colunas %}
-                    <li>
-                        <div class="flex items-center">
-                            <input id="checkbox-{{ coluna.id }}" type="checkbox" value="{{ coluna.id }}"
-                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                            <label for="checkbox-{{ coluna.id }}"
-                                class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ coluna.label }}</label>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Total de OFs</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_ordens|default:0 }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
+                </div>
             </div>
         </div>
-
-        <a href="{% url 'ordem_fornecimento_create' %}"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
-            + Nova OF
-        </a>
-        <a href="{% url 'export_ordem_fornecimento_csv' %}"
-            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
-            <i class="fa-solid fa-file-csv mr-2"></i>Exportar CSV
-        </a>
+        <div class="bg-gradient-to-br from-gray-500 to-gray-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-100 text-sm">Abertas</p>
+                    <p class="text-3xl font-bold mt-1">{{ ordens_abertas|default:0 }}</p>
+                </div>
+                <div class="bg-gray-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-folder-open text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-cyan-500 to-cyan-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-cyan-100 text-sm">Em Execução</p>
+                    <p class="text-3xl font-bold mt-1">{{ ordens_execucao|default:0 }}</p>
+                </div>
+                <div class="bg-cyan-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-cog text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Finalizadas</p>
+                    <p class="text-3xl font-bold mt-1">{{ ordens_finalizadas|default:0 }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Faturadas</p>
+                    <p class="text-3xl font-bold mt-1">{{ ordens_faturadas|default:0 }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-dollar-sign text-2xl"></i>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Card de Valor Total Faturado -->
+    {% if valor_total_faturado > 0 %}
+    <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 p-5 rounded-xl shadow-lg text-white mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-indigo-100 text-sm">Valor Total Faturado</p>
+                <p class="text-3xl font-bold mt-1">{{ valor_total_faturado|currency_br }}</p>
+            </div>
+            <div class="bg-indigo-400 bg-opacity-30 p-3 rounded-full">
+                <i class="fas fa-chart-line text-2xl"></i>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número da OF</label>
+                <input type="text" name="numero" value="{{ numero }}" placeholder="Número da OF"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cliente</label>
+                <input type="text" name="cliente" value="{{ cliente }}" placeholder="Nome do cliente"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select name="status" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <option value="">Todos os status</option>
+                    <option value="aberta" {% if status == "aberta" %}selected{% endif %}>Aberta</option>
+                    <option value="execucao" {% if status == "execucao" %}selected{% endif %}>Em Execução</option>
+                    <option value="finalizada" {% if status == "finalizada" %}selected{% endif %}>Finalizada</option>
+                    <option value="faturada" {% if status == "faturada" %}selected{% endif %}>Faturada</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
+                <a href="{% url 'ordem_fornecimento_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Ordens -->
+    {% if ordens %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        {% for coluna in colunas %}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider coluna-{{ coluna.id }}">{{ coluna.label }}</th>
+                        {% endfor %}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for ordem in ordens %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        {% for coluna in colunas %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white coluna-{{ coluna.id }}">
+                            {% if coluna.id == 'numero' %}
+                                <span class="font-medium">{{ ordem.numero_of }}</span>
+                            {% elif coluna.id == 'cliente' %}
+                                {{ ordem.cliente.nome_fantasia|default:ordem.cliente.nome_razao_social }}
+                            {% elif coluna.id == 'contrato' %}
+                                {{ ordem.contrato.numero_contrato }}
+                            {% elif coluna.id == 'itemcontrato' %}
+                                <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">
+                                    {{ ordem.item_contrato.descricao }}
+                                </div>
+                            {% elif coluna.id == 'itemfornecedor' %}
+                                <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">
+                                    {% if ordem.itens_fornecedor.all %}
+                                        {% for item in ordem.itens_fornecedor.all|slice:":1" %}
+                                            {{ item.item_fornecedor.descricao }}
+                                        {% endfor %}
+                                        {% if ordem.itens_fornecedor.count > 1 %}
+                                            <span class="text-xs text-gray-400">(+{{ ordem.itens_fornecedor.count|add:"-1" }})</span>
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </div>
+                            {% elif coluna.id == 'unidade' %}
+                                {{ ordem.unidade }}
+                            {% elif coluna.id == 'quantidade' %}
+                                {{ ordem.quantidade }}
+                            {% elif coluna.id == 'vigencia_produto' %}
+                                {{ ordem.vigencia_produto|default:"-" }} {% if ordem.vigencia_produto %}meses{% endif %}
+                            {% elif coluna.id == 'valor_unitario' %}
+                                {{ ordem.valor_unitario|currency_br }}
+                            {% elif coluna.id == 'valor_total' %}
+                                <span class="font-semibold">{{ ordem.valor_total|currency_br }}</span>
+                            {% elif coluna.id == 'data_ativacao' %}
+                                {{ ordem.data_ativacao|date:"d/m/Y"|default:"-" }}
+                            {% elif coluna.id == 'data_faturamento' %}
+                                {{ ordem.data_faturamento|date:"d/m/Y"|default:"-" }}
+                            {% elif coluna.id == 'observacoes' %}
+                                <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">
+                                    {{ ordem.observacoes|default:"-" }}
+                                </div>
+                            {% elif coluna.id == 'status' %}
+                                <span class="px-2 py-1 text-xs rounded-full font-medium
+                                    {% if ordem.status == 'aberta' %}bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300
+                                    {% elif ordem.status == 'execucao' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                    {% elif ordem.status == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                    {% elif ordem.status == 'faturada' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
+                                    {% endif %}">
+                                    {{ ordem.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex gap-2">
+                                <a href="{% url 'ordem_fornecimento_detail' ordem.pk %}" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'ordem_fornecimento_update' ordem.pk %}" 
+                                    class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'ordem_fornecimento_delete' ordem.pk %}" 
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if ordens.has_other_pages %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex gap-2">
+            {% if ordens.has_previous %}
+            <a href="?page={{ ordens.previous_page_number }}{% if numero %}&numero={{ numero }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if status %}&status={{ status }}{% endif %}" 
+                class="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {{ ordens.number }} / {{ ordens.paginator.num_pages }}
+            </span>
+            
+            {% if ordens.has_next %}
+            <a href="?page={{ ordens.next_page_number }}{% if numero %}&numero={{ numero }}{% endif %}{% if cliente %}&cliente={{ cliente }}{% endif %}{% if status %}&status={{ status }}{% endif %}" 
+                class="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+        <i class="fas fa-shopping-cart text-gray-400 text-5xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhuma ordem encontrada</h3>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Clique em "Nova OF" para cadastrar uma ordem de fornecimento.</p>
+    </div>
+    {% endif %}
 </div>
 
-<!-- Filtros -->
-<form method="GET" class="flex gap-2 mb-4">
-    <input type="text" name="numero" placeholder="Número da OF"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-    <input type="text" name="cliente" placeholder="Cliente"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-    <select name="status"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-        <option value="">Status</option>
-        <option value="aberta">Aberta</option>
-        <option value="execucao">Em Execução</option>
-        <option value="finalizada">Finalizada</option>
-        <option value="faturada">Faturada</option>
-    </select>
-    <button type="submit"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg flex items-center">
-        <i class="fa-solid fa-magnifying-glass mr-2"></i>Filtrar
-    </button>
-    <a href="{% url 'ordem_fornecimento_list' %}"
-        class="bg-gray-600 hover:bg-gray-700 text-white px-4 rounded-lg flex items-center">
-        <i class="fa-solid fa-xmark mr-2"></i>Limpar
-    </a>
-</form>
+{{ colunas|json_script:"of-colunas-data" }}
+{% endblock %}
 
-<!-- Tabela -->
-<div class="relative overflow-x-auto">
-    <table class="w-full text-sm text-left text-gray-400">
-        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-            <tr>
-                {% for coluna in colunas %}
-                <th class="px-4 py-3 coluna-{{ coluna.id }}">{{ coluna.label }}</th>
-                {% endfor %}
-                <th class="px-4 py-3">AÇÕES</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ordem in ordens %}
-            <tr class="border-b bg-gray-800 border-gray-700">
-                {% for coluna in colunas %}
-                <td class="px-4 py-3 coluna-{{ coluna.id }}">
-                    {% if coluna.id == 'numero' %}
-                        {{ ordem.numero_of }}
-                    {% elif coluna.id == 'cliente' %}
-                        {{ ordem.cliente.nome_fantasia }}
-                    {% elif coluna.id == 'contrato' %}
-                        {{ ordem.contrato.numero_contrato }}
-                    {% elif coluna.id == 'itemcontrato' %}
-                        {{ ordem.item_contrato.descricao }}
-                    {% elif coluna.id == 'itemfornecedor' %}
-                        {{ ordem.item_fornecedor.descricao }}
-                    {% elif coluna.id == 'unidade' %}
-                        {{ ordem.unidade }}
-                    {% elif coluna.id == 'quantidade' %}
-                        {{ ordem.quantidade }}
-                    {% elif coluna.id == 'vigencia_produto' %}
-                        {{ ordem.vigencia_produto }}
-                    {% elif coluna.id == 'valor_unitario' %}
-                        R$ {{ ordem.valor_unitario|floatformat:2 }}
-                    {% elif coluna.id == 'valor_total' %}
-                        R$ {{ ordem.valor_total|floatformat:2 }}
-                    {% elif coluna.id == 'data_ativacao' %}
-                        {{ ordem.data_ativacao|date:"d/m/Y" }}
-                    {% elif coluna.id == 'data_faturamento' %}
-                        {{ ordem.data_faturamento|date:"d/m/Y" }}
-                    {% elif coluna.id == 'observacoes' %}
-                        {{ ordem.observacoes }}
-                    {% elif coluna.id == 'status' %}
-                        <span class="px-2 py-1 rounded-full 
-                            {% if ordem.status == 'aberta' %}bg-gray-500
-                            {% elif ordem.status == 'execucao' %}bg-blue-600
-                            {% elif ordem.status == 'finalizada' %}bg-green-600
-                            {% elif ordem.status == 'faturada' %}bg-purple-600
-                            {% endif %}">
-                            {{ ordem.get_status_display }}
-                        </span>
-                    {% endif %}
-                </td>
-                {% endfor %}
-                <td class="px-4 py-3 flex gap-2">
-                    <a href="{% url 'ordem_fornecimento_detail' ordem.pk %}" class="text-blue-500"><i class="fa-solid fa-eye"></i></a>
-                    <a href="{% url 'ordem_fornecimento_update' ordem.pk %}" class="text-yellow-400"><i class="fa-solid fa-pen-to-square"></i></a>
-                    <a href="{% url 'ordem_fornecimento_delete' ordem.pk %}" class="text-red-500"><i class="fa-solid fa-trash"></i></a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Script de controle de colunas -->
+{% block scripts %}
+{{ block.super }}
 <script>
-    const colunas = JSON.parse(document.getElementById('colunas-data').textContent);
-    const idsColunas = colunas.map(c => c.id);
+    const ofColunas = JSON.parse(document.getElementById('of-colunas-data').textContent);
+    const ofIds = ofColunas.map(c => c.id);
 
-    function carregarPreferenciasColunas() {
-        const prefs = JSON.parse(localStorage.getItem('of_colunas')) || idsColunas;
-        idsColunas.forEach(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+    function carregarPreferenciasOF() {
+        const prefs = JSON.parse(localStorage.getItem('of_colunas')) || ofIds;
+        ofIds.forEach(coluna => {
+            const checkbox = document.getElementById(`of-checkbox-${coluna}`);
             const elementos = document.querySelectorAll(`.coluna-${coluna}`);
             if (checkbox) {
                 checkbox.checked = prefs.includes(coluna);
@@ -158,24 +310,23 @@
         });
     }
 
-    function atualizarPreferenciasColunas() {
-        const selecionadas = idsColunas.filter(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+    function atualizarPreferenciasOF() {
+        const selecionadas = ofIds.filter(coluna => {
+            const checkbox = document.getElementById(`of-checkbox-${coluna}`);
             return checkbox && checkbox.checked;
         });
         localStorage.setItem('of_colunas', JSON.stringify(selecionadas));
-        carregarPreferenciasColunas();
+        carregarPreferenciasOF();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        carregarPreferenciasColunas();
-        idsColunas.forEach(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+        carregarPreferenciasOF();
+        ofIds.forEach(coluna => {
+            const checkbox = document.getElementById(`of-checkbox-${coluna}`);
             if (checkbox) {
-                checkbox.addEventListener('change', atualizarPreferenciasColunas);
+                checkbox.addEventListener('change', atualizarPreferenciasOF);
             }
         });
     });
 </script>
-
 {% endblock %}

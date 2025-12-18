@@ -1,0 +1,73 @@
+{# sla/form.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if form.instance.pk %}Editar SLA{% else %}Novo SLA{% endif %}
+        </h1>
+        <a href="{% url 'sla_list' %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                <div class="{% if field.name == 'descricao' or field.name == 'observacoes' %}md:col-span-2{% endif %}">
+                    {% if field.name == 'ativo' %}
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                        </label>
+                        <div class="flex items-center">
+                            {{ field|add_class:"w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" }}
+                        </div>
+                    {% else %}
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% endif %}
+                    
+                    {% if field.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% url 'sla_list' %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Preencher contrato se vier na URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const contratoId = urlParams.get('contrato');
+    if (contratoId) {
+        const contratoField = document.getElementById('id_contrato');
+        if (contratoField) {
+            contratoField.value = contratoId;
+        }
+    }
+});
+</script>
+{% endblock %}
+

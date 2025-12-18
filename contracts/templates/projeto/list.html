@@ -1,0 +1,133 @@
+{# projeto/list.html #}
+{% extends 'contracts/base.html' %}
+{% load static math_extras form_filters %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold dark:text-white">Gestão de Projetos</h1>
+        <a href="{% url 'projeto_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+            <i class="fa-solid fa-plus mr-2"></i>Novo Projeto
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="get" class="flex gap-2">
+            <input type="text" name="search" placeholder="Buscar projetos..." 
+                   value="{{ request.GET.search }}"
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <select name="contrato" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">Todos os Contratos</option>
+                {% for contrato in contratos %}
+                <option value="{{ contrato.pk }}" {% if request.GET.contrato == contrato.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ contrato.numero_contrato }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">Todos os Status</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-filter mr-2"></i>Filtrar
+            </button>
+        </form>
+    </div>
+
+    <!-- Tabela de Projetos -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                <tr>
+                    <th class="px-4 py-3">Nome</th>
+                    <th class="px-4 py-3">Cliente</th>
+                    <th class="px-4 py-3">Contrato</th>
+                    <th class="px-4 py-3">Gerente</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Data Início</th>
+                    <th class="px-4 py-3">Data de Término</th>
+                    <th class="px-4 py-3">Sprints</th>
+                    <th class="px-4 py-3">Tarefas Backlog</th>
+                    <th class="px-4 py-3">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for projeto in projetos %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-4 py-3 dark:text-white font-medium">{{ projeto.nome }}</td>
+                    <td class="px-4 py-3 dark:text-white">
+                        {% if projeto.contrato.cliente %}
+                        <a href="{% url 'cliente_detail' projeto.contrato.cliente.pk %}" class="text-blue-600 hover:underline">
+                            {{ projeto.contrato.cliente.nome_razao_social|truncatechars:30 }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 dark:text-white">
+                        <a href="{% url 'gestao_contratos_detail' projeto.contrato.pk %}" class="text-blue-600 hover:underline">
+                            {{ projeto.contrato.numero_contrato }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.gerente_projeto.nome_completo|default:"-" }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded text-xs
+                            {% if projeto.status == 'concluido' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            {% elif projeto.status == 'em_andamento' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                            {% elif projeto.status == 'pausado' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                            {% elif projeto.status == 'cancelado' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                            {{ projeto.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.data_inicio|date:"d/m/Y"|default:"-" }}</td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.data_fim_prevista|date:"d/m/Y"|default:"-" }}</td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.total_sprints }} ({{ projeto.sprints_ativas }} ativas)</td>
+                    <td class="px-4 py-3 dark:text-white">{{ projeto.total_tarefas_backlog }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            <a href="{% url 'projeto_detail' projeto.pk %}" class="text-blue-600 hover:underline">Ver</a>
+                            <a href="{% url 'projeto_update' projeto.pk %}" class="text-yellow-600 hover:underline">Editar</a>
+                            <a href="{% url 'projeto_delete' projeto.pk %}" class="text-red-600 hover:underline" onclick="return confirm('Tem certeza que deseja excluir este projeto? Esta ação excluirá todas as sprints e tarefas vinculadas e não pode ser desfeita!');">Excluir</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">
+                        Nenhum projeto encontrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if projetos.has_other_pages %}
+    <div class="mt-4 flex justify-center">
+        <nav class="flex gap-2">
+            {% if projetos.has_previous %}
+            <a href="?page={{ projetos.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.contrato %}&contrato={{ request.GET.contrato }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                Anterior
+            </a>
+            {% endif %}
+            <span class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">
+                Página {{ projetos.number }} de {{ projetos.paginator.num_pages }}
+            </span>
+            {% if projetos.has_next %}
+            <a href="?page={{ projetos.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.contrato %}&contrato={{ request.GET.contrato }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                Próxima
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

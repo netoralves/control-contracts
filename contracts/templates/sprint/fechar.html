@@ -1,0 +1,104 @@
+{# sprint/fechar.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters math_extras %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Fechar Sprint</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Sprint: {{ sprint.nome }} - Projeto: {{ projeto.nome }}</p>
+        </div>
+        <a href="{% url 'sprint_detail' projeto.pk sprint.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Resumo da Sprint -->
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold dark:text-white mb-3">Resumo da Sprint</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Total de Tarefas</p>
+                <p class="text-xl font-bold dark:text-white">{{ sprint.total_tarefas }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Tarefas Concluídas</p>
+                <p class="text-xl font-bold dark:text-white">{{ sprint.tarefas_concluidas }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Horas Planejadas</p>
+                <p class="text-xl font-bold dark:text-white">{{ total_horas_planejadas|floatformat:2 }}h</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Horas Consumidas</p>
+                <p class="text-xl font-bold dark:text-white">{{ total_horas_consumidas|floatformat:2 }}h</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Período: {{ sprint.data_inicio|date:"d/m/Y" }} - {{ sprint.data_fim|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Lista de Tarefas -->
+    {% if tarefas_sprint %}
+    <div class="mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <h3 class="text-md font-semibold dark:text-white mb-3">Tarefas que serão incluídas na OS:</h3>
+        <div class="space-y-2 max-h-48 overflow-y-auto">
+            {% for tarefa in tarefas_sprint %}
+            <div class="bg-white dark:bg-gray-800 p-2 rounded text-sm">
+                <span class="font-medium dark:text-white">{{ tarefa.titulo }}</span>
+                <span class="text-gray-600 dark:text-gray-400"> - {{ tarefa.horas_planejadas|floatformat:2 }}h planejadas</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        <div class="mb-4 bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg">
+            <p class="text-yellow-800 dark:text-yellow-200">
+                <i class="fa-solid fa-info-circle mr-2"></i>
+                Ao fechar esta sprint, uma Ordem de Serviço será criada automaticamente com todas as tarefas da sprint.
+            </p>
+        </div>
+
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                {% if field.name != 'cliente' and field.name != 'contrato' %}
+                    <div class="{% if field.name == 'descricao' or field.name == 'observacoes' %}md:col-span-2{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {{ field }}
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                <i class="fa fa-check"></i> Fechar Sprint e Criar OS
+            </button>
+            <a href="{% url 'sprint_detail' projeto.pk sprint.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

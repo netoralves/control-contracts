@@ -1,0 +1,168 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Grupos{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-users-cog mr-2"></i>Grupos
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                Gestão de grupos e permissões do sistema
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'grupo_create' %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i> Novo Grupo
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-red-500 to-red-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm">Total de Grupos</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_grupos|default:0 }}</p>
+                </div>
+                <div class="bg-red-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-users-cog text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Total de Permissões</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_permissoes|default:0 }}</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-key text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Usuários em Grupos</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_usuarios|default:0 }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar</label>
+                <input type="text" name="search" value="{{ search|default:'' }}" placeholder="Buscar por nome do grupo"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
+                <a href="{% url 'grupo_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Grupos -->
+    {% if grupos %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome do Grupo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Permissões</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Usuários</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for grupo in grupos %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                {{ grupo.name }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {{ grupo.permissions.count }} permissão(ões)
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                {{ grupo.user_set.count }} usuário(s)
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex gap-2">
+                                <a href="{% url 'grupo_detail' grupo.pk %}" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'grupo_update' grupo.pk %}" 
+                                    class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'grupo_delete' grupo.pk %}" 
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if grupos.has_other_pages %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex gap-2">
+            {% if grupos.has_previous %}
+            <a href="?page={{ grupos.previous_page_number }}{% if search %}&search={{ search }}{% endif %}" 
+                class="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                {{ grupos.number }} / {{ grupos.paginator.num_pages }}
+            </span>
+            
+            {% if grupos.has_next %}
+            <a href="?page={{ grupos.next_page_number }}{% if search %}&search={{ search }}{% endif %}" 
+                class="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+        <i class="fas fa-users-cog text-gray-400 text-5xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum grupo encontrado</h3>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Clique em "Novo Grupo" para cadastrar um grupo.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

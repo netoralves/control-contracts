@@ -1,0 +1,1924 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+{% load math_extras %}
+
+{% block title %}{{ contrato.numero_contrato }} - Detalhes do Contrato{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'gestao_contratos_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-file-contract mr-2"></i>{{ contrato.numero_contrato }}
+                </h1>
+                {% if contrato.renovacao_pendente %}
+                <span class="px-3 py-1 text-sm rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 animate-pulse">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Renovação Pendente
+                </span>
+                {% elif contrato.situacao == 'Ativo' %}
+                <span class="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <i class="fas fa-check-circle mr-1"></i>Ativo
+                </span>
+                {% else %}
+                <span class="px-3 py-1 text-sm rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    <i class="fas fa-times-circle mr-1"></i>Inativo
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                {{ contrato.cliente.nome_razao_social }}
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'gestao_contratos_update' contrato.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-edit mr-1"></i> Editar
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Valor Inicial</p>
+                    <p class="text-2xl font-bold mt-1">{{ resumo.valor_inicial|currency_br }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Valor Atual</p>
+                    <p class="text-2xl font-bold mt-1">{{ resumo.valor_atual|currency_br }}</p>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-chart-line text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Vigência Total</p>
+                    <p class="text-2xl font-bold mt-1">{{ resumo.vigencia_total }} meses</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-calendar-alt text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-amber-100 text-sm">Dias p/ Vencimento</p>
+                    <p class="text-2xl font-bold mt-1">
+                        {% if resumo.dias_para_vencimento %}
+                            {% if resumo.dias_para_vencimento > 0 %}{{ resumo.dias_para_vencimento }}{% else %}Vencido{% endif %}
+                        {% else %}N/A{% endif %}
+                    </p>
+                </div>
+                <div class="bg-amber-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-hourglass-half text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-indigo-100 text-sm">Termos Aditivos</p>
+                    <p class="text-2xl font-bold mt-1">{{ resumo.total_aditivos }}</p>
+                </div>
+                <div class="bg-indigo-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-file-alt text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                <button type="button" onclick="showTab('info')" id="tab-info"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    <i class="fas fa-info-circle mr-1"></i> Informações
+                </button>
+                <button type="button" onclick="showTab('slas')" id="tab-slas"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-clipboard-check mr-1"></i> SLAs ({{ slas.count|add:slas_importantes.count }})
+                </button>
+                <button type="button" onclick="showTab('itens')" id="tab-itens"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-list-alt mr-1"></i> Itens do Contrato ({{ itens_contrato.count }})
+                </button>
+                <button type="button" onclick="showTab('projetos')" id="tab-projetos"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-project-diagram mr-1"></i> Projetos
+                </button>
+                <button type="button" onclick="showTab('ofs')" id="tab-ofs"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-truck-loading mr-1"></i> Ordens de Fornecimento ({{ ordens_fornecimento.count }})
+                </button>
+                <button type="button" onclick="showTab('oss')" id="tab-oss"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-tools mr-1"></i> Ordens de Serviço ({{ ordens_servico.count }})
+                </button>
+                <button type="button" onclick="showTab('aditivos')" id="tab-aditivos"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-file-alt mr-1"></i> Termos Aditivos ({{ termos_aditivos.count }})
+                </button>
+                <button type="button" onclick="showTab('timeline')" id="tab-timeline"
+                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    <i class="fas fa-history mr-1"></i> Histórico
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tab: Informações -->
+    <div id="content-info" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Dados do Contrato -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-file-contract mr-2 text-blue-500"></i>Dados do Contrato
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Número do Contrato</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.numero_contrato }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Regime Legal</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.get_regime_legal_display }}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Processo</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.processo|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Pregão Eletrônico</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.pregao_eletronico|default:"-" }}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">ARP</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.ata_registro_preco|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Termo de Referência</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.termo_referencia|default:"-" }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Objeto</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ contrato.objeto|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Origem do Contrato -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-route mr-2 text-teal-500"></i>Origem do Contrato
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Origem</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.get_origem_contrato_display|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Detalhe da Origem</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.origem_contrato_detalhe|default:"-" }}</p>
+                        </div>
+                    </div>
+                    {% if contrato.origem_contrato_justificativa_ia %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Justificativa (IA)</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ contrato.origem_contrato_justificativa_ia }}</p>
+                    </div>
+                    {% endif %}
+                    {% if contrato.origem_contrato_confianca_ia %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Confiança da Classificação (IA)</p>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-teal-500 h-2 rounded-full" style="width: {{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%"></div>
+                            </div>
+                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Vigência e Valores -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 max-w-full overflow-hidden">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-calendar-check mr-2 text-green-500"></i>Vigência e Valores
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Data de Início</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.data_assinatura|date:"d/m/Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Data de Término Atual</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.data_fim_atual|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Vigência Original</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.vigencia }} meses</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Vigência Total (com aditivos)</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ resumo.vigencia_total }} meses</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Valor Inicial</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.valor_inicial|currency_br }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Valor Atual (com aditivos)</p>
+                            <p class="font-medium text-green-600 dark:text-green-400 text-lg">{{ resumo.valor_atual|currency_br }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Barra de progresso de vigência -->
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Progresso da Vigência</p>
+                            <p class="text-xs font-medium">
+                                {% if resumo.dias_totais_vigencia > 0 %}
+                                    {{ resumo.dias_passados }} / {{ resumo.dias_totais_vigencia }} dias
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if resumo.dias_totais_vigencia > 0 %}
+                        {% widthratio resumo.dias_passados resumo.dias_totais_vigencia 100 as progress_vigencia %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative overflow-hidden">
+                            <div class="bg-green-500 h-3 rounded-full transition-all" 
+                                style="width: {% if progress_vigencia > 100 %}100{% else %}{{ progress_vigencia|default:0 }}{% endif %}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+                            {% if resumo.dias_para_vencimento > 0 %}{{ resumo.dias_para_vencimento }} dias restantes{% else %}Contrato vencido{% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cliente -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-building mr-2 text-purple-500"></i>Cliente
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Razão Social</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ contrato.cliente.nome_razao_social }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">CNPJ/CPF</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ contrato.cliente.cnpj_cpf }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Tipo</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ contrato.cliente.get_tipo_cliente_display }} - {{ contrato.cliente.get_tipo_pessoa_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Limites Legais -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 max-w-full overflow-hidden">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-gavel mr-2 text-amber-500"></i>Limites Legais
+                </h3>
+                <div class="space-y-4">
+                    <!-- Limite de Vigência -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Limite de Vigência</p>
+                            <p class="text-xs font-medium">
+                                {{ resumo.vigencia_total }} / {% if contrato.regime_legal == 'LEI_14133' %}120{% else %}60{% endif %} meses
+                            </p>
+                        </div>
+                        {% widthratio resumo.vigencia_total 120 100 as vig_percent %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 max-w-full">
+                            <div class="{% if vig_percent > 80 %}bg-red-500{% elif vig_percent > 60 %}bg-amber-500{% else %}bg-green-500{% endif %} h-2 rounded-full" 
+                                style="width: {{ vig_percent|default:0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Limite de Aditivo de Valor (25%) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Limite de Aditivo de Valor (25%)</p>
+                            <p class="text-xs font-medium">
+                                {{ resumo.valor_consumido_aditivos|currency_br }} / {{ resumo.limite_aditivo_valor|currency_br }}
+                            </p>
+                        </div>
+                        {% if resumo.limite_aditivo_valor > 0 %}
+                        {% widthratio resumo.valor_consumido_aditivos resumo.limite_aditivo_valor 100 as aditivo_percent %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 relative overflow-hidden max-w-full">
+                            <div class="{% if aditivo_percent > 100 %}bg-red-500{% elif aditivo_percent > 90 %}bg-amber-500{% else %}bg-green-500{% endif %} h-2 rounded-full" 
+                                style="width: {% if aditivo_percent > 100 %}100{% else %}{{ aditivo_percent|default:0 }}{% endif %}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Máximo permitido: {{ resumo.limite_aditivo_valor|currency_br }} (25% do valor inicial)
+                        </p>
+                        {% else %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 max-w-full">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Máximo permitido: {{ resumo.limite_aditivo_valor|currency_br }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Consumo dos Itens do Contrato -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 max-w-full overflow-hidden">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-shopping-cart mr-2 text-blue-500"></i>Consumo dos Itens do Contrato
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Valor Total dos Itens</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ resumo.valor_total_itens|currency_br }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Valor Faturado</p>
+                            <p class="font-medium text-green-600 dark:text-green-400">{{ resumo.valor_faturado_itens|currency_br }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Consumo dos Itens</p>
+                            <p class="text-xs font-medium">
+                                {{ resumo.valor_faturado_itens|currency_br }} / {{ resumo.valor_total_itens|currency_br }}
+                            </p>
+                        </div>
+                        {% if resumo.valor_total_itens > 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative overflow-hidden max-w-full">
+                            <div class="bg-green-500 h-3 rounded-full transition-all" 
+                                style="width: {% if resumo.percentual_consumo_itens > 100 %}100{% else %}{{ resumo.percentual_consumo_itens|default:0 }}{% endif %}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+                            Saldo restante: {{ resumo.valor_total_itens|subtract:resumo.valor_faturado_itens|currency_br }}
+                        </p>
+                        {% else %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 max-w-full">
+                            <div class="bg-gray-300 h-3 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Nenhum item cadastrado</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fornecedores de Tecnologia/Serviços -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-server mr-2 text-indigo-500"></i>Fornecedores de Tecnologia/Serviços
+                </h3>
+                <div class="space-y-3">
+                    {% if contrato.fornecedores %}
+                        <div class="flex flex-wrap gap-2">
+                            {% for fornecedor in contrato.fornecedores_formatados %}
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium border border-indigo-200 dark:border-indigo-800">
+                                <i class="fas fa-check-circle text-indigo-500"></i>
+                                {{ fornecedor }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            Total: {{ contrato.fornecedores|length }} fornecedor{{ contrato.fornecedores|length|pluralize:"es" }}
+                        </p>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox text-gray-400 text-3xl mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum fornecedor cadastrado</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Edite o contrato para adicionar fornecedores
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: SLAs -->
+    <div id="content-slas" class="tab-content hidden">
+        <div class="space-y-6">
+            <!-- Formulário para Novo SLA -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-plus-circle mr-2 text-green-500"></i>Adicionar Novo SLA
+                    </h3>
+                    <button type="button" onclick="toggleSLAForm()" id="btn-toggle-sla-form"
+                        class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                        <i class="fas fa-chevron-down" id="icon-toggle-sla-form"></i> Expandir
+                    </button>
+                </div>
+                
+                <form method="post" id="form-novo-sla" class="hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_sla" value="1">
+                    {{ sla_form.contrato }}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Coluna Esquerda -->
+                        <div class="space-y-4">
+                            <!-- Título do SLA -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Título do SLA <span class="text-red-500">*</span>
+                                </label>
+                                {{ sla_form.titulo }}
+                            </div>
+                            
+                            <!-- Meta -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Meta <span class="text-red-500">*</span>
+                                </label>
+                                {{ sla_form.meta }}
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Ex: 99.9% de disponibilidade, 4 horas de resposta</p>
+                            </div>
+                            
+                            <!-- Data de Início -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Data de Início <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    {{ sla_form.data_inicio }}
+                                    <i class="fas fa-calendar-alt absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none z-10"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Descrição -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Descrição <span class="text-red-500">*</span>
+                                </label>
+                                {{ sla_form.descricao }}
+                            </div>
+                            
+                            <!-- Observações -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Observações
+                                </label>
+                                {{ sla_form.observacoes }}
+                            </div>
+                            
+                            <!-- SLA Ativo -->
+                            <div class="flex items-center gap-2">
+                                {{ sla_form.ativo }}
+                                <label for="{{ sla_form.ativo.id_for_label }}" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    SLA Ativo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Coluna Direita -->
+                        <div class="space-y-4">
+                            <!-- Tipo -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Tipo <span class="text-red-500">*</span>
+                                </label>
+                                {{ sla_form.tipo }}
+                            </div>
+                            
+                            <!-- Valor da Penalidade -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Valor da Penalidade (R$)
+                                </label>
+                                {{ sla_form.valor_penalidade }}
+                            </div>
+                            
+                            <!-- Data de Fim -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Data de Fim
+                                </label>
+                                <div class="relative">
+                                    {{ sla_form.data_fim }}
+                                    <i class="fas fa-calendar-alt absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none z-10"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botão Adicionar SLA -->
+                    <div class="flex justify-end mt-6">
+                        <button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                            <i class="fas fa-plus mr-1"></i> Adicionar SLA
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- SLAs Importantes (gerados pela IA) -->
+            {% if slas_importantes %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-robot mr-2 text-purple-500"></i>SLAs Importantes (Identificados pela IA)
+                    </h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    {% for sla_imp in slas_importantes %}
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ sla_imp.nome }}</h4>
+                                    <span class="px-2 py-1 text-xs rounded-full
+                                        {% if sla_imp.prioridade == 'critica' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                                        {% elif sla_imp.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                                        {% elif sla_imp.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                        {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% endif %}">
+                                        {{ sla_imp.get_prioridade_display }}
+                                    </span>
+                                    {% if sla_imp.alerta_ativo %}
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        <i class="fas fa-bell mr-1"></i> Alerta Ativo
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ sla_imp.descricao }}</p>
+                                <div class="flex gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500 dark:text-gray-400">Tempo de Resposta:</span>
+                                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ sla_imp.tempo_resposta_horas }}h</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500 dark:text-gray-400">Tempo de Solução:</span>
+                                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ sla_imp.tempo_solucao_horas }}h</span>
+                                    </div>
+                                    {% if sla_imp.alerta_antes_horas %}
+                                    <div>
+                                        <span class="text-gray-500 dark:text-gray-400">Alerta Antes:</span>
+                                        <span class="font-medium text-gray-900 dark:text-white ml-1">{{ sla_imp.alerta_antes_horas }}h</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if sla_imp.penalizacoes.exists %}
+                                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Penalizações/Glosas:</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for penal in sla_imp.penalizacoes.all %}
+                                        <span class="px-2 py-1 text-xs rounded bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                                            {{ penal.descricao }}
+                                            {% if penal.percentual %}({{ penal.percentual }}%){% endif %}
+                                            {% if penal.valor_fixo %}(R$ {{ penal.valor_fixo }}){% endif %}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- SLAs Cadastrados -->
+            {% if slas %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-clipboard-check mr-2 text-blue-500"></i>SLAs Cadastrados
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Título</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tipo</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Meta</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Penalidade</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Período</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for sla in slas %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ sla.titulo }}</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        {{ sla.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ sla.meta }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                    {% if sla.valor_penalidade %}{{ sla.valor_penalidade|currency_br }}{% else %}-{% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ sla.data_inicio|date:"d/m/Y" }}
+                                    {% if sla.data_fim %} - {{ sla.data_fim|date:"d/m/Y" }}{% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full
+                                        {% if sla.ativo %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300{% endif %}">
+                                        {% if sla.ativo %}Ativo{% else %}Inativo{% endif %}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'sla_detail' sla.pk %}" 
+                                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'sla_update' sla.pk %}" 
+                                            class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Mensagem quando não há SLAs -->
+            {% if not slas and not slas_importantes %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+                <i class="fas fa-clipboard-check text-gray-400 text-5xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum SLA cadastrado</h3>
+                <p class="text-gray-500 dark:text-gray-400 mt-2">Clique em "Expandir" acima para adicionar SLAs a este contrato.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Itens do Contrato -->
+    <div id="content-itens" class="tab-content hidden">
+        <div class="space-y-6">
+            <!-- Formulário para Novo Item -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-plus-circle mr-2 text-green-500"></i>Adicionar Novo Item
+                    </h3>
+                    <button type="button" onclick="toggleItemForm()" id="btn-toggle-form"
+                        class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                        <i class="fas fa-chevron-down" id="icon-toggle-form"></i> Expandir
+                    </button>
+                </div>
+                
+                <form method="post" id="form-novo-item" class="hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_item" value="1">
+                    {{ item_form.contrato }}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <!-- Lote -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Lote <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.lote }}
+                        </div>
+                        
+                        <!-- Número do Item -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Número do Item <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.numero_item }}
+                        </div>
+                        
+                        <!-- Tipo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Tipo <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.tipo }}
+                        </div>
+                        
+                        <!-- Unidade -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Unidade <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.unidade }}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <!-- Quantidade -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Quantidade <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.quantidade }}
+                        </div>
+                        
+                        <!-- Valor Unitário -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Valor Unitário (R$) <span class="text-red-500">*</span>
+                            </label>
+                            {{ item_form.valor_unitario }}
+                        </div>
+                        
+                        <!-- Vigência do Produto -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Vigência do Produto
+                            </label>
+                            {{ item_form.vigencia_produto }}
+                        </div>
+                    </div>
+                    
+                    <!-- Descrição -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Descrição <span class="text-red-500">*</span>
+                        </label>
+                        {{ item_form.descricao }}
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                            <i class="fas fa-plus mr-1"></i> Adicionar Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Lista de Itens -->
+            {% if itens_contrato %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-list-alt mr-2 text-violet-500"></i>Itens Cadastrados
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lote</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Descrição</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tipo</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qtd</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Unit.</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Total</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qtd. Saldo</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Saldo</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for item in itens_contrato %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-3 py-3 text-sm text-gray-900 dark:text-white">{{ item.lote }}</td>
+                                <td class="px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ item.numero_item }}</td>
+                                <td class="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" title="{{ item.descricao }}">
+                                    {{ item.descricao|truncatechars:40 }}
+                                </td>
+                                <td class="px-3 py-3 text-sm">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if item.tipo == 'PRODUTO' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                        {% elif item.tipo == 'SERVICO' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                        {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300{% endif %}">
+                                        {{ item.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-3 text-sm text-gray-900 dark:text-white">{{ item.quantidade }} {{ item.unidade }}</td>
+                                <td class="px-3 py-3 text-sm text-gray-900 dark:text-white">{{ item.valor_unitario|currency_br }}</td>
+                                <td class="px-3 py-3 text-sm font-semibold text-green-600 dark:text-green-400">{{ item.valor_total|currency_br }}</td>
+                                <td class="px-3 py-3 text-sm {% if item.saldo_quantidade_atual <= 0 %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
+                                    {{ item.saldo_quantidade_atual }} {{ item.unidade }}
+                                </td>
+                                <td class="px-3 py-3 text-sm font-semibold {% if item.saldo_quantidade_atual <= 0 %}text-red-600 dark:text-red-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">
+                                    {{ item.valor_saldo_original_prop|currency_br }}
+                                </td>
+                                <td class="px-3 py-3 text-sm">
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'item_contrato_detail' item.pk %}" 
+                                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'item_contrato_update' item.pk %}" 
+                                            class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+                <i class="fas fa-box-open text-gray-400 text-5xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum item cadastrado</h3>
+                <p class="text-gray-500 dark:text-gray-400 mt-2">Clique em "Expandir" acima para adicionar itens a este contrato.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab: Projetos -->
+    <div id="content-projetos" class="tab-content hidden">
+        <div class="space-y-6">
+            <!-- Canvas de Projetos e Backlogs -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-project-diagram mr-2 text-purple-500"></i>Gestão de Projetos e Backlogs
+                    </h3>
+                    <button onclick="abrirModalNovoBacklog()" 
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition text-sm">
+                        <i class="fas fa-plus mr-1"></i> Novo Backlog
+                    </button>
+                </div>
+                
+                <!-- Canvas Container -->
+                <div class="relative" style="min-height: 600px;">
+                    <!-- Backlogs (Coluna Esquerda) -->
+                    <div class="absolute left-0 top-0 w-1/3 pr-4">
+                        <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 border-2 border-orange-300 dark:border-orange-700">
+                            <h4 class="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-3 flex items-center">
+                                <i class="fas fa-list-ul mr-2"></i>Backlogs ({{ backlogs.count }})
+                            </h4>
+                            <div class="space-y-3 max-h-[550px] overflow-y-auto" id="backlogs-container">
+                                {% for backlog in backlogs %}
+                                <div class="backlog-card bg-white dark:bg-gray-700 rounded-lg p-3 shadow-md border border-orange-200 dark:border-orange-800 hover:shadow-lg transition cursor-move" 
+                                     data-backlog-id="{{ backlog.id }}"
+                                     draggable="true">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h5 class="font-medium text-gray-900 dark:text-white text-sm">{{ backlog.titulo|default:"Backlog sem título" }}</h5>
+                                        <span class="px-2 py-0.5 text-xs rounded-full 
+                                            {% if backlog.prioridade == 'critica' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                                            {% elif backlog.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                                            {% elif backlog.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                            {{ backlog.get_prioridade_display }}
+                                        </span>
+                                    </div>
+                                    {% if backlog.descricao %}
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{{ backlog.descricao|truncatewords:15 }}</p>
+                                    {% endif %}
+                                    <div class="flex gap-2 mt-2">
+                                        <button onclick="converterBacklogParaProjeto({{ backlog.id }}, '{{ backlog.titulo|escapejs }}')" 
+                                            class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded transition"
+                                            title="Converter em Projeto">
+                                            <i class="fas fa-arrow-right mr-1"></i>Criar Projeto
+                                        </button>
+                                        <button onclick="return excluirBacklog({{ backlog.id }}, event);" 
+                                            class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition"
+                                            title="Excluir Backlog"
+                                            type="button">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-inbox text-3xl mb-2"></i>
+                                    <p class="text-sm">Nenhum backlog pendente</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Projetos (Coluna Direita) -->
+                    <div class="absolute right-0 top-0 w-2/3 pl-4">
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 border-2 border-blue-300 dark:border-blue-700">
+                            <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center">
+                                <i class="fas fa-project-diagram mr-2"></i>Projetos ({{ projetos.count }})
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[550px] overflow-y-auto">
+                                {% for projeto in projetos %}
+                                <div class="projeto-card bg-white dark:bg-gray-700 rounded-lg p-4 shadow-md border border-blue-200 dark:border-blue-800 hover:shadow-lg transition">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h5 class="font-semibold text-gray-900 dark:text-white text-sm">{{ projeto.nome }}</h5>
+                                        <span class="px-2 py-0.5 text-xs rounded-full 
+                                            {% if projeto.status == 'concluido' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                            {% elif projeto.status == 'em_andamento' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                            {% elif projeto.status == 'pausado' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                            {{ projeto.get_status_display }}
+                                        </span>
+                                    </div>
+                                    {% if projeto.descricao %}
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{{ projeto.descricao|truncatewords:15 }}</p>
+                                    {% endif %}
+                                    {% if projeto.backlog_origem %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                        <i class="fas fa-arrow-left mr-1"></i>De: {{ projeto.backlog_origem.titulo|truncatewords:5 }}
+                                    </p>
+                                    {% endif %}
+                                    <div class="flex flex-wrap gap-2 mt-3">
+                                        <a href="{% url 'projeto_detail' projeto.pk %}" 
+                                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded transition text-center"
+                                            title="Ver Detalhes">
+                                            <i class="fas fa-eye mr-1"></i>Ver
+                                        </a>
+                                        {% if not projeto.plano_trabalho %}
+                                        <button onclick="gerarPlanoTrabalho({{ projeto.id }})" 
+                                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs px-2 py-1 rounded transition"
+                                            title="Gerar Plano de Trabalho">
+                                            <i class="fas fa-robot mr-1"></i>Plano IA
+                                        </button>
+                                        {% else %}
+                                        <a href="{% url 'plano_trabalho_detail' projeto.plano_trabalho.pk %}" 
+                                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2 py-1 rounded transition text-center"
+                                            title="Ver Plano de Trabalho">
+                                            <i class="fas fa-file-alt mr-1"></i>Plano
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-span-2 text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-folder-open text-3xl mb-2"></i>
+                                    <p class="text-sm">Nenhum projeto criado</p>
+                                    <p class="text-xs mt-1">Converta um backlog em projeto para começar</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal: Novo Backlog -->
+        <div id="modalNovoBacklog" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-plus-circle mr-2 text-purple-500"></i>Novo Backlog
+                    </h3>
+                    <button onclick="fecharModalNovoBacklog()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="formNovoBacklog" method="post" action="{% url 'backlog_create_ajax' contrato.pk %}">
+                    {% csrf_token %}
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Título <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="titulo" id="backlog_titulo" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                placeholder="Ex: Implementação de Firewall">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descrição
+                            </label>
+                            <textarea name="descricao" id="backlog_descricao" rows="3"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                placeholder="Descreva a demanda..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Prioridade
+                            </label>
+                            <select name="prioridade" id="backlog_prioridade"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <option value="baixa">Baixa</option>
+                                <option value="media" selected>Média</option>
+                                <option value="alta">Alta</option>
+                                <option value="critica">Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button type="button" onclick="fecharModalNovoBacklog()" 
+                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                            <i class="fas fa-save mr-1"></i> Criar Backlog
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Modal: Confirmar Exclusão de Backlog -->
+        <div id="modalExcluirBacklog" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Confirmar Exclusão
+                    </h3>
+                    <button onclick="fecharModalExcluirBacklog()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <p class="text-gray-700 dark:text-gray-300">
+                        Tem certeza que deseja excluir este backlog? Esta ação não pode ser desfeita.
+                    </p>
+                    <div id="backlog-excluir-info" class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white" id="backlog-excluir-titulo"></p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="fecharModalExcluirBacklog()" 
+                        class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="confirmarExclusaoBacklog()" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                        <i class="fas fa-trash mr-1"></i> Excluir Backlog
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal: Sucesso na Conversão de Backlog -->
+        <div id="modalSucessoConversao" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-check-circle mr-2 text-green-500"></i>Sucesso
+                    </h3>
+                    <button onclick="fecharModalSucessoConversao()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <p class="text-gray-700 dark:text-gray-300" id="mensagem-sucesso-conversao"></p>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="fecharModalSucessoConversao()" 
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                        <i class="fas fa-check mr-1"></i> OK
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal: Converter Backlog em Projeto -->
+        <div id="modalConverterProjeto" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-arrow-right mr-2 text-green-500"></i>Converter em Projeto
+                    </h3>
+                    <button onclick="fecharModalConverterProjeto()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form method="post" id="formConverterProjeto" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="backlog_id" id="backlog_id_input">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Nome do Projeto <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="nome_projeto" id="projeto_nome" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                placeholder="Ex: Projeto - Implementação Firewall">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descrição do Projeto
+                            </label>
+                            <textarea name="descricao_projeto" id="projeto_descricao" rows="3"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                placeholder="Descrição detalhada do projeto..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Gerente de Projeto
+                            </label>
+                            <select name="gerente_projeto" id="projeto_gerente"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <option value="">Selecione um gerente...</option>
+                                {% for gerente in gerentes %}
+                                <option value="{{ gerente.pk }}">{{ gerente.nome_completo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button type="button" onclick="fecharModalConverterProjeto()" 
+                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                            <i class="fas fa-check mr-1"></i> Criar Projeto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Ordens de Fornecimento -->
+    <div id="content-ofs" class="tab-content hidden">
+        {% if ordens_fornecimento %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    <i class="fas fa-truck-loading mr-2 text-indigo-500"></i>Ordens de Fornecimento
+                </h3>
+                <a href="{% url 'ordem_fornecimento_create' %}" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg transition">
+                    <i class="fas fa-plus mr-1"></i> Nova OF
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nº OF</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item Contrato</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item Fornecedor</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quantidade</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for of in ordens_fornecimento %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ of.numero_of }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ of.item_contrato.numero_item }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                {% if of.itens_fornecedor.all %}
+                                    {% for item in of.itens_fornecedor.all|slice:":1" %}
+                                        {{ item.item_fornecedor.descricao|truncatechars:30 }}
+                                    {% endfor %}
+                                    {% if of.itens_fornecedor.count > 1 %}
+                                        <span class="text-xs text-gray-400">(+{{ of.itens_fornecedor.count|add:"-1" }})</span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ of.quantidade }}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">{{ of.valor_total|currency_br }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if of.status == 'faturada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                    {% elif of.status == 'finalizada' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                    {% elif of.status == 'execucao' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300{% endif %}">
+                                    {{ of.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <div class="flex gap-2">
+                                    <a href="{% url 'ordem_fornecimento_detail' of.pk %}" 
+                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'ordem_fornecimento_update' of.pk %}" 
+                                        class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <i class="fas fa-truck-loading text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhuma Ordem de Fornecimento</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Este contrato ainda não possui ordens de fornecimento.</p>
+            <a href="{% url 'ordem_fornecimento_create' %}" class="mt-4 inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i> Criar Nova OF
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Ordens de Serviço -->
+    <div id="content-oss" class="tab-content hidden">
+        {% if ordens_servico %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    <i class="fas fa-tools mr-2 text-amber-500"></i>Ordens de Serviço
+                </h3>
+                <a href="{% url 'ordem_servico_create' %}" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-lg transition">
+                    <i class="fas fa-plus mr-1"></i> Nova OS
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nº OS</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item Contrato</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item Fornecedor</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quantidade</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for os in ordens_servico %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ os.numero_os }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ os.item_contrato.numero_item }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                {% if os.itens_fornecedor.all %}
+                                    {% for item in os.itens_fornecedor.all|slice:":1" %}
+                                        {{ item.item_fornecedor.descricao|truncatechars:30 }}
+                                    {% endfor %}
+                                    {% if os.itens_fornecedor.count > 1 %}
+                                        <span class="text-xs text-gray-400">(+{{ os.itens_fornecedor.count|add:"-1" }})</span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ os.quantidade }}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">{{ os.valor_total|currency_br }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if os.status == 'faturada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                    {% elif os.status == 'finalizada' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                    {% elif os.status == 'execucao' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
+                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300{% endif %}">
+                                    {{ os.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <div class="flex gap-2">
+                                    <a href="{% url 'ordem_servico_detail' os.pk %}" 
+                                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'ordem_servico_update' os.pk %}" 
+                                        class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <i class="fas fa-tools text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhuma Ordem de Serviço</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Este contrato ainda não possui ordens de serviço.</p>
+            <a href="{% url 'ordem_servico_create' %}" class="mt-4 inline-block bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i> Criar Nova OS
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Termos Aditivos -->
+    <div id="content-aditivos" class="tab-content hidden">
+        {% if termos_aditivos %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Número</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data Assinatura</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Meses</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Valor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Justificativa</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for termo in termos_aditivos %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {{ termo.numero_termo }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full 
+                                {% if termo.tipo == 'PRORROGACAO' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
+                                {% elif termo.tipo == 'VALOR' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                {% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300{% endif %}">
+                                {{ termo.get_tipo_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {{ termo.data_assinatura|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {% if termo.meses_acrescimo > 0 %}+{{ termo.meses_acrescimo }} meses{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {% if termo.valor_acrescimo > 0 %}+{{ termo.valor_acrescimo|currency_br }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                            <div class="truncate max-w-xs" title="{{ termo.justificativa }}">
+                                {{ termo.justificativa|default:"-"|truncatechars:50 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <div class="flex gap-2">
+                                <a href="{% url 'termo_aditivo_update' contrato.pk termo.pk %}" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'termo_aditivo_delete' contrato.pk termo.pk %}" 
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
+            <i class="fas fa-file-alt text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum termo aditivo</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Este contrato ainda não possui termos aditivos.</p>
+            <a href="{% url 'termo_aditivo_create' contrato.pk %}" class="inline-block mt-4 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i> Criar Termo Aditivo
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Histórico/Timeline -->
+    <div id="content-timeline" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div class="relative">
+                <!-- Linha vertical -->
+                <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                
+                <div class="space-y-8">
+                    <!-- Criação do Contrato -->
+                    <div class="relative pl-10">
+                        <div class="absolute left-0 top-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-file-signature text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ contrato.data_assinatura|date:"d/m/Y" }}</p>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Contrato Assinado</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Valor inicial: {{ contrato.valor_inicial|currency_br }} | Vigência: {{ contrato.vigencia }} meses
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Termos Aditivos -->
+                    {% for termo in termos_aditivos reversed %}
+                    <div class="relative pl-10">
+                        <div class="absolute left-0 top-1 w-8 h-8 
+                            {% if termo.tipo == 'PRORROGACAO' %}bg-purple-500
+                            {% elif termo.tipo == 'VALOR' %}bg-green-500
+                            {% else %}bg-amber-500{% endif %} rounded-full flex items-center justify-center">
+                            <i class="fas {% if termo.tipo == 'PRORROGACAO' %}fa-clock{% elif termo.tipo == 'VALOR' %}fa-dollar-sign{% else %}fa-balance-scale{% endif %} text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ termo.data_assinatura|date:"d/m/Y" }}</p>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ termo.get_tipo_display }} - {{ termo.numero_termo }}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                {% if termo.tipo == 'PRORROGACAO' %}
+                                    Acréscimo de {{ termo.meses_acrescimo }} meses
+                                {% else %}
+                                    Acréscimo de {{ termo.valor_acrescimo|currency_br }}
+                                {% endif %}
+                            </p>
+                            {% if termo.justificativa %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{{ termo.justificativa }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Término Previsto -->
+                    <div class="relative pl-10">
+                        <div class="absolute left-0 top-1 w-8 h-8 {% if contrato.renovacao_pendente %}bg-amber-500{% else %}bg-gray-400{% endif %} rounded-full flex items-center justify-center">
+                            <i class="fas fa-flag-checkered text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ contrato.data_fim_atual|date:"d/m/Y" }}</p>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Término Previsto</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Valor final: {{ resumo.valor_atual|currency_br }} | Vigência total: {{ resumo.vigencia_total }} meses
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    // Remove active state from all tabs
+    document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected content
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    // Add active state to selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+    activeTab.classList.remove('border-transparent', 'text-gray-500');
+    
+    // Atualizar URL com o parâmetro tab para manter a aba ativa após recarregar
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabName);
+    window.history.pushState({}, '', url);
+}
+
+function toggleItemForm() {
+    const form = document.getElementById('form-novo-item');
+    const icon = document.getElementById('icon-toggle-form');
+    const btn = document.getElementById('btn-toggle-form');
+    
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        btn.innerHTML = '<i class="fas fa-chevron-up" id="icon-toggle-form"></i> Recolher';
+    } else {
+        form.classList.add('hidden');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+        btn.innerHTML = '<i class="fas fa-chevron-down" id="icon-toggle-form"></i> Expandir';
+    }
+}
+
+function toggleSLAForm() {
+    const form = document.getElementById('form-novo-sla');
+    const icon = document.getElementById('icon-toggle-sla-form');
+    const btn = document.getElementById('btn-toggle-sla-form');
+    
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        btn.innerHTML = '<i class="fas fa-chevron-up" id="icon-toggle-sla-form"></i> Recolher';
+    } else {
+        form.classList.add('hidden');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+        btn.innerHTML = '<i class="fas fa-chevron-down" id="icon-toggle-sla-form"></i> Expandir';
+    }
+}
+
+// Funções para modais de Backlog e Projeto
+function abrirModalNovoBacklog() {
+    document.getElementById('modalNovoBacklog').classList.remove('hidden');
+}
+
+function fecharModalNovoBacklog() {
+    document.getElementById('modalNovoBacklog').classList.add('hidden');
+    document.getElementById('formNovoBacklog').reset();
+}
+
+function converterBacklogParaProjeto(backlogId, backlogTitulo) {
+    document.getElementById('backlog_id_input').value = backlogId;
+    document.getElementById('formConverterProjeto').action = `/backlog/${backlogId}/converter-projeto-ajax/`;
+    
+    // Preencher o nome do projeto com o título do backlog
+    const nomeProjetoInput = document.getElementById('projeto_nome');
+    if (nomeProjetoInput && backlogTitulo) {
+        nomeProjetoInput.value = backlogTitulo;
+    }
+    
+    // Preencher a descrição se houver
+    const descricaoProjetoInput = document.getElementById('projeto_descricao');
+    if (descricaoProjetoInput) {
+        // Buscar a descrição do backlog do card
+        const backlogCard = document.querySelector(`[data-backlog-id="${backlogId}"]`);
+        if (backlogCard) {
+            const descricaoElement = backlogCard.querySelector('p.text-xs.text-gray-600');
+            if (descricaoElement) {
+                descricaoProjetoInput.value = descricaoElement.textContent.trim();
+            }
+        }
+    }
+    
+    document.getElementById('modalConverterProjeto').classList.remove('hidden');
+}
+
+function fecharModalConverterProjeto() {
+    document.getElementById('modalConverterProjeto').classList.add('hidden');
+    document.getElementById('formConverterProjeto').reset();
+}
+
+function abrirModalExcluirBacklog(backlogId, backlogTitulo) {
+    document.getElementById('backlog-excluir-titulo').textContent = backlogTitulo || 'Backlog sem título';
+    document.getElementById('modalExcluirBacklog').setAttribute('data-backlog-id', backlogId);
+    document.getElementById('modalExcluirBacklog').classList.remove('hidden');
+}
+
+function fecharModalExcluirBacklog() {
+    document.getElementById('modalExcluirBacklog').classList.add('hidden');
+    document.getElementById('modalExcluirBacklog').removeAttribute('data-backlog-id');
+}
+
+function fecharModalSucessoConversao() {
+    const modal = document.getElementById('modalSucessoConversao');
+    modal.classList.add('hidden');
+    
+    // Verificar se há redirecionamento
+    const redirectUrl = modal.getAttribute('data-redirect-url');
+    
+    if (redirectUrl) {
+        window.location.href = redirectUrl;
+    } else {
+        // Fallback: recarregar página na aba de projetos
+        window.location.href = `{% url 'gestao_contratos_detail' contrato.pk %}?tab=projetos`;
+    }
+    
+    // Limpar atributos
+    modal.removeAttribute('data-redirect-url');
+}
+
+function gerarPlanoTrabalho(projetoId) {
+    if (confirm('Deseja gerar o plano de trabalho com IA para este projeto?')) {
+        window.location.href = `/projetos/${projetoId}/plano-trabalho/gerar/`;
+    }
+}
+
+// Função para adicionar backlog à lista dinamicamente
+function adicionarBacklogNaLista(backlog) {
+    const backlogsContainer = document.getElementById('backlogs-container');
+    if (!backlogsContainer) return;
+    
+    const emptyMessage = backlogsContainer.querySelector('.text-center');
+    
+    // Remover mensagem de vazio se existir
+    if (emptyMessage) {
+        emptyMessage.remove();
+    }
+    
+    // Criar card do backlog
+    const prioridadeClasses = {
+        'critica': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+        'alta': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+        'media': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        'baixa': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    };
+    
+    const backlogCard = document.createElement('div');
+    backlogCard.className = 'backlog-card bg-white dark:bg-gray-700 rounded-lg p-3 shadow-md border border-orange-200 dark:border-orange-800 hover:shadow-lg transition cursor-move';
+    backlogCard.setAttribute('data-backlog-id', backlog.id);
+    backlogCard.setAttribute('draggable', 'true');
+    
+    backlogCard.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+            <h5 class="font-medium text-gray-900 dark:text-white text-sm">${backlog.titulo}</h5>
+            <span class="px-2 py-0.5 text-xs rounded-full ${prioridadeClasses[backlog.prioridade] || prioridadeClasses['baixa']}">
+                ${backlog.prioridade_display}
+            </span>
+        </div>
+        ${backlog.descricao ? `<p class="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">${backlog.descricao}</p>` : ''}
+        <div class="flex gap-2 mt-2">
+            <button onclick="converterBacklogParaProjeto(${backlog.id}, '${backlog.titulo || 'Backlog sem título'}')" 
+                class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded transition"
+                title="Converter em Projeto">
+                <i class="fas fa-arrow-right mr-1"></i>Criar Projeto
+            </button>
+            <button onclick="return excluirBacklog(${backlog.id}, event);" 
+                class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition"
+                title="Excluir Backlog"
+                type="button">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    
+    // Adicionar no início da lista
+    backlogsContainer.insertBefore(backlogCard, backlogsContainer.firstChild);
+    
+    // Atualizar contador de backlogs
+    const backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
+    const backlogCount = backlogCards.length;
+    const backlogHeader = document.querySelector('h4.text-sm.font-semibold.text-orange-800');
+    if (backlogHeader && backlogHeader.querySelector('i.fa-list-ul')) {
+        backlogHeader.innerHTML = `<i class="fas fa-list-ul mr-2"></i>Backlogs (${backlogCount})`;
+    }
+}
+
+// Função para abrir modal de exclusão
+function excluirBacklog(backlogId, event) {
+    // Prevenir comportamento padrão se evento for passado
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+    }
+    
+    // Buscar o título do backlog do card
+    const backlogCard = document.querySelector(`[data-backlog-id="${backlogId}"]`);
+    if (!backlogCard) {
+        console.error('Card do backlog não encontrado:', backlogId);
+        return false;
+    }
+    
+    const backlogTitulo = backlogCard.querySelector('h5')?.textContent?.trim() || 'Backlog sem título';
+    
+    // Verificar se o modal existe
+    const modal = document.getElementById('modalExcluirBacklog');
+    if (!modal) {
+        console.error('Modal de exclusão não encontrado');
+        return false;
+    }
+    
+    // Abrir modal
+    abrirModalExcluirBacklog(backlogId, backlogTitulo);
+    
+    return false; // Prevenir qualquer ação padrão
+}
+
+// Função para confirmar e executar a exclusão
+async function confirmarExclusaoBacklog() {
+    const modal = document.getElementById('modalExcluirBacklog');
+    const backlogId = modal.getAttribute('data-backlog-id');
+    
+    if (!backlogId) return;
+    
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+        
+        const response = await fetch(`/backlog/${backlogId}/excluir/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Fechar modal
+            fecharModalExcluirBacklog();
+            
+            // Remover o card do backlog da interface
+            const backlogCard = document.querySelector(`[data-backlog-id="${backlogId}"]`);
+            if (backlogCard) {
+                backlogCard.remove();
+                
+                // Atualizar contador de backlogs
+                const backlogsContainer = document.getElementById('backlogs-container');
+                const backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
+                const backlogCount = backlogCards.length;
+                
+                // Atualizar o título do cabeçalho de backlogs
+                const backlogHeader = document.querySelector('h4.text-sm.font-semibold.text-orange-800');
+                if (backlogHeader && backlogHeader.querySelector('i.fa-list-ul')) {
+                    backlogHeader.innerHTML = `<i class="fas fa-list-ul mr-2"></i>Backlogs (${backlogCount})`;
+                }
+                
+                // Verificar se não há mais backlogs e mostrar mensagem
+                if (backlogsContainer && backlogCount === 0) {
+                    backlogsContainer.innerHTML = `
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400" id="no-backlogs-message">
+                            <i class="fas fa-inbox text-3xl mb-2"></i>
+                            <p class="text-sm">Nenhum backlog pendente</p>
+                        </div>
+                    `;
+                }
+            }
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    } catch (error) {
+        alert('Erro ao excluir backlog: ' + error.message);
+    }
+}
+
+// Submissão do formulário de novo backlog via AJAX
+document.getElementById('formNovoBacklog')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Fechar modal sem mostrar alerta
+            fecharModalNovoBacklog();
+            // Adicionar backlog à lista dinamicamente
+            if (data.backlog) {
+                adicionarBacklogNaLista(data.backlog);
+            }
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    } catch (error) {
+        alert('Erro ao criar backlog: ' + error.message);
+    }
+});
+
+// Submissão do formulário de converter backlog em projeto via AJAX
+document.getElementById('formConverterProjeto')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const backlogId = document.getElementById('backlog_id_input').value;
+    
+    try {
+        const response = await fetch(`/backlog/${backlogId}/converter-projeto-ajax/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Fechar modal de conversão
+            fecharModalConverterProjeto();
+            
+            // Mostrar modal de sucesso
+            const mensagemElement = document.getElementById('mensagem-sucesso-conversao');
+            if (mensagemElement) {
+                mensagemElement.textContent = data.message;
+            }
+            document.getElementById('modalSucessoConversao').classList.remove('hidden');
+            
+            // Sempre redirecionar para a página de detalhes do contrato na aba de Projetos
+            const contratoId = {{ contrato.pk }};
+            const redirectUrl = `{% url 'gestao_contratos_detail' contrato.pk %}?tab=projetos`;
+            document.getElementById('modalSucessoConversao').setAttribute('data-redirect-url', redirectUrl);
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    } catch (error) {
+        alert('Erro ao converter backlog: ' + error.message);
+    }
+});
+
+// Verificar se há parâmetro tab na URL e abrir a aba correspondente
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab) {
+        // Não atualizar a URL novamente, apenas mostrar a aba
+        // Hide all content
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        // Remove active state from all tabs
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+            el.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show selected content
+        const contentEl = document.getElementById('content-' + tab);
+        if (contentEl) {
+            contentEl.classList.remove('hidden');
+            // Add active state to selected tab
+            const activeTab = document.getElementById('tab-' + tab);
+            if (activeTab) {
+                activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+                activeTab.classList.remove('border-transparent', 'text-gray-500');
+            }
+        }
+    }
+    
+    // Ajustar posicionamento dos campos de data para garantir que o calendário abra corretamente
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        // Garantir que o campo tenha padding à direita para o ícone
+        if (!input.classList.contains('pr-10')) {
+            input.classList.add('pr-10');
+        }
+    });
+    
+    // Fechar modais ao clicar fora
+    document.getElementById('modalNovoBacklog')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModalNovoBacklog();
+        }
+    });
+    
+    document.getElementById('modalConverterProjeto')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModalConverterProjeto();
+        }
+    });
+    
+    document.getElementById('modalExcluirBacklog')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModalExcluirBacklog();
+        }
+    });
+    
+    document.getElementById('modalSucessoConversao')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModalSucessoConversao();
+        }
+    });
+});
+</script>
+
+<style>
+/* Garantir que os ícones de calendário estejam visíveis e posicionados corretamente */
+input[type="date"] {
+    position: relative;
+    padding-right: 2.5rem !important;
+}
+
+/* Ocultar o ícone nativo do calendário do navegador */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.5rem;
+    height: 1.5rem;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+/* Para Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+/* Garantir que o ícone customizado fique visível */
+.relative .fa-calendar-alt {
+    z-index: 1 !important;
+    pointer-events: none;
+}
+</style>
+{% endblock %}

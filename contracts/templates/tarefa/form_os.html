@@ -1,0 +1,68 @@
+{# tarefa/form_os.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                {% if tarefa %}Editar Tarefa{% else %}Nova Tarefa{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">OS: {{ ordem_servico.numero_os }}</p>
+        </div>
+        <a href="{% url 'ordem_servico_detail' ordem_servico.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar para OS
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        <!-- Campo ordem_servico oculto -->
+        {{ form.ordem_servico }}
+        
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {% for field in form %}
+                {% if field.name != 'ordem_servico' and field.name != 'centro_custo' %}
+                    {# centro_custo não deve aparecer para tarefas vinculadas a OS #}
+                    <div class="{% if field.name == 'descricao' or field.name == 'observacoes' %}md:col-span-2{% endif %}">
+                        {% if field.name == 'horas_consumidas' %}
+                            <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                {{ field.label }}
+                            </label>
+                            {{ field|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                            <p class="mt-1 text-xs text-gray-500">Calculado automaticamente baseado nos lançamentos de horas</p>
+                        {% else %}
+                            <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% endif %}
+                        
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% url 'ordem_servico_detail' ordem_servico.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

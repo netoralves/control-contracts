@@ -1,0 +1,205 @@
+{# tarefa/form_projeto_create.html #}
+{% extends 'contracts/base.html' %}
+{% load static form_filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Nova Tarefa</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Projeto: {{ projeto.nome }}</p>
+        </div>
+        <a href="{% url 'projeto_detail' projeto.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        
+        <!-- Campos ocultos -->
+        {{ form.backlog }}
+        {{ form.status_sprint }}
+        {{ form.horas_consumidas }}
+        {# Campo sprint: oculto por padrão, será renderizado explicitamente depois se necessário #}
+        {% if form.sprint.field.widget.is_hidden %}
+            {{ form.sprint }}
+        {% endif %}
+        
+        {% if form.errors %}
+        <div class="mb-4 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+            <p class="text-red-800 dark:text-red-200 font-semibold mb-2">Erros no formulário:</p>
+            <ul class="list-disc list-inside text-red-700 dark:text-red-300">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {# Renderizar campos na ordem específica - começar sempre com titulo #}
+            {# Primeiro renderizar titulo explicitamente #}
+            {% if form.titulo %}
+            <div>
+                <label for="{{ form.titulo.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.titulo.label }}
+                    {% if form.titulo.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                {{ form.titulo|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.titulo.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.titulo.help_text }}</p>{% endif %}
+                {% if form.titulo.errors %}<p class="mt-1 text-sm text-red-600">{{ form.titulo.errors }}</p>{% endif %}
+            </div>
+            {% endif %}
+            
+            {# Depois renderizar os outros campos na ordem específica #}
+            {# Filtrar apenas campos visíveis e que não são titulo, sprint, backlog, status ou ocultos #}
+            {% for field in form.visible_fields %}
+                {% if field.name == 'titulo' or field.name == 'sprint' or field.name == 'backlog' or field.name == 'status' or field.field.widget.is_hidden %}
+                    {# Já renderizado acima, será renderizado depois, ou oculto, pular #}
+                {% elif field.name == 'descricao' %}
+                    <div class="md:col-span-2">
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name == 'responsavel' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name == 'prioridade' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name == 'data_inicio_prevista' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Data/Hora de Início Planejado (dd/mm/yyyy, --:--)
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name == 'data_termino_prevista' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Data/Hora de Término Planejado (dd/mm/yyyy, --:--)
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name == 'horas_planejadas' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% elif field.name not in 'backlog,status_sprint,horas_consumidas,status,titulo,descricao,responsavel,prioridade,sprint,data_inicio_prevista,data_termino_prevista,horas_planejadas'|make_list %}
+                    <div class="{% if field.name == 'observacoes' %}md:col-span-2{% endif %}">
+                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ field.label }}
+                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            {# Renderizar campo sprint explicitamente no final, se não estiver oculto #}
+            {% if form.sprint and not form.sprint.field.widget.is_hidden %}
+            <div class="md:col-span-2">
+                <label for="{{ form.sprint.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.sprint.label }}
+                </label>
+                {{ form.sprint|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                <p class="mt-1 text-xs text-gray-500">
+                    <i class="fa-solid fa-info-circle mr-1"></i>
+                    Selecione uma sprint para alocar a tarefa diretamente, ou deixe em branco para alocar no backlog.
+                    <br>
+                    <strong>Nota:</strong> Se selecionar uma sprint, as datas de início e término previstas serão obrigatórias e devem estar dentro do período da sprint.
+                </p>
+                {% if form.sprint.errors %}<p class="mt-1 text-sm text-red-600">{{ form.sprint.errors }}</p>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
+            </button>
+            <a href="{% url 'projeto_detail' projeto.pk %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Tornar datas obrigatórias quando sprint for selecionada e calcular horas automaticamente
+document.addEventListener('DOMContentLoaded', function() {
+    const sprintField = document.getElementById('id_sprint');
+    const dataInicioField = document.getElementById('id_data_inicio_prevista');
+    const dataTerminoField = document.getElementById('id_data_termino_prevista');
+    const horasPlanejadasField = document.getElementById('id_horas_planejadas');
+    
+    if (sprintField && dataInicioField && dataTerminoField) {
+        function updateDateFields() {
+            if (sprintField.value) {
+                dataInicioField.required = true;
+                dataTerminoField.required = true;
+            } else {
+                dataInicioField.required = false;
+                dataTerminoField.required = false;
+            }
+        }
+        
+        function calcularHoras() {
+            if (dataInicioField.value && dataTerminoField.value) {
+                // Calcular horas baseado em dias úteis (segunda a sexta, 09:00-12:00 e 14:00-19:00)
+                // Esta lógica será implementada no backend, mas podemos fazer uma prévia aqui
+                // Por enquanto, apenas indicar que será calculado
+                if (horasPlanejadasField) {
+                    // Será calculado no backend ao salvar
+                }
+            }
+        }
+        
+        sprintField.addEventListener('change', updateDateFields);
+        dataInicioField.addEventListener('change', calcularHoras);
+        dataTerminoField.addEventListener('change', calcularHoras);
+        
+        updateDateFields(); // Inicializar
+        calcularHoras(); // Calcular inicial se houver valores
+    }
+});
+</script>
+{% endblock %}
+

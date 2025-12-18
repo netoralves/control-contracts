@@ -1,0 +1,377 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+{% load math_extras %}
+{% load form_filters %}
+
+{% block title %}{{ analise.nome }} - Análise IA{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'documento_contrato_list' %}" class="hover:text-blue-600">Análise com IA</a>
+            <span class="mx-2">/</span>
+            <span>{{ analise.nome|truncatechars:30 }}</span>
+        </nav>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    {{ analise.nome }}
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">
+                    {{ analise.documentos.count }} documento(s) • Criado em {{ analise.criado_em|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                {% if analise.status == 'pendente' or analise.status == 'erro' %}
+                <a href="{% url 'documento_contrato_analisar' analise.pk %}?provider=openai" 
+                    class="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-brain mr-1"></i> Analisar com OpenAI
+                </a>
+                <a href="{% url 'documento_contrato_analisar' analise.pk %}?provider=anthropic" 
+                    class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-robot mr-1"></i> Analisar com Claude
+                </a>
+                {% endif %}
+                {% if analise.dados_extraidos and not analise.contrato_gerado %}
+                <a href="{% url 'documento_contrato_criar_registros' analise.pk %}" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-database mr-1"></i> Criar Registros
+                </a>
+                {% endif %}
+                <a href="{% url 'documento_contrato_delete' analise.pk %}" 
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-trash mr-1"></i> Excluir
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentos da Análise -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-folder-open mr-2 text-blue-500"></i>Documentos ({{ documentos.count }})
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for doc in documentos %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex items-start gap-3">
+                    <div class="p-2 rounded-lg {% if doc.extensao_arquivo == 'pdf' %}bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300{% else %}bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                        <i class="fas {% if doc.extensao_arquivo == 'pdf' %}fa-file-pdf{% else %}fa-file-word{% endif %}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold text-gray-900 dark:text-white text-sm truncate" title="{{ doc.nome }}">{{ doc.nome }}</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ doc.get_tipo_documento_display }}</p>
+                        <span class="inline-block mt-2 px-2 py-1 text-xs rounded-full
+                            {% if doc.status == 'analisado' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif doc.status == 'processando' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
+                            {% elif doc.status == 'erro' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ doc.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                {% if doc.arquivo %}
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{% url 'documento_contrato_download' doc.pk %}" 
+                        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs transition">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <div class="flex items-center gap-4">
+            <div class="p-4 rounded-xl {% if analise.status == 'analisado' %}bg-green-100 dark:bg-green-900{% elif analise.status == 'erro' %}bg-red-100 dark:bg-red-900{% elif analise.status == 'processando' %}bg-amber-100 dark:bg-amber-900{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">
+                <i class="fas {% if analise.status == 'analisado' %}fa-check-circle text-green-600{% elif analise.status == 'erro' %}fa-exclamation-circle text-red-600{% elif analise.status == 'processando' %}fa-spinner fa-spin text-amber-600{% else %}fa-clock text-gray-600{% endif %} text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ analise.get_status_display }}</p>
+                {% if analise.mensagem_erro %}
+                <p class="text-sm text-red-600 mt-1">{{ analise.mensagem_erro }}</p>
+                {% endif %}
+            </div>
+            {% if analise.contrato_gerado %}
+            <div class="text-right">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Contrato</p>
+                <a href="{% url 'gestao_contratos_detail' analise.contrato_gerado.pk %}" class="text-blue-600 hover:underline font-medium">
+                    {{ analise.contrato_gerado.numero_contrato }}
+                </a>
+            </div>
+            {% endif %}
+            {% if analise.cliente_gerado %}
+            <div class="text-right">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Cliente</p>
+                <a href="{% url 'cliente_detail' analise.cliente_gerado.pk %}" class="text-blue-600 hover:underline font-medium">
+                    {{ analise.cliente_gerado.nome_razao_social|truncatechars:25 }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if dados %}
+    <!-- Documentos Processados -->
+    {% if dados.documentos_processados %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-file-alt mr-2 text-purple-500"></i>Documentos Processados na Análise
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for tipo, nomes in dados.documentos_processados.items %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-2 capitalize">{{ tipo|replace:"_" }}</h4>
+                <ul class="space-y-1">
+                    {% for nome in nomes %}
+                    <li class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <i class="fas fa-check-circle text-green-500 text-xs"></i>{{ nome|truncatechars:40 }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Dados do Cliente -->
+        {% if dados.cliente %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-building mr-2 text-blue-500"></i>Cliente Identificado
+            </h3>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Razão Social</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.nome_razao_social|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">CNPJ/CPF</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.cnpj_cpf|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Tipo</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.tipo_cliente|default:"-" }} / {{ dados.cliente.tipo_pessoa|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Cidade/UF</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.cidade|default:"-" }}/{{ dados.cliente.estado|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Responsável</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.nome_responsavel|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Cargo</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.cliente.cargo_responsavel|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dados do Contrato -->
+        {% if dados.contrato %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-file-contract mr-2 text-green-500"></i>Contrato Identificado
+            </h3>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Número</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.contrato.numero_contrato|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Regime Legal</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.contrato.regime_legal|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Data Assinatura</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.contrato.data_assinatura|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Vigência</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.contrato.vigencia_meses|default:"-" }} meses</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Valor Inicial</p>
+                        <p class="font-medium text-green-600 dark:text-green-400">R$ {{ dados.contrato.valor_inicial|default:"0" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Modalidade</p>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ dados.contrato.modalidade_licitacao|default:"-" }}</p>
+                    </div>
+                </div>
+                {% if dados.contrato.objeto %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Objeto</p>
+                    <p class="text-sm text-gray-900 dark:text-white mt-1">{{ dados.contrato.objeto|truncatechars:200 }}</p>
+                </div>
+                {% endif %}
+                {% if dados.contrato.fornecedores %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Fornecedores</p>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for fornecedor in dados.contrato.fornecedores %}
+                        <span class="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs rounded-full">{{ fornecedor }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Itens do Contrato -->
+    {% if dados.itens %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-list mr-2 text-amber-500"></i>Itens Identificados ({{ dados.itens|length }})
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lote</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Item</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Descrição</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qtd</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Valor Unit.</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for item in dados.itens %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ item.lote|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ item.numero_item|default:"-" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">{{ item.descricao|default:"-"|truncatechars:50 }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {{ item.tipo|default:"-" }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ item.quantidade|default:"-" }} {{ item.unidade|default:"" }}</td>
+                        <td class="px-4 py-3 text-sm text-green-600 dark:text-green-400">R$ {{ item.valor_unitario|default:"0" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SLAs -->
+    {% if dados.slas %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-clock mr-2 text-indigo-500"></i>SLAs Identificados ({{ dados.slas|length }})
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for sla in dados.slas %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h4 class="font-medium text-gray-900 dark:text-white">{{ sla.nome }}</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ sla.descricao|default:"-" }}</p>
+                <div class="mt-3 flex gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">Resposta:</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ sla.tempo_resposta_horas }}h</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Solução:</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ sla.tempo_solucao_horas }}h</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Confiança e Observações -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% if dados.confianca %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-chart-bar mr-2 text-teal-500"></i>Nível de Confiança
+            </h3>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 rounded-xl {% if dados.confianca.geral == 'alta' %}bg-green-100{% elif dados.confianca.geral == 'media' %}bg-amber-100{% else %}bg-red-100{% endif %}">
+                    <i class="fas {% if dados.confianca.geral == 'alta' %}fa-check-double text-green-600{% elif dados.confianca.geral == 'media' %}fa-exclamation text-amber-600{% else %}fa-times text-red-600{% endif %} text-xl"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-lg text-gray-900 dark:text-white capitalize">{{ dados.confianca.geral }}</p>
+                    <p class="text-sm text-gray-500">Confiança geral na extração</p>
+                </div>
+            </div>
+            {% if dados.confianca.campos_incertos %}
+            <div>
+                <p class="text-sm text-gray-500 mb-2">Campos com baixa confiança:</p>
+                <div class="flex flex-wrap gap-1">
+                    {% for campo in dados.confianca.campos_incertos %}
+                    <span class="px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 text-xs rounded-full">{{ campo }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if dados.observacoes %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-sticky-note mr-2 text-yellow-500"></i>Observações
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">{{ dados.observacoes }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- Estado sem dados -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
+        <i class="fas fa-search text-gray-400 text-5xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Análise ainda não concluída</h3>
+        <p class="text-gray-500 dark:text-gray-400 mt-2 mb-6">
+            Clique em um dos botões acima para iniciar a análise com IA de todos os documentos
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Texto Consolidado (colapsável) -->
+    {% if analise.texto_consolidado %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mt-6">
+        <div class="flex justify-between items-center cursor-pointer" onclick="toggleTexto()">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                <i class="fas fa-file-alt mr-2 text-gray-500"></i>Texto Consolidado ({{ analise.documentos.count }} documentos)
+            </h3>
+            <i id="textoToggleIcon" class="fas fa-chevron-down text-gray-500"></i>
+        </div>
+        <div id="textoContainer" class="hidden mt-4">
+            <pre class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-300 overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap">{{ analise.texto_consolidado }}</pre>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleTexto() {
+    const container = document.getElementById('textoContainer');
+    const icon = document.getElementById('textoToggleIcon');
+    container.classList.toggle('hidden');
+    icon.classList.toggle('fa-chevron-down');
+    icon.classList.toggle('fa-chevron-up');
+}
+</script>
+{% endblock %}
+

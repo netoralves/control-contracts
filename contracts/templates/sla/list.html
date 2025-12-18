@@ -1,0 +1,123 @@
+{# sla/list.html #}
+{% extends 'contracts/base.html' %}
+{% load math_extras %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold dark:text-white">SLAs</h1>
+        <a href="{% url 'sla_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+            + Novo SLA
+        </a>
+    </div>
+
+    <form method="get" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="contrato" class="block text-sm font-medium dark:text-white mb-1">Contrato</label>
+                <input type="text" name="contrato" id="contrato" value="{{ request.GET.contrato }}" placeholder="ID do Contrato"
+                       class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="tipo" class="block text-sm font-medium dark:text-white mb-1">Tipo</label>
+                <select name="tipo" id="tipo"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos</option>
+                    <option value="disponibilidade" {% if request.GET.tipo == "disponibilidade" %}selected{% endif %}>Disponibilidade</option>
+                    <option value="tempo_resposta" {% if request.GET.tipo == "tempo_resposta" %}selected{% endif %}>Tempo de Resposta</option>
+                    <option value="resolucao" {% if request.GET.tipo == "resolucao" %}selected{% endif %}>Tempo de Resolução</option>
+                    <option value="atendimento" {% if request.GET.tipo == "atendimento" %}selected{% endif %}>Atendimento</option>
+                    <option value="outro" {% if request.GET.tipo == "outro" %}selected{% endif %}>Outro</option>
+                </select>
+            </div>
+            <div>
+                <label for="ativo" class="block text-sm font-medium dark:text-white mb-1">Status</label>
+                <select name="ativo" id="ativo"
+                        class="bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Todos</option>
+                    <option value="ativo" {% if request.GET.ativo == "ativo" %}selected{% endif %}>Ativo</option>
+                    <option value="inativo" {% if request.GET.ativo == "inativo" %}selected{% endif %}>Inativo</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fa-solid fa-magnifying-glass mr-2"></i>Filtrar
+                </button>
+                <a href="{% url 'sla_list' %}" class="w-full bg-gray-300 hover:bg-gray-400 text-sm rounded-lg px-4 py-2 text-center">
+                    Limpar
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <div class="overflow-x-auto">
+        <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700 dark:text-white">
+                <tr>
+                    <th class="p-2 text-left">Título</th>
+                    <th class="p-2 text-left">Contrato</th>
+                    <th class="p-2 text-left">Tipo</th>
+                    <th class="p-2 text-left">Meta</th>
+                    <th class="p-2 text-right">Valor Penalidade</th>
+                    <th class="p-2 text-left">Data Início</th>
+                    <th class="p-2 text-center">Status</th>
+                    <th class="p-2 text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sla in slas %}
+                <tr class="border-t border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="p-2 dark:text-white">{{ sla.titulo }}</td>
+                    <td class="p-2 dark:text-white">
+                        <a href="{% url 'gestao_contratos_detail' sla.contrato.pk %}" class="text-blue-600 hover:underline">
+                            {{ sla.contrato.numero_contrato }}
+                        </a>
+                    </td>
+                    <td class="p-2 dark:text-white">{{ sla.get_tipo_display }}</td>
+                    <td class="p-2 dark:text-white">{{ sla.meta }}</td>
+                    <td class="p-2 text-right dark:text-white">{{ sla.valor_penalidade|currency_br|default:"-" }}</td>
+                    <td class="p-2 dark:text-white">{{ sla.data_inicio|date:"d/m/Y" }}</td>
+                    <td class="p-2 text-center">
+                        <span class="px-2 py-1 rounded {% if sla.ativo %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                            {% if sla.ativo %}Ativo{% else %}Inativo{% endif %}
+                        </span>
+                    </td>
+                    <td class="p-2 text-center">
+                        <a href="{% url 'sla_detail' sla.pk %}" class="text-blue-600 hover:underline mr-2">Ver</a>
+                        <a href="{% url 'sla_update' sla.pk %}" class="text-green-600 hover:underline">Editar</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="p-4 text-center text-gray-500 dark:text-gray-400">Nenhum SLA encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if slas.has_other_pages %}
+    <div class="mt-4 flex justify-center">
+        <nav class="flex gap-2">
+            {% if slas.has_previous %}
+            <a href="?page={{ slas.previous_page_number }}{% if request.GET.contrato %}&contrato={{ request.GET.contrato }}{% endif %}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.ativo %}&ativo={{ request.GET.ativo }}{% endif %}"
+               class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                Anterior
+            </a>
+            {% endif %}
+            <span class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                Página {{ slas.number }} de {{ slas.paginator.num_pages }}
+            </span>
+            {% if slas.has_next %}
+            <a href="?page={{ slas.next_page_number }}{% if request.GET.contrato %}&contrato={{ request.GET.contrato }}{% endif %}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}{% if request.GET.ativo %}&ativo={{ request.GET.ativo }}{% endif %}"
+               class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                Próxima
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

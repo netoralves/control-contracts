@@ -1,0 +1,54 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Excluir Lançamento - Timesheet{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-md mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-trash text-red-600 dark:text-red-400 text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Excluir Lançamento</h2>
+                <p class="text-gray-500 dark:text-gray-400 mt-2">
+                    Tem certeza que deseja excluir este lançamento?
+                </p>
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Data:</span>
+                        <span class="text-gray-800 dark:text-white ml-1">{{ lancamento.data|date:"d/m/Y" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Horas:</span>
+                        <span class="text-gray-800 dark:text-white ml-1">{{ lancamento.horas_trabalhadas|floatformat:2 }}h</span>
+                    </div>
+                    <div class="col-span-2">
+                        <span class="text-gray-500 dark:text-gray-400">Tarefa:</span>
+                        <span class="text-gray-800 dark:text-white ml-1">{{ lancamento.tarefa.titulo }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex gap-3">
+                    <a href="{% url 'timesheet_list' %}" 
+                        class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-center transition">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                        <i class="fas fa-trash mr-1"></i> Excluir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

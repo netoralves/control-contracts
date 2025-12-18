@@ -1,62 +1,264 @@
-{% extends 'contracts/base.html' %}
-{% load humanize %}
+{% extends "contracts/base.html" %}
+{% load static form_filters humanize %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Ordem de Fornecimento{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-
+<div class="container mx-auto px-4 py-6">
     <!-- Cabeçalho -->
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Ordem de Fornecimento
-        </h1>
-        <a href="{% url 'ordem_fornecimento_list' %}"
-           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
-            <i class="fa fa-arrow-left"></i> Voltar
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'ordem_fornecimento_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
         </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-shopping-cart mr-2"></i>{% if form.instance.pk %}Editar Ordem de Fornecimento{% else %}Nova Ordem de Fornecimento{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {% if form.instance.pk %}Atualize os dados da ordem{% else %}Cadastre uma nova ordem de fornecimento{% endif %}
+            </p>
+        </div>
     </div>
 
-    <form method="post" novalidate>
-        {% csrf_token %}
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {{ form.non_field_errors }}
-
-            {% for field in form.visible_fields %}
-            <div id="div_{{ field.name }}">
-                <label for="{{ field.id_for_label }}"
-                       class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">
-                    {{ field.label }}
-                </label>
-                {{ field }}
-                {% if field.name == 'valor_unitario' %}
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Valor Unitário: <strong id="valor_unitario_formatado">R$ 0,00</strong>
-                </p>
-                {% endif %}
-                {% if field.name == 'valor_total' %}
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Valor Total: <strong id="valor_total_formatado">R$ 0,00</strong>
-                </p>
-                {% endif %}
-                {% if field.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {{ field.errors|striptags }}
-                </p>
-                {% endif %}
+    <!-- Mensagens de erro -->
+    {% if form.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
             </div>
-            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <form method="post" class="space-y-6" novalidate>
+        {% csrf_token %}
+        
+        <!-- Identificação da OF -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-hashtag mr-2 text-blue-500"></i>Identificação da OF
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Número da OF (gerado automaticamente) -->
+                {% if form.instance.pk %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Número da OF
+                    </label>
+                    <div class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-4 py-2 bg-gray-100 dark:bg-gray-600">
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ form.instance.numero_of }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(gerado automaticamente)</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Número da OF do Cliente -->
+                <div>
+                    <label for="{{ form.numero_of_cliente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_of_cliente.label }}
+                    </label>
+                    {{ form.numero_of_cliente|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.numero_of_cliente.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.numero_of_cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <!-- Ações -->
-        <div class="flex justify-end gap-2 mt-6">
-            <button type="submit"
-                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="fa fa-save"></i> Salvar
-            </button>
-            <a href="{% url 'ordem_fornecimento_list' %}"
-               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
-                <i class="fa fa-times"></i> Cancelar
+        <!-- Informações do Contrato -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-file-contract mr-2 text-green-500"></i>Informações do Contrato
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cliente -->
+                <div>
+                    <label for="{{ form.cliente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cliente.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cliente|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.cliente.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Contrato -->
+                <div>
+                    <label for="{{ form.contrato.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.contrato.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.contrato|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.contrato.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.contrato.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Item do Contrato -->
+                <div>
+                    <label for="{{ form.item_contrato.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.item_contrato.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.item_contrato|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.item_contrato.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.item_contrato.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Quantidade e Valores -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calculator mr-2 text-purple-500"></i>Quantidade e Valores
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Unidade -->
+                <div>
+                    <label for="{{ form.unidade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.unidade.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.unidade|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.unidade.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.unidade.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Quantidade -->
+                <div>
+                    <label for="{{ form.quantidade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.quantidade.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.quantidade|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.quantidade.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.quantidade.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Valor Unitário -->
+                <div>
+                    <label for="{{ form.valor_unitario.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.valor_unitario.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.valor_unitario|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Valor Unitário: <strong id="valor_unitario_formatado" class="text-green-600">R$ 0,00</strong>
+                    </p>
+                    {% if form.valor_unitario.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.valor_unitario.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Valor Total -->
+                <div>
+                    <label for="{{ form.valor_total.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.valor_total.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.valor_total|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Valor Total: <strong id="valor_total_formatado" class="text-blue-600">R$ 0,00</strong>
+                    </p>
+                    {% if form.valor_total.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.valor_total.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status e Datas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calendar-alt mr-2 text-amber-500"></i>Status e Datas
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Status -->
+                <div>
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.status.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.status|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.status.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.status.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Vigência do Produto -->
+                <div>
+                    <label for="{{ form.vigencia_produto.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.vigencia_produto.label }}
+                    </label>
+                    {{ form.vigencia_produto|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.vigencia_produto.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.vigencia_produto.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Data Ativação -->
+                <div id="div_data_ativacao">
+                    <label for="{{ form.data_ativacao.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.data_ativacao.label }}
+                    </label>
+                    {{ form.data_ativacao|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.data_ativacao.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.data_ativacao.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Data Faturamento -->
+                <div id="div_data_faturamento">
+                    <label for="{{ form.data_faturamento.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.data_faturamento.label }}
+                    </label>
+                    {{ form.data_faturamento|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.data_faturamento.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.data_faturamento.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-align-left mr-2 text-indigo-500"></i>Observações
+            </h3>
+            
+            <div>
+                <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ form.observacoes.label }}
+                </label>
+                {{ form.observacoes|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                {% if form.observacoes.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.observacoes.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="flex justify-end gap-2">
+            <a href="{% url 'ordem_fornecimento_list' %}" class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                <i class="fas fa-times mr-1"></i> Cancelar
             </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <i class="fas fa-save mr-1"></i> Salvar
+            </button>
         </div>
     </form>
 </div>
@@ -67,7 +269,6 @@
     const clienteSelect = document.getElementById('id_cliente');
     const contratoSelect = document.getElementById('id_contrato');
     const itemContratoSelect = document.getElementById('id_item_contrato');
-    const itemFornecedorSelect = document.getElementById('id_item_fornecedor');
     
     const statusSelect = document.getElementById('id_status');
     const dataAtivacaoDiv = document.getElementById('div_data_ativacao');
@@ -113,7 +314,6 @@
             if (dataFaturamentoDiv) {
                 dataFaturamentoDiv.style.display = 'block';
                 dataFaturamentoInput.value = dataHoje();
-              
             }
         }
     }
@@ -138,111 +338,199 @@
         }
     }
 
+    // Atualiza labels de valores formatados
+    function atualizarLabelsValores() {
+        const valorUnitario = parseFloat(valorUnitarioInput.value) || 0;
+        const valorTotal = parseFloat(valorTotalInput.value) || 0;
+        
+        if (labelValorUnitario) {
+            labelValorUnitario.innerText = formatarMoeda(valorUnitario);
+        }
+        if (labelValorTotal) {
+            labelValorTotal.innerText = formatarMoeda(valorTotal);
+        }
+    }
+
     // 🔗 Carregar Contratos baseado no Cliente selecionado
-    clienteSelect.addEventListener('change', function () {
-        const clienteId = this.value;
-        contratoSelect.innerHTML = '<option value="">---------</option>';
-        itemContratoSelect.innerHTML = '<option value="">---------</option>';
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+    if (clienteSelect) {
+        clienteSelect.addEventListener('change', function () {
+            const clienteId = this.value;
+            
+            // Limpar campos dependentes
+            contratoSelect.innerHTML = '<option value="">---------</option>';
+            itemContratoSelect.innerHTML = '<option value="">---------</option>';
 
-        if (clienteId) {
-            fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
-                .then(response => response.json())
-                .then(data => {
-                    data.contratos.forEach(contrato => {
-                        const option = document.createElement('option');
-                        option.value = contrato.id;
-                        option.textContent = contrato.numero;
-                        contratoSelect.appendChild(option);
+            if (clienteId) {
+                fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.contratos && data.contratos.length > 0) {
+                            data.contratos.forEach(contrato => {
+                                const option = document.createElement('option');
+                                option.value = contrato.id;
+                                option.textContent = contrato.numero;
+                                contratoSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar contratos:', error);
                     });
-                });
-        }
-    });
-
-    // 🔗 Carregar Itens do Contrato e Itens de Fornecedor baseado no Contrato selecionado
-    contratoSelect.addEventListener('change', function () {
-        const contratoId = this.value;
-
-        itemContratoSelect.innerHTML = '<option value="">---------</option>';
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
-
-        if (contratoId) {
-            fetch(`/api/itenscontrato/?contrato_id=${contratoId}&tipo=hardware,software,solucao`)
-                .then(response => response.json())
-                .then(data => {
-                    data.itens_contrato.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.descricao;
-                        option.dataset.valorUnitario = item.valor_unitario;
-                        itemContratoSelect.appendChild(option);
-                    });
-                });
-
-            fetch(`/api/itensfornecedor/?contrato_id=${contratoId}`)
-                .then(response => response.json())
-                .then(data => {
-                    data.itens_fornecedor.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.descricao;
-                        itemFornecedorSelect.appendChild(option);
-                    });
-                });
-        }
-    });
-
-    // 🔄 Ao selecionar item do contrato, atualiza valor e carrega os itens de fornecedor
-    itemContratoSelect.addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
-        const contratoId = contratoSelect.value;
-        const itemContratoId = this.value;
-
-        // Atualiza valor unitário
-        if (selectedOption) {
-            const valorUnitario = parseFloat(selectedOption.dataset.valorUnitario) || 0;
-            valorUnitarioInput.value = valorUnitario.toFixed(2);
-            if (labelValorUnitario) {
-                labelValorUnitario.innerText = formatarMoeda(valorUnitario);
             }
-            atualizarValorTotal();
-        }
+        });
+    }
 
-        // Carrega itens de fornecedor de acordo com tipo do item do contrato
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
-        if (contratoId && itemContratoId) {
-            fetch(`/api/itens_fornecedor_por_item_contrato/?contrato=${contratoId}&item_contrato=${itemContratoId}`)
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.id;
-                        option.textContent = item.descricao;
-                        itemFornecedorSelect.appendChild(option);
+    // 🔗 Carregar Itens do Contrato baseado no Contrato selecionado (apenas tipos permitidos para OF)
+    if (contratoSelect) {
+        contratoSelect.addEventListener('change', function () {
+            const contratoId = this.value;
+
+            // Limpar item do contrato
+            itemContratoSelect.innerHTML = '<option value="">---------</option>';
+
+            if (contratoId) {
+                // Tipos permitidos para OF: equipamento_hw, equipamento_sw_embarcado, licenca_software, 
+                // subscricao_software, solucao, treinamento
+                const tiposOF = [
+                    'equipamento_hw',
+                    'equipamento_sw_embarcado', 
+                    'licenca_software',
+                    'subscricao_software',
+                    'solucao',
+                    'treinamento'
+                ].join(',');
+                
+                fetch(`/api/itenscontrato/?contrato_id=${contratoId}&tipo=${tiposOF}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.itens_contrato && data.itens_contrato.length > 0) {
+                            data.itens_contrato.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.descricao;
+                                option.dataset.valorUnitario = item.valor_unitario;
+                                itemContratoSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar itens do contrato:', error);
                     });
-                });
-        }
-    });
+            }
+        });
+    }
 
+    // 🔄 Ao selecionar item do contrato, atualiza valor unitário
+    if (itemContratoSelect) {
+        itemContratoSelect.addEventListener('change', function () {
+            const selectedOption = this.options[this.selectedIndex];
+
+            // Atualiza valor unitário
+            if (selectedOption) {
+                const valorUnitario = parseFloat(selectedOption.dataset.valorUnitario) || 0;
+                valorUnitarioInput.value = valorUnitario.toFixed(2);
+                atualizarLabelsValores();
+                atualizarValorTotal();
+            }
+        });
+    }
 
     // 🔢 Atualiza valor total ao alterar quantidade
-    document.getElementById('id_quantidade').addEventListener('input', atualizarValorTotal);
+    const quantidadeInput = document.getElementById('id_quantidade');
+    if (quantidadeInput) {
+        quantidadeInput.addEventListener('input', atualizarValorTotal);
+    }
+
+    // Atualiza labels ao alterar valores
+    if (valorUnitarioInput) {
+        valorUnitarioInput.addEventListener('input', function() {
+            atualizarLabelsValores();
+            atualizarValorTotal();
+        });
+    }
 
     // 🎯 Atualiza campos de data conforme o status selecionado
-    statusSelect.addEventListener('change', function () {
-        atualizarCamposDeData(this.value);
-    });
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function () {
+            atualizarCamposDeData(this.value);
+        });
+    }
 
     // 🚀 Inicializa o formulário na carga da página
     document.addEventListener('DOMContentLoaded', function () {
-        const statusAtual = statusSelect.value;
-        atualizarCamposDeData(statusAtual);
+        if (statusSelect) {
+            const statusAtual = statusSelect.value;
+            atualizarCamposDeData(statusAtual);
+        }
         atualizarValorTotal();
-    });
-    // Ao alterar o status, atualiza exibição dos campos
-    statusSelect.addEventListener('change', function () {
-      atualizarCamposDeData(this.value);
+        atualizarLabelsValores();
+        
+        // Se estiver editando ou houver valores já selecionados, carregar os dados preservando seleções
+        if (clienteSelect && clienteSelect.value) {
+            const clienteId = clienteSelect.value;
+            const contratoAtual = contratoSelect ? contratoSelect.value : null;
+            const itemContratoAtual = itemContratoSelect ? itemContratoSelect.value : null;
+            
+            // Carregar contratos do cliente selecionado
+            fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.contratos && data.contratos.length > 0) {
+                        // Preservar o contrato selecionado se houver
+                        data.contratos.forEach(contrato => {
+                            const option = document.createElement('option');
+                            option.value = contrato.id;
+                            option.textContent = contrato.numero;
+                            if (contrato.id == contratoAtual) {
+                                option.selected = true;
+                            }
+                            contratoSelect.appendChild(option);
+                        });
+                        
+                        // Se houver contrato selecionado, carregar itens
+                        if (contratoAtual) {
+                            const tiposOF = [
+                                'equipamento_hw',
+                                'equipamento_sw_embarcado', 
+                                'licenca_software',
+                                'subscricao_software',
+                                'solucao',
+                                'treinamento'
+                            ].join(',');
+                            
+                            fetch(`/api/itenscontrato/?contrato_id=${contratoAtual}&tipo=${tiposOF}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.itens_contrato && data.itens_contrato.length > 0) {
+                                        data.itens_contrato.forEach(item => {
+                                            const option = document.createElement('option');
+                                            option.value = item.id;
+                                            option.textContent = item.descricao;
+                                            option.dataset.valorUnitario = item.valor_unitario;
+                                            if (item.id == itemContratoAtual) {
+                                                option.selected = true;
+                                                // Atualizar valor unitário
+                                                const valorUnitario = parseFloat(item.valor_unitario) || 0;
+                                                if (valorUnitarioInput) {
+                                                    valorUnitarioInput.value = valorUnitario.toFixed(2);
+                                                }
+                                                atualizarLabelsValores();
+                                                atualizarValorTotal();
+                                            }
+                                            itemContratoSelect.appendChild(option);
+                                        });
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Erro ao carregar itens do contrato:', error);
+                                });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar contratos:', error);
+                });
+        }
     });
 </script>
-
 {% endblock %}

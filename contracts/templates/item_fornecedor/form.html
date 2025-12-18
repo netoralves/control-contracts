@@ -1,88 +1,165 @@
-{# item_fornecedor/form.html #}
-{% extends 'contracts/base.html' %}
-{% load static %}
-{% load form_filters %}
-{% load humanize %}
+{% extends "contracts/base.html" %}
+{% load static form_filters %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Fornecedor{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Fornecedor
-        </h1>
-        <a href="{% url 'item_fornecedor_list' %}"
-            class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
-            <i class="fa fa-arrow-left"></i> Voltar
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'item_fornecedor_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
         </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-box-open mr-2"></i>{% if form.instance.pk %}Editar Item de Fornecedor{% else %}Novo Item de Fornecedor{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {% if form.instance.pk %}Atualize os dados do item{% else %}Cadastre um novo item de fornecedor{% endif %}
+            </p>
+        </div>
     </div>
 
-    <form method="post" novalidate>
+    <!-- Mensagens de erro -->
+    {% if form.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <form method="post" class="space-y-6" novalidate>
         {% csrf_token %}
+        
+        <!-- Dados Básicos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Fornecedor -->
+                <div>
+                    <label for="{{ form.fornecedor.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.fornecedor.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.fornecedor|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.fornecedor.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.fornecedor.errors.0 }}</p>
+                    {% endif %}
+                </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">  
+                <!-- Outro Fornecedor -->
+                <div id="outro-fornecedor-div" class="hidden">
+                    <label for="{{ form.outro_fornecedor.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.outro_fornecedor.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.outro_fornecedor|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.outro_fornecedor.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.outro_fornecedor.errors.0 }}</p>
+                    {% endif %}
+                </div>
 
-            <!-- Fornecedor -->
-            <div id="fornecedor">
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Fornecedor</label>
-                {{ form.fornecedor|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                <!-- SKU -->
+                <div>
+                    <label for="{{ form.sku.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.sku.label }}
+                    </label>
+                    {{ form.sku|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.sku.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.sku.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Tipo -->
+                <div>
+                    <label for="{{ form.tipo.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.tipo.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.tipo|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.tipo.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.tipo.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Unidade -->
+                <div>
+                    <label for="{{ form.unidade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.unidade.label }}
+                    </label>
+                    {{ form.unidade|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.unidade.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.unidade.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Valor Unitário -->
+                <div>
+                    <label for="{{ form.valor_unitario.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.valor_unitario.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.valor_unitario|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.valor_unitario.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.valor_unitario.errors.0 }}</p>
+                    {% endif %}
+                </div>
             </div>
-
-            <!-- Outro Fornecedor -->
-            <div id="outro-fornecedor-div" class="hidden">
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Outro Fornecedor</label>
-                {{ form.outro_fornecedor|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
-
-            <!-- SKU -->
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">SKU</label>
-                {{ form.sku|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
-            <!-- Tipo -->
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Tipo</label>
-                {{ form.tipo|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"}}
-            </div>
-
-            <!-- Unidade -->
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Unidade</label>
-                {{ form.unidade|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
-            <!-- Valor Unitário -->
-            <div>
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Valor Unitário (R$)</label>
-                {{ form.valor_unitario|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
-            <!-- Descrição -->
-            <div class="md:col-span-2">
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Descrição</label>
-                {{ form.descricao|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
-            <!-- Observações -->
-            <div class="md:col-span-2">
-                <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">Observações</label>
-                {{ form.observacoes|add_class:"w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-            </div>
-
         </div>
 
-        <!-- Botões -->
-        <div class="flex justify-end gap-2 mt-6">
-            <button type="submit"
-                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
-                Salvar
-            </button>
-            <a href="{% url 'item_fornecedor_list' %}"
-                class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
-                Cancelar
+        <!-- Descrição e Observações -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-align-left mr-2 text-purple-500"></i>Descrição e Observações
+            </h3>
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Descrição -->
+                <div>
+                    <label for="{{ form.descricao.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.descricao.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.descricao|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.descricao.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.descricao.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Observações -->
+                <div>
+                    <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.observacoes.label }}
+                    </label>
+                    {{ form.observacoes|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.observacoes.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.observacoes.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="flex justify-end gap-2">
+            <a href="{% url 'item_fornecedor_list' %}" class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                <i class="fas fa-times mr-1"></i> Cancelar
             </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <i class="fas fa-save mr-1"></i> Salvar
+            </button>
         </div>
     </form>
 </div>
@@ -94,16 +171,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const outroFornecedorDiv = document.getElementById('outro-fornecedor-div');
 
     function toggleOutroFornecedor() {
-        if (fornecedorSelect.value === 'Outro Fornecedor') {
+        if (fornecedorSelect && fornecedorSelect.value === 'Outro Fornecedor') {
             outroFornecedorDiv.classList.remove('hidden');
         } else {
             outroFornecedorDiv.classList.add('hidden');
         }
     }
 
-    fornecedorSelect.addEventListener('change', toggleOutroFornecedor);
-    toggleOutroFornecedor();
+    if (fornecedorSelect) {
+        fornecedorSelect.addEventListener('change', toggleOutroFornecedor);
+        toggleOutroFornecedor();
+    }
 });
 </script>
-
 {% endblock %}

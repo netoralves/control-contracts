@@ -1,0 +1,483 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Timesheet - Planilha de Horas{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Mensagens -->
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg flex items-center gap-3 
+            {% if message.tags == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+            {% elif message.tags == 'error' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+            {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+            {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% endif %}">
+            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button type="button" onclick="this.parentElement.remove()" class="ml-auto hover:opacity-70">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-table mr-2"></i>Planilha de Horas
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                Registre horas faturáveis e não faturáveis, <span class="font-semibold">{{ colaborador.nome_completo }}</span>
+            </p>
+        </div>
+        <div class="flex gap-2 mt-4 md:mt-0">
+            <a href="{% url 'timesheet_list' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-project-diagram mr-1"></i> Timesheet de Projetos
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm">Total de Horas</p>
+                    <p class="text-3xl font-bold mt-1">{{ total_horas|floatformat:1 }}h</p>
+                </div>
+                <div class="bg-purple-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-clock text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm">Lançamentos</p>
+                    <p class="text-3xl font-bold mt-1">{{ lancamentos|length }}</p>
+                </div>
+                <div class="bg-blue-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-list-alt text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-xl shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm">Ações</p>
+                    <div class="flex gap-2 mt-2">
+                        <a href="{% url 'timesheet_exportar' %}{% if filtro_data_inicio %}?data_inicio={{ filtro_data_inicio }}&data_fim={{ filtro_data_fim }}{% endif %}" 
+                            class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded text-sm transition">
+                            <i class="fas fa-download mr-1"></i> Exportar
+                        </a>
+                        <button type="button" onclick="document.getElementById('modal-importar').classList.remove('hidden')"
+                            class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded text-sm transition">
+                            <i class="fas fa-upload mr-1"></i> Importar
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-green-400 bg-opacity-30 p-3 rounded-full">
+                    <i class="fas fa-exchange-alt text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ filtro_data_inicio|default:'' }}"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ filtro_data_fim|default:'' }}"
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div class="flex items-end gap-2 md:col-span-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
+                <a href="{% url 'timesheet_planilha' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Planilha de Lançamento -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-800 dark:text-white">
+                <i class="fas fa-plus-circle mr-2 text-green-600"></i>Novo Lançamento
+            </h3>
+        </div>
+        <!-- Área de mensagens do formulário -->
+        <div id="form-mensagem" class="hidden mx-4 mt-4 p-3 rounded-lg"></div>
+        <div class="p-4">
+            <form id="form-novo-lancamento" class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data</label>
+                    <input type="date" id="novo-data" required
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Projeto</label>
+                    <select id="novo-projeto" onchange="carregarSprints(this.value)"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                        <option value="">Selecione...</option>
+                        {% for projeto in todos_projetos %}
+                        <option value="{{ projeto.id }}">{{ projeto.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sprint</label>
+                    <select id="novo-sprint" onchange="carregarTarefas(this.value)"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                        <option value="">Selecione o projeto...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tarefa</label>
+                    <select id="novo-tarefa"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                        <option value="">Selecione a sprint...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Faturável</label>
+                    <select id="novo-faturavel" onchange="toggleCamposObrigatorios()"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                        <option value="1">Sim</option>
+                        <option value="0">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tempo (HH:MM)</label>
+                    <input type="text" id="novo-tempo" placeholder="01:30" required pattern="[0-9]{1,2}:[0-9]{2}"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                </div>
+                <div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition">
+                        <i class="fas fa-plus mr-1"></i> Adicionar
+                    </button>
+                </div>
+                <div class="md:col-span-7">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                    <input type="text" id="novo-descricao" placeholder="Descreva a atividade realizada..."
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Lançamentos -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b dark:border-gray-700">
+            <h3 class="font-semibold text-gray-800 dark:text-white">
+                <i class="fas fa-list mr-2"></i>Lançamentos Registrados
+            </h3>
+        </div>
+        
+        {% if lancamentos %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Data</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Projeto</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Sprint</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tarefa</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Descrição</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tempo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Faturável</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for lancamento in lancamentos %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700" id="linha-{{ lancamento.id }}">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {{ lancamento.data|date:"d/m/Y" }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            {% if lancamento.tarefa.sprint %}
+                            {{ lancamento.tarefa.sprint.projeto.nome }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            {% if lancamento.tarefa.sprint %}
+                            {{ lancamento.tarefa.sprint.nome }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                            <div class="max-w-xs truncate" title="{{ lancamento.tarefa.titulo }}">
+                                {{ lancamento.tarefa.titulo }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <div class="max-w-xs truncate" title="{{ lancamento.descricao }}">
+                                {{ lancamento.descricao|default:"-" }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {{ lancamento.horas_trabalhadas|floatformat:2 }}h
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {% if lancamento.faturavel %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Sim</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Não</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            <div class="flex gap-2">
+                                <a href="{% url 'timesheet_editar_lancamento' lancamento.id %}" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" onclick="excluirLancamento({{ lancamento.id }})"
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <i class="fas fa-table text-gray-400 text-5xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Nenhum lançamento encontrado</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Use o formulário acima para adicionar seus lançamentos de horas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de Importação -->
+<div id="modal-importar" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-800 dark:text-white">
+                <i class="fas fa-upload mr-2"></i>Importar Lançamentos
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-importar').classList.add('hidden')"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="post" action="{% url 'timesheet_importar' %}" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Arquivo Excel (.xlsx)
+                </label>
+                <input type="file" name="arquivo" accept=".xlsx" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    O arquivo deve conter as colunas: Data | Projeto | Sprint | Tarefa | Descrição | Tempo Gasto (h) | Faturável
+                </p>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-importar').classList.add('hidden')"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                    <i class="fas fa-upload mr-1"></i> Importar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Controlar obrigatoriedade dos campos baseado em Faturável
+function toggleCamposObrigatorios() {
+    const faturavel = document.getElementById('novo-faturavel').value === '1';
+    const projetoSelect = document.getElementById('novo-projeto');
+    const sprintSelect = document.getElementById('novo-sprint');
+    const tarefaSelect = document.getElementById('novo-tarefa');
+    
+    if (faturavel) {
+        projetoSelect.setAttribute('required', 'required');
+        sprintSelect.setAttribute('required', 'required');
+        tarefaSelect.setAttribute('required', 'required');
+        projetoSelect.parentElement.querySelector('label').innerHTML = 'Projeto <span class="text-red-500">*</span>';
+        sprintSelect.parentElement.querySelector('label').innerHTML = 'Sprint <span class="text-red-500">*</span>';
+        tarefaSelect.parentElement.querySelector('label').innerHTML = 'Tarefa <span class="text-red-500">*</span>';
+    } else {
+        projetoSelect.removeAttribute('required');
+        sprintSelect.removeAttribute('required');
+        tarefaSelect.removeAttribute('required');
+        projetoSelect.parentElement.querySelector('label').innerHTML = 'Projeto';
+        sprintSelect.parentElement.querySelector('label').innerHTML = 'Sprint';
+        tarefaSelect.parentElement.querySelector('label').innerHTML = 'Tarefa';
+    }
+}
+
+// Carregar sprints do projeto
+function carregarSprints(projetoId) {
+    const sprintSelect = document.getElementById('novo-sprint');
+    const tarefaSelect = document.getElementById('novo-tarefa');
+    
+    sprintSelect.innerHTML = '<option value="">Carregando...</option>';
+    tarefaSelect.innerHTML = '<option value="">Selecione a sprint...</option>';
+    
+    if (!projetoId) {
+        sprintSelect.innerHTML = '<option value="">Selecione o projeto...</option>';
+        return;
+    }
+    
+    fetch(`/api/sprints_por_projeto/?projeto_id=${projetoId}`)
+        .then(response => response.json())
+        .then(sprints => {
+            sprintSelect.innerHTML = '<option value="">Selecione...</option>';
+            sprints.forEach(sprint => {
+                sprintSelect.innerHTML += `<option value="${sprint.id}">${sprint.nome}</option>`;
+            });
+        });
+}
+
+// Carregar tarefas da sprint
+function carregarTarefas(sprintId) {
+    const tarefaSelect = document.getElementById('novo-tarefa');
+    
+    tarefaSelect.innerHTML = '<option value="">Carregando...</option>';
+    
+    if (!sprintId) {
+        tarefaSelect.innerHTML = '<option value="">Selecione a sprint...</option>';
+        return;
+    }
+    
+    fetch(`/api/tarefas_por_sprint/?sprint_id=${sprintId}`)
+        .then(response => response.json())
+        .then(tarefas => {
+            tarefaSelect.innerHTML = '<option value="">Selecione...</option>';
+            tarefas.forEach(tarefa => {
+                tarefaSelect.innerHTML += `<option value="${tarefa.id}">${tarefa.titulo}</option>`;
+            });
+        });
+}
+
+// Função para mostrar mensagem no formulário
+function mostrarMensagem(tipo, texto) {
+    const div = document.getElementById('form-mensagem');
+    div.className = 'mx-4 mt-4 p-3 rounded-lg flex items-center gap-2';
+    
+    if (tipo === 'success') {
+        div.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200');
+        div.innerHTML = '<i class="fas fa-check-circle"></i> ' + texto;
+    } else if (tipo === 'error') {
+        div.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-900', 'dark:text-red-200');
+        div.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + texto;
+    } else if (tipo === 'warning') {
+        div.classList.add('bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200');
+        div.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + texto;
+    }
+    
+    div.classList.remove('hidden');
+    
+    // Auto-ocultar após 5 segundos para sucesso
+    if (tipo === 'success') {
+        setTimeout(() => div.classList.add('hidden'), 3000);
+    }
+}
+
+// Submeter novo lançamento
+document.getElementById('form-novo-lancamento').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const faturavel = document.getElementById('novo-faturavel').value === '1';
+    const tarefaId = document.getElementById('novo-tarefa').value;
+    
+    // Validar campos obrigatórios se for faturável
+    if (faturavel && !tarefaId) {
+        mostrarMensagem('warning', 'Para lançamentos faturáveis, é necessário selecionar Projeto, Sprint e Tarefa.');
+        return;
+    }
+    
+    // Validar data e tempo
+    if (!document.getElementById('novo-data').value) {
+        mostrarMensagem('error', 'O campo Data é obrigatório.');
+        return;
+    }
+    if (!document.getElementById('novo-tempo').value) {
+        mostrarMensagem('error', 'O campo Tempo é obrigatório.');
+        return;
+    }
+    
+    const data = {
+        tarefa_id: tarefaId || null,
+        data: document.getElementById('novo-data').value,
+        tempo_gasto: document.getElementById('novo-tempo').value,
+        descricao: document.getElementById('novo-descricao').value,
+        faturavel: faturavel
+    };
+    
+    fetch('{% url "timesheet_planilha_salvar" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            mostrarMensagem('success', 'Lançamento salvo com sucesso! (' + result.horas_trabalhadas + 'h)');
+            // Recarregar página após 1 segundo
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            mostrarMensagem('error', result.error);
+        }
+    })
+    .catch(error => {
+        mostrarMensagem('error', 'Erro ao salvar lançamento. Tente novamente.');
+        console.error(error);
+    });
+});
+
+// Excluir lançamento
+function excluirLancamento(lancamentoId) {
+    if (!confirm('Tem certeza que deseja excluir este lançamento?')) return;
+    
+    fetch(`/timesheet/planilha/excluir/${lancamentoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            document.getElementById(`linha-${lancamentoId}`).remove();
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    });
+}
+
+// Definir data atual no campo de data
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('novo-data').value = hoje;
+});
+</script>
+{% endblock %}

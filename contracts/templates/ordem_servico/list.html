@@ -1,170 +1,221 @@
 {# ordem_servico/list.html #}
 
 {% extends 'contracts/base.html' %}
-{% load static %}
+{% load static math_extras %}
 
 
 {% block content %}
-{{ colunas|json_script:"colunas-data" }}
+{{ colunas|json_script:"os-colunas-data" }}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 
-<div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold text-white">Ordens de Serviço</h1>
-    <div class="flex gap-2">
-        <!-- Controle de Colunas -->
-        <div class="relative">
-            <button id="colunasDropdownButton" data-dropdown-toggle="colunasDropdown"
-                class="text-white bg-gray-700 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center"
-                type="button">
-                <i class="fa-solid fa-table-columns mr-2"></i>Colunas
-                <svg class="w-2.5 h-2.5 ml-2" aria-hidden="true" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold dark:text-white">Ordens de Serviço</h1>
+        <div class="flex gap-2">
+            <div class="relative">
+                <button id="os_colunas_btn" data-dropdown-toggle="os_colunas_dropdown"
+                    class="text-white bg-gray-700 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center"
+                    type="button">
+                    <i class="fa-solid fa-table-columns mr-2"></i>Colunas
+                    <svg class="w-2.5 h-2.5 ml-2" aria-hidden="true" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
 
-            <div id="colunasDropdown"
-                class="z-10 hidden bg-white rounded-lg shadow w-56 dark:bg-gray-700 absolute right-0">
-                <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200">
-                    {% for coluna in colunas %}
-                    <li>
-                        <div class="flex items-center">
-                            <input id="checkbox-{{ coluna.id }}" type="checkbox" value="{{ coluna.id }}"
-                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
-                            <label for="checkbox-{{ coluna.id }}"
-                                class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ coluna.label }}</label>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+                <div id="os_colunas_dropdown"
+                    class="z-10 hidden bg-white rounded-lg shadow w-56 dark:bg-gray-700 absolute right-0">
+                    <ul class="p-3 space-y-1 text-sm text-gray-700 dark:text-gray-200">
+                        {% for coluna in colunas %}
+                        <li>
+                            <div class="flex items-center">
+                                <input id="os-checkbox-{{ coluna.id }}" type="checkbox" value="{{ coluna.id }}"
+                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="os-checkbox-{{ coluna.id }}"
+                                    class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">{{ coluna.label }}</label>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <a href="{% url 'ordem_servico_create' %}"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                + Nova OS
+            </a>
+            <a href="{% url 'export_ordem_servico_csv' %}"
+                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-file-csv mr-2"></i>Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <form method="GET" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label for="numero" class="block text-sm font-medium dark:text-white mb-1">Número OS</label>
+                <input type="text" name="numero" id="numero" placeholder="Número OS" value="{{ filtro_numero }}"
+                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="cliente" class="block text-sm font-medium dark:text-white mb-1">Cliente</label>
+                <input type="text" name="cliente" id="cliente" placeholder="Cliente" value="{{ filtro_cliente }}"
+                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label for="status" class="block text-sm font-medium dark:text-white mb-1">Status</label>
+                <select name="status" id="status"
+                    class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5 focus:ring-blue-600 focus:border-blue-600 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Status</option>
+                    <option value="aberta" {% if filtro_status == "aberta" %}selected{% endif %}>Aberta</option>
+                    <option value="execucao" {% if filtro_status == "execucao" %}selected{% endif %}>Em Execução</option>
+                    <option value="finalizada" {% if filtro_status == "finalizada" %}selected{% endif %}>Finalizada</option>
+                    <option value="faturada" {% if filtro_status == "faturada" %}selected{% endif %}>Faturada</option>
+                </select>
+            </div>
+            <div class="md:col-span-2 flex items-end gap-2">
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-magnifying-glass mr-2"></i>Filtrar
+                </button>
+                <a href="{% url 'ordem_servico_list' %}"
+                    class="w-full bg-gray-300 hover:bg-gray-400 text-sm rounded-lg px-4 py-2 text-center">
+                    Limpar
+                </a>
             </div>
         </div>
+    </form>
 
-        <a href="{% url 'ordem_servico_create' %}"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
-            + Nova OS
-        </a>
-        <a href="{% url 'export_ordem_servico_csv' %}"
-            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
-            <i class="fa-solid fa-file-csv mr-2"></i>Exportar CSV
-        </a>
+    <div class="overflow-x-auto">
+        <table class="w-full table-auto border border-gray-300 dark:border-gray-700">
+            <thead class="bg-gray-100 dark:bg-gray-700 dark:text-white">
+                <tr>
+                    {% for coluna in colunas %}
+                    <th class="p-2 text-center coluna-{{ coluna.id }}">{{ coluna.label }}</th>
+                    {% endfor %}
+                    <th class="p-2 text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ordem in ordens %}
+                <tr class="border-t border-gray-300 dark:border-gray-700">
+                    {% for coluna in colunas %}
+                    <td class="p-2 text-center dark:text-white coluna-{{ coluna.id }}">
+                        {% if coluna.id == 'numero' %}
+                            {{ ordem.numero_os }}
+                        {% elif coluna.id == 'numero_cliente' %}
+                            {{ ordem.numero_os_cliente }}
+                        {% elif coluna.id == 'cliente' %}
+                            {{ ordem.cliente.nome_fantasia }}
+                        {% elif coluna.id == 'contrato' %}
+                            {{ ordem.contrato.numero_contrato }}
+                        {% elif coluna.id == 'itemcontrato' %}
+                            {{ ordem.item_contrato.descricao }}
+                        {% elif coluna.id == 'itemfornecedor' %}
+                            {% if ordem.itens_fornecedor.all %}
+                                {% for item in ordem.itens_fornecedor.all|slice:":1" %}
+                                    {{ item.item_fornecedor.descricao }}
+                                {% endfor %}
+                                {% if ordem.itens_fornecedor.count > 1 %}
+                                    <span class="text-xs text-gray-400">(+{{ ordem.itens_fornecedor.count|add:"-1" }})</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% elif coluna.id == 'unidade' %}
+                            {{ ordem.unidade }}
+                        {% elif coluna.id == 'quantidade' %}
+                            {{ ordem.quantidade }}
+                        {% elif coluna.id == 'valor_unitario' %}
+                            {{ ordem.valor_unitario|currency_br }}
+                        {% elif coluna.id == 'valor_total' %}
+                            {{ ordem.valor_total|currency_br }}
+                        {% elif coluna.id == 'gerente_projetos' %}
+                            {{ ordem.gerente_projetos }}
+                        {% elif coluna.id == 'data_inicio' %}
+                            {{ ordem.data_inicio|date:"d/m/Y" }}
+                        {% elif coluna.id == 'hora_inicio' %}
+                            {{ ordem.hora_inicio }}
+                        {% elif coluna.id == 'data_termino' %}
+                            {{ ordem.data_termino|date:"d/m/Y" }}
+                        {% elif coluna.id == 'hora_termino' %}
+                            {{ ordem.hora_termino }}
+                        {% elif coluna.id == 'status' %}
+                            <span class="px-2 py-1 rounded-full 
+                                {% if ordem.status == 'aberta' %}bg-gray-200 text-gray-700
+                                {% elif ordem.status == 'execucao' %}bg-blue-100 text-blue-800
+                                {% elif ordem.status == 'finalizada' %}bg-green-100 text-green-800
+                                {% elif ordem.status == 'faturada' %}bg-purple-100 text-purple-800
+                                {% endif %}">
+                                {{ ordem.get_status_display }}
+                            </span>
+                        {% elif coluna.id == 'data_emissao_trd' %}
+                            {{ ordem.data_emissao_trd|date:"d/m/Y" }}
+                        {% elif coluna.id == 'data_faturamento' %}
+                            {{ ordem.data_faturamento|date:"d/m/Y" }}
+                        {% elif coluna.id == 'horas_consultor' %}
+                            {{ ordem.horas_consultor }}
+                        {% elif coluna.id == 'horas_gerente' %}
+                            {{ ordem.horas_gerente }}
+                        {% elif coluna.id == 'horas_totais' %}
+                            {{ ordem.horas_totais }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="p-2 flex justify-center gap-2">
+                        <a href="{% url 'ordem_servico_detail' ordem.pk %}" class="text-blue-600 hover:underline"><i class="fa-solid fa-eye"></i></a>
+                        <span class="text-gray-400">|</span>
+                        <a href="{% url 'ordem_servico_update' ordem.pk %}" class="text-yellow-500 hover:underline"><i class="fa-solid fa-pen-to-square"></i></a>
+                        <span class="text-gray-400">|</span>
+                        <a href="{% url 'ordem_servico_delete' ordem.pk %}" class="text-red-600 hover:underline"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex justify-between items-center mt-4">
+        <span class="text-sm text-gray-700 dark:text-gray-400">
+            Mostrando {{ ordens.start_index }}-{{ ordens.end_index }} de {{ ordens.paginator.count }} registros
+        </span>
+        <div class="inline-flex">
+            {% if ordens.has_previous %}
+            <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ ordens.previous_page_number }}"
+               class="px-3 py-2 text-sm bg-white border border-gray-300 hover:bg-gray-100 
+               dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700 rounded-l-lg">
+                Anterior
+            </a>
+            {% else %}
+            <span class="px-3 py-2 text-sm bg-gray-200 border border-gray-300 rounded-l-lg">Anterior</span>
+            {% endif %}
+
+            {% if ordens.has_next %}
+            <a href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ ordens.next_page_number }}"
+               class="px-3 py-2 text-sm bg-white border border-gray-300 hover:bg-gray-100 
+               dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700 rounded-r-lg">
+                Próximo
+            </a>
+            {% else %}
+            <span class="px-3 py-2 text-sm bg-gray-200 border border-gray-300 rounded-r-lg">Próximo</span>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<!-- Filtros -->
-<form method="GET" class="flex gap-2 mb-4">
-    <input type="text" name="numero" placeholder="Número OS" value="{{ filtro_numero }}"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-    <input type="text" name="cliente" placeholder="Cliente" value="{{ filtro_cliente }}"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-    <select name="status"
-        class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-1/5 p-2.5">
-        <option value="">Status</option>
-        <option value="aberta" {% if filtro_status == "aberta" %}selected{% endif %}>Aberta</option>
-        <option value="execucao" {% if filtro_status == "execucao" %}selected{% endif %}>Em Execução</option>
-        <option value="finalizada" {% if filtro_status == "finalizada" %}selected{% endif %}>Finalizada</option>
-        <option value="faturada" {% if filtro_status == "faturada" %}selected{% endif %}>Faturada</option>
-    </select>
-    <button type="submit"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg flex items-center">
-        <i class="fa-solid fa-magnifying-glass mr-2"></i>Filtrar
-    </button>
-    <a href="{% url 'ordem_servico_list' %}"
-        class="bg-gray-600 hover:bg-gray-700 text-white px-4 rounded-lg flex items-center">
-        <i class="fa-solid fa-xmark mr-2"></i>Limpar
-    </a>
-</form>
+{% endblock %}
 
-<!-- Tabela -->
-<div class="relative overflow-x-auto">
-    <table class="w-full text-sm text-left text-gray-400">
-        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
-            <tr>
-                {% for coluna in colunas %}
-                <th class="px-4 py-3 coluna-{{ coluna.id }}">{{ coluna.label }}</th>
-                {% endfor %}
-                <th class="px-4 py-3">AÇÕES</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ordem in ordens %}
-            <tr class="border-b bg-gray-800 border-gray-700">
-                {% for coluna in colunas %}
-                <td class="px-4 py-3 coluna-{{ coluna.id }}">
-                    {% if coluna.id == 'numero' %}
-                        {{ ordem.numero_os }}
-                    {% elif coluna.id == 'numero_cliente' %}
-                        {{ ordem.numero_os_cliente }}
-                    {% elif coluna.id == 'cliente' %}
-                        {{ ordem.cliente.nome_fantasia }}
-                    {% elif coluna.id == 'contrato' %}
-                        {{ ordem.contrato.numero_contrato }}
-                    {% elif coluna.id == 'itemcontrato' %}
-                        {{ ordem.item_contrato.descricao }}
-                    {% elif coluna.id == 'itemfornecedor' %}
-                        {{ ordem.item_fornecedor.descricao }}
-                    {% elif coluna.id == 'unidade' %}
-                        {{ ordem.unidade }}
-                    {% elif coluna.id == 'quantidade' %}
-                        {{ ordem.quantidade }}
-                    {% elif coluna.id == 'valor_unitario' %}
-                        R$ {{ ordem.valor_unitario|floatformat:2 }}
-                    {% elif coluna.id == 'valor_total' %}
-                        R$ {{ ordem.valor_total|floatformat:2 }}
-                    {% elif coluna.id == 'gerente_projetos' %}
-                        {{ ordem.gerente_projetos }}
-                    {% elif coluna.id == 'consultor_tecnico' %}
-                        {{ ordem.consultor_tecnico }}
-                    {% elif coluna.id == 'data_inicio' %}
-                        {{ ordem.data_inicio|date:"d/m/Y" }}
-                    {% elif coluna.id == 'hora_inicio' %}
-                        {{ ordem.hora_inicio }}
-                    {% elif coluna.id == 'data_termino' %}
-                        {{ ordem.data_termino|date:"d/m/Y" }}
-                    {% elif coluna.id == 'hora_termino' %}
-                        {{ ordem.hora_termino }}
-                    {% elif coluna.id == 'status' %}
-                        <span class="px-2 py-1 rounded-full 
-                            {% if ordem.status == 'aberta' %}bg-gray-500
-                            {% elif ordem.status == 'execucao' %}bg-blue-600
-                            {% elif ordem.status == 'finalizada' %}bg-green-600
-                            {% elif ordem.status == 'faturada' %}bg-purple-600
-                            {% endif %}">
-                            {{ ordem.get_status_display }}
-                        </span>
-                    {% elif coluna.id == 'data_emissao_trd' %}
-                        {{ ordem.data_emissao_trd|date:"d/m/Y" }}
-                    {% elif coluna.id == 'data_faturamento' %}
-                        {{ ordem.data_faturamento|date:"d/m/Y" }}
-                    {% elif coluna.id == 'horas_consultor' %}
-                        {{ ordem.horas_consultor }}
-                    {% elif coluna.id == 'horas_gerente' %}
-                        {{ ordem.horas_gerente }}
-                    {% elif coluna.id == 'horas_totais' %}
-                        {{ ordem.horas_totais }}
-                    {% endif %}
-                </td>
-                {% endfor %}
-                <td class="px-4 py-3 flex gap-2">
-                    <a href="{% url 'ordem_servico_detail' ordem.pk %}" class="text-blue-500"><i class="fa-solid fa-eye"></i></a>
-                    <a href="{% url 'ordem_servico_update' ordem.pk %}" class="text-yellow-400"><i class="fa-solid fa-pen-to-square"></i></a>
-                    <a href="{% url 'ordem_servico_delete' ordem.pk %}" class="text-red-500"><i class="fa-solid fa-trash"></i></a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Script de controle de colunas -->
+{% block scripts %}
+{{ block.super }}
 <script>
-    const colunas = JSON.parse(document.getElementById('colunas-data').textContent);
-    const idsColunas = colunas.map(c => c.id);
+    const osColunas = JSON.parse(document.getElementById('os-colunas-data').textContent);
+    const osIds = osColunas.map(c => c.id);
 
-    function carregarPreferenciasColunas() {
-        const prefs = JSON.parse(localStorage.getItem('os_colunas')) || idsColunas;
-        idsColunas.forEach(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+    function carregarPreferenciasOS() {
+        const prefs = JSON.parse(localStorage.getItem('os_colunas')) || osIds;
+        osIds.forEach(coluna => {
+            const checkbox = document.getElementById(`os-checkbox-${coluna}`);
             const elementos = document.querySelectorAll(`.coluna-${coluna}`);
             if (checkbox) {
                 checkbox.checked = prefs.includes(coluna);
@@ -175,24 +226,23 @@
         });
     }
 
-    function atualizarPreferenciasColunas() {
-        const selecionadas = idsColunas.filter(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+    function atualizarPreferenciasOS() {
+        const selecionadas = osIds.filter(coluna => {
+            const checkbox = document.getElementById(`os-checkbox-${coluna}`);
             return checkbox && checkbox.checked;
         });
         localStorage.setItem('os_colunas', JSON.stringify(selecionadas));
-        carregarPreferenciasColunas();
+        carregarPreferenciasOS();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        carregarPreferenciasColunas();
-        idsColunas.forEach(coluna => {
-            const checkbox = document.getElementById(`checkbox-${coluna}`);
+        carregarPreferenciasOS();
+        osIds.forEach(coluna => {
+            const checkbox = document.getElementById(`os-checkbox-${coluna}`);
             if (checkbox) {
-                checkbox.addEventListener('change', atualizarPreferenciasColunas);
+                checkbox.addEventListener('change', atualizarPreferenciasOS);
             }
         });
     });
 </script>
-
 {% endblock %}

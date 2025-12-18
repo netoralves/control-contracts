@@ -1,0 +1,222 @@
+{% extends "contracts/base.html" %}
+{% load static form_filters %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Colaborador{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'colaborador_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-user-tie mr-2"></i>{% if form.instance.pk %}Editar Colaborador{% else %}Novo Colaborador{% endif %}
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                {% if form.instance.pk %}Atualize os dados do colaborador {{ form.instance.nome_completo }}{% else %}Cadastre um novo colaborador{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Mensagens de erro -->
+    {% if form.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário -->
+    <form method="post" class="space-y-6" novalidate>
+        {% csrf_token %}
+        
+        <!-- Dados Básicos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Dados Básicos
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for field in form %}
+                    {% if field.name != 'grupos' and field.name != 'criar_usuario' and field.name != 'username' and field.name != 'password' and field.name != 'user' %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {% if field.name == 'ativo' %}
+                            <div class="flex items-center">
+                                {{ field|add_class:"w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" }}
+                            </div>
+                        {% else %}
+                            {{ field|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                        {% endif %}
+                        {% if field.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% if field.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <!-- Campo Usuário (para vincular a usuário existente) -->
+            {% if not form.instance.pk %}
+            <div id="user-field-container" class="mt-4 {% if form.user.value or not form.criar_usuario.value %}block{% else %}hidden{% endif %}">
+                <label for="{{ form.user.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {{ form.user.label }}
+                    {% if form.user.help_text %}
+                        <span class="text-xs text-gray-500">({{ form.user.help_text }})</span>
+                    {% endif %}
+                </label>
+                {{ form.user|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                {% if form.user.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.user.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Criação de Usuário (apenas para novos colaboradores) -->
+        {% if not form.instance.pk %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6" id="usuario-section">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-user-plus mr-2 text-green-500"></i>Criação de Usuário
+            </h3>
+            
+            <div class="mb-4">
+                <label for="{{ form.criar_usuario.id_for_label }}" class="flex items-center">
+                    {{ form.criar_usuario|add_class:"w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" }}
+                    <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.criar_usuario.label }}</span>
+                </label>
+                {% if form.criar_usuario.help_text %}
+                    <p class="mt-1 text-xs text-gray-500 ml-6">{{ form.criar_usuario.help_text }}</p>
+                {% endif %}
+                {% if form.criar_usuario.errors %}
+                    <p class="mt-1 text-sm text-red-600 ml-6">{{ form.criar_usuario.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div id="usuario-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.username.label }}
+                    </label>
+                    {{ form.username|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.username.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.username.help_text }}</p>
+                    {% endif %}
+                    {% if form.username.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.username.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.password.label }}
+                    </label>
+                    {{ form.password|add_class:"w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" }}
+                    {% if form.password.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.password.help_text }}</p>
+                    {% endif %}
+                    {% if form.password.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.password.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const criarUsuarioCheckbox = document.getElementById('{{ form.criar_usuario.id_for_label }}');
+            const usuarioFields = document.getElementById('usuario-fields');
+            const userFieldContainer = document.getElementById('user-field-container');
+            const usernameField = document.getElementById('{{ form.username.id_for_label }}');
+            const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+            const emailField = document.getElementById('{{ form.email.id_for_label }}');
+            const userField = document.getElementById('{{ form.user.id_for_label }}');
+            
+            function toggleUsuarioFields() {
+                if (criarUsuarioCheckbox && criarUsuarioCheckbox.checked) {
+                    if (usuarioFields) usuarioFields.style.display = 'grid';
+                    if (userFieldContainer) userFieldContainer.style.display = 'none';
+                    if (userField) userField.value = '';
+                } else {
+                    if (usuarioFields) usuarioFields.style.display = 'none';
+                    if (userFieldContainer) userFieldContainer.style.display = 'block';
+                    if (usernameField) usernameField.value = '';
+                    if (passwordField) passwordField.value = '';
+                }
+            }
+            
+            // Preencher username com email quando email mudar
+            if (emailField && usernameField) {
+                emailField.addEventListener('blur', function() {
+                    if (criarUsuarioCheckbox && criarUsuarioCheckbox.checked && !usernameField.value) {
+                        usernameField.value = emailField.value;
+                    }
+                });
+            }
+            
+            if (criarUsuarioCheckbox) {
+                criarUsuarioCheckbox.addEventListener('change', toggleUsuarioFields);
+                toggleUsuarioFields(); // Executar ao carregar
+            }
+        });
+        </script>
+        {% endif %}
+        
+        <!-- Grupos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-users-cog mr-2 text-red-500"></i>Grupos e Permissões
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                {{ form.grupos.help_text }}
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for checkbox in form.grupos %}
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                    {{ checkbox.tag }}
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ checkbox.choice_label }}</span>
+                </label>
+                {% empty %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 col-span-full">
+                    Nenhum grupo disponível. <a href="{% url 'grupo_create' %}" class="text-blue-600 hover:underline">Criar novo grupo</a>
+                </p>
+                {% endfor %}
+            </div>
+            {% if form.grupos.errors %}
+                <p class="mt-2 text-sm text-red-600">{{ form.grupos.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="flex justify-end gap-2">
+            <a href="{% url 'colaborador_list' %}" class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                <i class="fas fa-times mr-1"></i> Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <i class="fas fa-save mr-1"></i> Salvar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

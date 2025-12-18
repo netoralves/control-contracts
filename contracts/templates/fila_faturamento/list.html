@@ -1,0 +1,162 @@
+{# fila_faturamento/list.html #}
+{% extends 'contracts/base.html' %}
+{% load math_extras %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold dark:text-white">Fila de Faturamento</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">OS e OF pendentes de faturamento</p>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ total_os_pendentes }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">OS Pendentes</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ total_of_pendentes }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">OF Pendentes</p>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ valor_total_os|currency_br }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Valor Total OS</p>
+        </div>
+        <div class="bg-orange-50 dark:bg-orange-900 p-4 rounded-lg text-center">
+            <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ valor_total_of|currency_br }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Valor Total OF</p>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="tabs" data-tabs-toggle="#tab-content" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg active" id="os-tab" data-tabs-target="#os" type="button" role="tab">
+                    Ordens de Serviço ({{ total_os_pendentes }})
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="of-tab" data-tabs-target="#of" type="button" role="tab">
+                    Ordens de Fornecimento ({{ total_of_pendentes }})
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Conteúdo das Abas -->
+    <div id="tab-content">
+        <!-- Aba OS -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="os" role="tabpanel">
+            {% if os_pendentes %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Nº OS</th>
+                            <th class="px-4 py-3">Cliente</th>
+                            <th class="px-4 py-3">Contrato</th>
+                            <th class="px-4 py-3">Receita Prevista</th>
+                            <th class="px-4 py-3">Data Finalização</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for os in os_pendentes %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-4 py-3">{{ os.numero_os }}</td>
+                            <td class="px-4 py-3">{{ os.cliente.nome_fantasia|default:os.cliente.nome_razao_social }}</td>
+                            <td class="px-4 py-3">{{ os.contrato.numero_contrato }}</td>
+                            <td class="px-4 py-3">{{ os.receita_prevista|currency_br }}</td>
+                            <td class="px-4 py-3">{{ os.data_emissao_trd|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="px-4 py-3">
+                                <a href="{% url 'marcar_os_faturada' os.pk %}" 
+                                   class="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-lg text-sm"
+                                   onclick="return confirm('Deseja marcar esta OS como faturada?')">
+                                    <i class="fa-solid fa-check mr-1"></i>Marcar Faturada
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma OS pendente de faturamento.</p>
+            {% endif %}
+        </div>
+
+        <!-- Aba OF -->
+        <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="of" role="tabpanel">
+            {% if of_pendentes %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Nº OF</th>
+                            <th class="px-4 py-3">Cliente</th>
+                            <th class="px-4 py-3">Contrato</th>
+                            <th class="px-4 py-3">Valor Total</th>
+                            <th class="px-4 py-3">Data Ativação</th>
+                            <th class="px-4 py-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for of in of_pendentes %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-4 py-3">{{ of.numero_of }}</td>
+                            <td class="px-4 py-3">{{ of.cliente.nome_fantasia|default:of.cliente.nome_razao_social }}</td>
+                            <td class="px-4 py-3">{{ of.contrato.numero_contrato }}</td>
+                            <td class="px-4 py-3">{{ of.valor_total|currency_br }}</td>
+                            <td class="px-4 py-3">{{ of.data_ativacao|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="px-4 py-3">
+                                <a href="{% url 'marcar_of_faturada' of.pk %}" 
+                                   class="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-lg text-sm"
+                                   onclick="return confirm('Deseja marcar esta OF como faturada?')">
+                                    <i class="fa-solid fa-check mr-1"></i>Marcar Faturada
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma OF pendente de faturamento.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Inicializar abas
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('[data-tabs-toggle] button');
+    const tabContents = document.querySelectorAll('[role="tabpanel"]');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-tabs-target');
+            
+            // Remover classes ativas
+            tabs.forEach(t => {
+                t.classList.remove('active', 'border-blue-600', 'text-blue-600');
+                t.classList.add('hover:text-gray-600', 'hover:border-gray-300');
+            });
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Adicionar classes ativas
+            this.classList.add('active', 'border-blue-600', 'text-blue-600');
+            this.classList.remove('hover:text-gray-600', 'hover:border-gray-300');
+            document.querySelector(targetId).classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}
+

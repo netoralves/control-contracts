@@ -1,0 +1,83 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Editar Lançamento - Timesheet{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'timesheet_list' %}" class="hover:text-blue-600">Timesheet</a>
+            <span class="mx-2">/</span>
+            <span>Editar Lançamento</span>
+        </nav>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            <i class="fas fa-edit mr-2 text-blue-600"></i>Editar Lançamento
+        </h1>
+    </div>
+
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <!-- Info da Tarefa -->
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-gray-800 dark:text-white">{{ tarefa.titulo }}</h3>
+                {% if tarefa.sprint %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {{ tarefa.sprint.projeto.nome }} / {{ tarefa.sprint.nome }}
+                </p>
+                {% endif %}
+            </div>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Data <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="data" value="{{ lancamento.data|date:'Y-m-d' }}" required
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Hora Início <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" name="hora_inicio" value="{{ lancamento.hora_inicio|time:'H:i' }}" required
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Hora Término <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" name="hora_termino" value="{{ lancamento.hora_termino|time:'H:i' }}" required
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Descrição do Trabalho
+                    </label>
+                    <textarea name="descricao" rows="4" 
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder="Descreva as atividades realizadas...">{{ lancamento.descricao|default:'' }}</textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                    <a href="{% url 'timesheet_list' %}" 
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                        <i class="fas fa-save mr-1"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

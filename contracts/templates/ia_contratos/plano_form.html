@@ -1,0 +1,725 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Editar Plano de Trabalho - {{ plano.contrato.numero_contrato }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <a href="{% url 'plano_trabalho_detail' plano.pk %}" class="hover:text-blue-600">Plano de Trabalho</a>
+            <span class="mx-2">/</span>
+            <span>Editar</span>
+        </nav>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    Editar Plano de Trabalho - {{ plano.contrato.numero_contrato }}
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">
+                    {{ plano.contrato.cliente.nome_razao_social }}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'plano_trabalho_detail' plano.pk %}" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-arrow-left mr-1"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <form method="post" id="planoForm" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        {% csrf_token %}
+        
+        <div class="space-y-6">
+            <!-- Resumo do Contrato -->
+            <div>
+                <label for="{{ form.resumo_contrato.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.resumo_contrato.label }}
+                </label>
+                {{ form.resumo_contrato }}
+                {% if form.resumo_contrato.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.resumo_contrato.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Pontos de Atenção -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-exclamation-triangle mr-2 text-amber-500"></i>Pontos de Atenção
+                    </label>
+                    <button type="button" onclick="adicionarPontoAtencao()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                        <i class="fas fa-plus mr-1"></i> Adicionar Ponto
+                    </button>
+                </div>
+                <div id="pontosAtencaoContainer" class="space-y-4">
+                    {% if plano.pontos_atencao %}
+                        {% for ponto in plano.pontos_atencao %}
+                        <div class="ponto-atencao-item border-l-4 {% if ponto.prioridade == 'critica' %}border-red-500{% elif ponto.prioridade == 'alta' %}border-orange-500{% else %}border-yellow-500{% endif %} pl-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
+                            <div class="flex items-start justify-between mb-2">
+                                <button type="button" onclick="removerPontoAtencao(this)" 
+                                    class="text-red-600 hover:text-red-800 text-sm">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Título</label>
+                                    <input type="text" name="pontos_atencao_titulo[]" value="{{ ponto.titulo }}" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prioridade</label>
+                                    <select name="pontos_atencao_prioridade[]" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="critica" {% if ponto.prioridade == 'critica' %}selected{% endif %}>Crítica</option>
+                                        <option value="alta" {% if ponto.prioridade == 'alta' %}selected{% endif %}>Alta</option>
+                                        <option value="media" {% if ponto.prioridade == 'media' %}selected{% endif %}>Média</option>
+                                        <option value="baixa" {% if ponto.prioridade == 'baixa' %}selected{% endif %}>Baixa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+                                <textarea name="pontos_atencao_descricao[]" rows="2" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">{{ ponto.descricao }}</textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ação Recomendada</label>
+                                <textarea name="pontos_atencao_acao[]" rows="2" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">{{ ponto.acao_recomendada }}</textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Processo de Execução -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-tasks mr-2 text-indigo-500"></i>Processo de Execução
+                    </label>
+                    <button type="button" onclick="adicionarEtapa()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                        <i class="fas fa-plus mr-1"></i> Adicionar Etapa
+                    </button>
+                </div>
+                <div id="processoExecucaoContainer" class="space-y-4">
+                    {% if plano.processo_execucao %}
+                        {% for etapa in plano.processo_execucao %}
+                        <div class="etapa-item border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <div class="flex items-start justify-between mb-3">
+                                <h4 class="font-semibold text-gray-900 dark:text-white">Etapa {{ forloop.counter }}</h4>
+                                <button type="button" onclick="removerEtapa(this)" 
+                                    class="text-red-600 hover:text-red-800 text-sm">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome/Etapa</label>
+                                    <input type="text" name="processo_nome[]" value="{{ etapa.nome|default:etapa.etapa }}" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fase</label>
+                                    <select name="processo_fase[]" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="planejamento" {% if etapa.fase == 'planejamento' %}selected{% endif %}>Planejamento</option>
+                                        <option value="implantacao" {% if etapa.fase == 'implantacao' %}selected{% endif %}>Implantação</option>
+                                        <option value="execucao" {% if etapa.fase == 'execucao' %}selected{% endif %}>Execução</option>
+                                        <option value="suporte" {% if etapa.fase == 'suporte' %}selected{% endif %}>Suporte</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Duração (dias)</label>
+                                    <input type="number" name="processo_duracao[]" value="{{ etapa.duracao_dias }}" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+                                <textarea name="processo_descricao[]" rows="2" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">{{ etapa.descricao }}</textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Entregáveis (um por linha)</label>
+                                <textarea name="processo_entregaveis[]" rows="3" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">{% if etapa.entregaveis %}{% for entregavel in etapa.entregaveis %}{{ entregavel }}{% if not forloop.last %}
+{% endif %}{% endfor %}{% endif %}</textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Datas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.data_inicio_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ form.data_inicio_prevista.label }}
+                    </label>
+                    {{ form.data_inicio_prevista }}
+                    {% if form.data_inicio_prevista.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.data_inicio_prevista.errors }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.data_fim_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{ form.data_fim_prevista.label }}
+                    </label>
+                    {{ form.data_fim_prevista }}
+                    {% if form.data_fim_prevista.errors %}
+                    <p class="text-red-600 text-sm mt-1">{{ form.data_fim_prevista.errors }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Cronograma Detalhado -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>Cronograma Detalhado
+                    </label>
+                    <button type="button" onclick="adicionarMarco()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                        <i class="fas fa-plus mr-1"></i> Adicionar Marco
+                    </button>
+                </div>
+                <div id="cronogramaContainer" class="space-y-4">
+                    {% if plano.cronograma_detalhado %}
+                        {% for marco in plano.cronograma_detalhado %}
+                        <div class="marco-item border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <div class="flex items-start justify-between mb-3">
+                                <h4 class="font-semibold text-gray-900 dark:text-white">Marco {{ forloop.counter }}</h4>
+                                <button type="button" onclick="removerMarco(this)" 
+                                    class="text-red-600 hover:text-red-800 text-sm">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome do Marco</label>
+                                    <input type="text" name="cronograma_nome[]" value="{{ marco.nome }}" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Data</label>
+                                    <input type="date" name="cronograma_data[]" value="{{ marco.data|date:'Y-m-d' }}" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+                                <textarea name="cronograma_descricao[]" rows="2" 
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">{{ marco.descricao }}</textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Plano de Comunicação -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-comments mr-2 text-green-500"></i>Plano de Comunicação
+                    </label>
+                </div>
+                
+                <!-- Stakeholders -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Stakeholders</h4>
+                        <button type="button" onclick="adicionarStakeholder()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                            <i class="fas fa-plus mr-1"></i> Adicionar
+                        </button>
+                    </div>
+                    <div id="stakeholdersContainer" class="space-y-3">
+                        {% if plano.plano_comunicacao and plano.plano_comunicacao.stakeholders %}
+                            {% for stakeholder in plano.plano_comunicacao.stakeholders %}
+                            <div class="stakeholder-item border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                                <div class="flex items-start justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Stakeholder {{ forloop.counter }}</span>
+                                    <button type="button" onclick="removerStakeholder(this)" 
+                                        class="text-red-600 hover:text-red-800 text-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome</label>
+                                        <input type="text" name="stakeholder_nome[]" value="{{ stakeholder.nome }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Papel</label>
+                                        <input type="text" name="stakeholder_papel[]" value="{{ stakeholder.papel }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Frequência</label>
+                                        <input type="text" name="stakeholder_frequencia[]" value="{{ stakeholder.frequencia_comunicacao }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Canais (separados por vírgula)</label>
+                                        <input type="text" name="stakeholder_canais[]" value="{% if stakeholder.canais %}{{ stakeholder.canais|join:', ' }}{% endif %}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Reuniões -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Reuniões</h4>
+                        <button type="button" onclick="adicionarReuniao()" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm transition">
+                            <i class="fas fa-plus mr-1"></i> Adicionar
+                        </button>
+                    </div>
+                    <div id="reunioesContainer" class="space-y-3">
+                        {% if plano.plano_comunicacao and plano.plano_comunicacao.reunioes %}
+                            {% for reuniao in plano.plano_comunicacao.reunioes %}
+                            <div class="reuniao-item border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                                <div class="flex items-start justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Reunião {{ forloop.counter }}</span>
+                                    <button type="button" onclick="removerReuniao(this)" 
+                                        class="text-red-600 hover:text-red-800 text-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo</label>
+                                        <input type="text" name="reuniao_tipo[]" value="{{ reuniao.tipo }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Frequência</label>
+                                        <input type="text" name="reuniao_frequencia[]" value="{{ reuniao.frequencia }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Participantes (separados por vírgula)</label>
+                                        <input type="text" name="reuniao_participantes[]" value="{% if reuniao.participantes %}{{ reuniao.participantes|join:', ' }}{% endif %}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Objetivo</label>
+                                        <input type="text" name="reuniao_objetivo[]" value="{{ reuniao.objetivo }}" 
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template Status Report -->
+            <div>
+                <label for="{{ form.template_status_report.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.template_status_report.label }}
+                </label>
+                {{ form.template_status_report }}
+                {% if form.template_status_report.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.template_status_report.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Frequência Status Report -->
+            <div>
+                <label for="{{ form.frequencia_status_report.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.frequencia_status_report.label }}
+                </label>
+                {{ form.frequencia_status_report }}
+                {% if form.frequencia_status_report.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.frequencia_status_report.errors }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-2 mt-6">
+            <button type="submit" 
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition">
+                <i class="fas fa-save mr-1"></i> Salvar Alterações
+            </button>
+            <a href="{% url 'plano_trabalho_detail' plano.pk %}" 
+                class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition">
+                <i class="fas fa-times mr-1"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Templates HTML para novos itens
+const pontoAtencaoTemplate = `
+    <div class="ponto-atencao-item border-l-4 border-yellow-500 pl-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
+        <div class="flex items-start justify-between mb-2">
+            <button type="button" onclick="removerPontoAtencao(this)" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash"></i> Remover
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Título</label>
+                <input type="text" name="pontos_atencao_titulo[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prioridade</label>
+                <select name="pontos_atencao_prioridade[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    <option value="critica">Crítica</option>
+                    <option value="alta">Alta</option>
+                    <option value="media" selected>Média</option>
+                    <option value="baixa">Baixa</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+            <textarea name="pontos_atencao_descricao[]" rows="2" 
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+        </div>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ação Recomendada</label>
+            <textarea name="pontos_atencao_acao[]" rows="2" 
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+        </div>
+    </div>
+`;
+
+const etapaTemplate = `
+    <div class="etapa-item border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div class="flex items-start justify-between mb-3">
+            <h4 class="font-semibold text-gray-900 dark:text-white">Nova Etapa</h4>
+            <button type="button" onclick="removerEtapa(this)" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash"></i> Remover
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome/Etapa</label>
+                <input type="text" name="processo_nome[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fase</label>
+                <select name="processo_fase[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    <option value="planejamento">Planejamento</option>
+                    <option value="implantacao">Implantação</option>
+                    <option value="execucao" selected>Execução</option>
+                    <option value="suporte">Suporte</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Duração (dias)</label>
+                <input type="number" name="processo_duracao[]" value="14" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+        </div>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+            <textarea name="processo_descricao[]" rows="2" 
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+        </div>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Entregáveis (um por linha)</label>
+            <textarea name="processo_entregaveis[]" rows="3" 
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+        </div>
+    </div>
+`;
+
+const marcoTemplate = `
+    <div class="marco-item border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div class="flex items-start justify-between mb-3">
+            <h4 class="font-semibold text-gray-900 dark:text-white">Novo Marco</h4>
+            <button type="button" onclick="removerMarco(this)" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash"></i> Remover
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome do Marco</label>
+                <input type="text" name="cronograma_nome[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Data</label>
+                <input type="date" name="cronograma_data[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+        </div>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descrição</label>
+            <textarea name="cronograma_descricao[]" rows="2" 
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"></textarea>
+        </div>
+    </div>
+`;
+
+const stakeholderTemplate = `
+    <div class="stakeholder-item border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+        <div class="flex items-start justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Novo Stakeholder</span>
+            <button type="button" onclick="removerStakeholder(this)" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome</label>
+                <input type="text" name="stakeholder_nome[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Papel</label>
+                <input type="text" name="stakeholder_papel[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Frequência</label>
+                <input type="text" name="stakeholder_frequencia[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Canais (separados por vírgula)</label>
+                <input type="text" name="stakeholder_canais[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+        </div>
+    </div>
+`;
+
+const reuniaoTemplate = `
+    <div class="reuniao-item border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+        <div class="flex items-start justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Nova Reunião</span>
+            <button type="button" onclick="removerReuniao(this)" class="text-red-600 hover:text-red-800 text-sm">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo</label>
+                <input type="text" name="reuniao_tipo[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Frequência</label>
+                <input type="text" name="reuniao_frequencia[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Participantes (separados por vírgula)</label>
+                <input type="text" name="reuniao_participantes[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Objetivo</label>
+                <input type="text" name="reuniao_objetivo[]" 
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+        </div>
+    </div>
+`;
+
+// Funções para adicionar itens
+function adicionarPontoAtencao() {
+    const container = document.getElementById('pontosAtencaoContainer');
+    container.insertAdjacentHTML('beforeend', pontoAtencaoTemplate);
+}
+
+function adicionarEtapa() {
+    const container = document.getElementById('processoExecucaoContainer');
+    container.insertAdjacentHTML('beforeend', etapaTemplate);
+}
+
+function adicionarMarco() {
+    const container = document.getElementById('cronogramaContainer');
+    container.insertAdjacentHTML('beforeend', marcoTemplate);
+}
+
+function adicionarStakeholder() {
+    const container = document.getElementById('stakeholdersContainer');
+    container.insertAdjacentHTML('beforeend', stakeholderTemplate);
+}
+
+function adicionarReuniao() {
+    const container = document.getElementById('reunioesContainer');
+    container.insertAdjacentHTML('beforeend', reuniaoTemplate);
+}
+
+// Funções para remover itens
+function removerPontoAtencao(button) {
+    button.closest('.ponto-atencao-item').remove();
+}
+
+function removerEtapa(button) {
+    button.closest('.etapa-item').remove();
+}
+
+function removerMarco(button) {
+    button.closest('.marco-item').remove();
+}
+
+function removerStakeholder(button) {
+    button.closest('.stakeholder-item').remove();
+}
+
+function removerReuniao(button) {
+    button.closest('.reuniao-item').remove();
+}
+
+// Processar formulário antes de enviar
+document.getElementById('planoForm').addEventListener('submit', function(e) {
+    // Coletar dados dos campos dinâmicos e converter para JSON
+    const formData = new FormData(this);
+    
+    // Processar Pontos de Atenção
+    const pontosTitulos = formData.getAll('pontos_atencao_titulo[]');
+    const pontosPrioridades = formData.getAll('pontos_atencao_prioridade[]');
+    const pontosDescricoes = formData.getAll('pontos_atencao_descricao[]');
+    const pontosAcoes = formData.getAll('pontos_atencao_acao[]');
+    
+    const pontosAtencao = [];
+    for (let i = 0; i < pontosTitulos.length; i++) {
+        if (pontosTitulos[i].trim()) {
+            pontosAtencao.push({
+                titulo: pontosTitulos[i],
+                prioridade: pontosPrioridades[i] || 'media',
+                descricao: pontosDescricoes[i] || '',
+                acao_recomendada: pontosAcoes[i] || ''
+            });
+        }
+    }
+    
+    // Processar Processo de Execução
+    const processoNomes = formData.getAll('processo_nome[]');
+    const processoFases = formData.getAll('processo_fase[]');
+    const processoDuracao = formData.getAll('processo_duracao[]');
+    const processoDescricoes = formData.getAll('processo_descricao[]');
+    const processoEntregaveis = formData.getAll('processo_entregaveis[]');
+    
+    const processoExecucao = [];
+    for (let i = 0; i < processoNomes.length; i++) {
+        if (processoNomes[i].trim()) {
+            const entregaveis = processoEntregaveis[i] ? processoEntregaveis[i].split('\n').filter(e => e.trim()) : [];
+            processoExecucao.push({
+                nome: processoNomes[i],
+                etapa: processoNomes[i],
+                fase: processoFases[i] || 'execucao',
+                duracao_dias: parseInt(processoDuracao[i]) || 14,
+                descricao: processoDescricoes[i] || '',
+                entregaveis: entregaveis
+            });
+        }
+    }
+    
+    // Processar Cronograma
+    const cronogramaNomes = formData.getAll('cronograma_nome[]');
+    const cronogramaDatas = formData.getAll('cronograma_data[]');
+    const cronogramaDescricoes = formData.getAll('cronograma_descricao[]');
+    
+    const cronogramaDetalhado = [];
+    for (let i = 0; i < cronogramaNomes.length; i++) {
+        if (cronogramaNomes[i].trim()) {
+            cronogramaDetalhado.push({
+                nome: cronogramaNomes[i],
+                data: cronogramaDatas[i] || '',
+                descricao: cronogramaDescricoes[i] || ''
+            });
+        }
+    }
+    
+    // Processar Stakeholders
+    const stakeholderNomes = formData.getAll('stakeholder_nome[]');
+    const stakeholderPapeis = formData.getAll('stakeholder_papel[]');
+    const stakeholderFrequencias = formData.getAll('stakeholder_frequencia[]');
+    const stakeholderCanais = formData.getAll('stakeholder_canais[]');
+    
+    const stakeholders = [];
+    for (let i = 0; i < stakeholderNomes.length; i++) {
+        if (stakeholderNomes[i].trim()) {
+            const canais = stakeholderCanais[i] ? stakeholderCanais[i].split(',').map(c => c.trim()).filter(c => c) : [];
+            stakeholders.push({
+                nome: stakeholderNomes[i],
+                papel: stakeholderPapeis[i] || '',
+                frequencia_comunicacao: stakeholderFrequencias[i] || '',
+                canais: canais
+            });
+        }
+    }
+    
+    // Processar Reuniões
+    const reuniaoTipos = formData.getAll('reuniao_tipo[]');
+    const reuniaoFrequencias = formData.getAll('reuniao_frequencia[]');
+    const reuniaoParticipantes = formData.getAll('reuniao_participantes[]');
+    const reuniaoObjetivos = formData.getAll('reuniao_objetivo[]');
+    
+    const reunioes = [];
+    for (let i = 0; i < reuniaoTipos.length; i++) {
+        if (reuniaoTipos[i].trim()) {
+            const participantes = reuniaoParticipantes[i] ? reuniaoParticipantes[i].split(',').map(p => p.trim()).filter(p => p) : [];
+            reunioes.push({
+                tipo: reuniaoTipos[i],
+                frequencia: reuniaoFrequencias[i] || '',
+                participantes: participantes,
+                objetivo: reuniaoObjetivos[i] || ''
+            });
+        }
+    }
+    
+    // Criar campos hidden com JSON
+    const pontosInput = document.createElement('input');
+    pontosInput.type = 'hidden';
+    pontosInput.name = 'pontos_atencao_json';
+    pontosInput.value = JSON.stringify(pontosAtencao);
+    this.appendChild(pontosInput);
+    
+    const processoInput = document.createElement('input');
+    processoInput.type = 'hidden';
+    processoInput.name = 'processo_execucao_json';
+    processoInput.value = JSON.stringify(processoExecucao);
+    this.appendChild(processoInput);
+    
+    const cronogramaInput = document.createElement('input');
+    cronogramaInput.type = 'hidden';
+    cronogramaInput.name = 'cronograma_detalhado_json';
+    cronogramaInput.value = JSON.stringify(cronogramaDetalhado);
+    this.appendChild(cronogramaInput);
+    
+    const planoComunicacao = {
+        stakeholders: stakeholders,
+        reunioes: reunioes
+    };
+    const planoComunicacaoInput = document.createElement('input');
+    planoComunicacaoInput.type = 'hidden';
+    planoComunicacaoInput.name = 'plano_comunicacao_json';
+    planoComunicacaoInput.value = JSON.stringify(planoComunicacao);
+    this.appendChild(planoComunicacaoInput);
+});
+</script>
+{% endblock %}

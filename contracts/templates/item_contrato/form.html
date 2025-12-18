@@ -3,13 +3,22 @@
 {% load static %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
-        {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Contrato
-    </h1>
+<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Item de Contrato
+        </h1>
+        {% if item %}
+        <a href="{% url 'gestao_contratos_detail' item.contrato.pk %}"
+           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+            <i class="fa fa-arrow-left"></i> Voltar ao Contrato
+        </a>
+        {% endif %}
+    </div>
 
-    <form method="post" class="bg-white dark:bg-gray-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
+    <form method="post" novalidate>
         {% csrf_token %}
+        {{ form.non_field_errors }}
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -98,20 +107,17 @@
 
         </div>
 
-        <!-- Botões -->
         <div class="flex justify-end gap-2 mt-6">
-            <a href="{% url 'item_contrato_list' %}" 
-                class="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-100 
-                      focus:ring-4 focus:outline-none focus:ring-blue-300 
-                      dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-800">
-                Cancelar
-            </a>
-            <button type="submit" 
-                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 
-                       focus:outline-none focus:ring-blue-300 font-medium rounded-lg 
-                       text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                Salvar
+            <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="fa fa-save"></i> Salvar
             </button>
+            {% if item %}
+            <a href="{% url 'gestao_contratos_detail' item.contrato.pk %}"
+               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
+            {% endif %}
         </div>
     </form>
 </div>

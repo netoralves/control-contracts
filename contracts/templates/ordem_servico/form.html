@@ -1,5 +1,5 @@
 {% extends 'contracts/base.html' %}
-{% load humanize %}
+{% load humanize form_filters %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -15,73 +15,274 @@
         </a>
     </div>
 
-    <form method="post" novalidate>
+    <form method="post" novalidate id="ordem-servico-form">
         {% csrf_token %}
         {{ form.non_field_errors }}
 
-        <!-- Identificação da OS e Contrato -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-                    {{ form.numero_os.label_tag }}{{ form.numero_os }}
-                    {{ form.numero_os_cliente.label_tag }}{{ form.numero_os_cliente }}
-                    {{ form.gerente_projetos.label_tag }}{{ form.gerente_projetos }}
-                    {{ form.consultor_tecnico.label_tag }}{{ form.consultor_tecnico }}
-                    {{ form.status.label_tag }}{{ form.status }}
-            </div>
-            <div>
-                <label class="font-medium">Informações do Contrato</label>
-                {{ form.cliente.label_tag }}{{ form.cliente }}
-                {{ form.contrato.label_tag }}{{ form.contrato }}
-                {{ form.item_contrato.label_tag }}{{ form.item_contrato }}
-                {{ form.item_fornecedor.label_tag }}{{ form.item_fornecedor }}
-            </div>
+        {% if form.errors %}
+        <div class="mb-4 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
+            <p class="text-red-800 dark:text-red-200 font-semibold mb-2">Erros no formulário:</p>
+            <ul class="list-disc list-inside text-red-700 dark:text-red-300">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
         </div>
+        {% endif %}
 
-        <!-- Período Planejado -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Card: Informações do Contrato -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-file-contract mr-2 text-blue-500"></i>Informações do Contrato
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.cliente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.cliente.label }}
+                    </label>
+                    {{ form.cliente }}
+                    <p class="text-xs text-gray-500 mt-1">Selecione o cliente para filtrar os contratos</p>
+                </div>
             <div>
-                <label class="font-medium">Início Planejado</label>
-                <div class="grid grid-cols-2 gap-2">
-                    {{ form.data_inicio.label_tag }}{{ form.data_inicio }}
-                    {{ form.hora_inicio.label_tag }}{{ form.hora_inicio }}
+                    <label for="{{ form.contrato.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.contrato.label }}
+                    </label>
+                    {{ form.contrato }}
+                    <p class="text-xs text-gray-500 mt-1">Contratos do cliente selecionado</p>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.item_contrato.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.item_contrato.label }}
+                    </label>
+                    <div class="relative">
+                        {{ form.item_contrato }}
+                        <p id="saldo-info" class="text-xs text-gray-500 mt-1 hidden">Saldo disponível: <span id="saldo-valor"></span> <span id="saldo-unidade"></span></p>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Apenas itens do tipo Serviço ou Treinamento</p>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="id_quantidade_item_contrato" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Quantidade do Item do Contrato:
+                    </label>
+                    <input type="number" 
+                           id="id_quantidade_item_contrato" 
+                           name="quantidade_item_contrato" 
+                           step="0.01" 
+                           min="0"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                           placeholder="Digite a quantidade">
+                    <p class="text-xs text-gray-500 mt-1">Esta quantidade será consumida do item do contrato selecionado</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Card: Identificação da OS -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-tools mr-2 text-green-500"></i>Identificação da OS
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.numero_os.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_os.label }}
+                    </label>
+                    {{ form.numero_os }}
+                    <p class="text-xs text-gray-500 mt-1" id="numero-os-info">
+                        {% if form.instance.pk %}
+                            Número da OS: {{ form.instance.numero_os }}
+                        {% else %}
+                            O número será gerado automaticamente após preencher a data de início
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label for="{{ form.numero_os_cliente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.numero_os_cliente.label }}
+                    </label>
+                    {{ form.numero_os_cliente }}
+                </div>
+                <div>
+                    <label for="{{ form.gerente_projetos.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.gerente_projetos.label }}
+                    </label>
+                    {{ form.gerente_projetos }}
+                    {% if form.gerente_projetos.help_text %}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.gerente_projetos.help_text }}</p>
+                    {% endif %}
+            </div>
             <div>
-                <label class="font-medium">Término Planejado</label>
-                <div class="grid grid-cols-2 gap-2">
-                    {{ form.data_termino.label_tag }}{{ form.data_termino }}
-                    {{ form.hora_termino.label_tag }}{{ form.hora_termino }}
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.status.label }}
+                    </label>
+                    {{ form.status }}
                 </div>
             </div>
         </div>
 
-        <!-- Cálculo de Horas -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {{ form.horas_consultor.label_tag }}{{ form.horas_consultor }}
-            {{ form.horas_gerente.label_tag }}{{ form.horas_gerente }}
-            {{ form.horas_totais.label_tag }}{{ form.horas_totais }}
-        </div>
-
-        <!-- Total da OS -->
-        <div class="mb-4">
-            <label class="font-medium">Total OS</label>
-            {{ form.quantidade.label_tag }}{{ form.quantidade }}
-        </div>
-
-        <!-- Documentação de Conclusão -->
+        <!-- Card: Período e Horas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>Período Planejado e Horas
+            </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Início Planejado</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="{{ form.data_inicio.id_for_label }}" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                {{ form.data_inicio.label }}
+                            </label>
+                            {{ form.data_inicio }}
+                        </div>
+                        <div>
+                            <label for="{{ form.hora_inicio.id_for_label }}" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                {{ form.hora_inicio.label }}
+                            </label>
+                            {{ form.hora_inicio }}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Término Planejado</label>
+                <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="{{ form.data_termino.id_for_label }}" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                {{ form.data_termino.label }}
+                            </label>
+                            {{ form.data_termino }}
+                        </div>
+                        <div>
+                            <label for="{{ form.hora_termino.id_for_label }}" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                {{ form.hora_termino.label }}
+                            </label>
+                            {{ form.hora_termino }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="{{ form.horas_consultor.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.horas_consultor.label }}
+                    </label>
+                    {{ form.horas_consultor }}
+                </div>
+                <div>
+                    <label for="{{ form.horas_gerente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.horas_gerente.label }}
+                    </label>
+                    {{ form.horas_gerente }}
+            </div>
+            <div>
+                    <label for="{{ form.horas_totais.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.horas_totais.label }}
+                    </label>
+                    {{ form.horas_totais }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Timesheet - Itens de Fornecedor -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-clock mr-2 text-amber-500"></i>Timesheet - Vinculação de Itens de Fornecedor
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.item_fornecedor_consultor.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.item_fornecedor_consultor.label }}
+                    </label>
+                    {{ form.item_fornecedor_consultor }}
+                    <p class="text-xs text-gray-500 mt-1" id="custo-consultor-info">Custo unitário: R$ <span id="custo-consultor-valor">0,00</span></p>
+                </div>
+                <div>
+                    <label for="{{ form.item_fornecedor_gerente.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.item_fornecedor_gerente.label }}
+                    </label>
+                    {{ form.item_fornecedor_gerente }}
+                    <p class="text-xs text-gray-500 mt-1" id="custo-gerente-info">Custo unitário: R$ <span id="custo-gerente-valor">0,00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Análise de Exequibilidade -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <i class="fas fa-chart-line mr-2 text-blue-600 dark:text-blue-300"></i>Análise de Exequibilidade
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Receita Prevista:</strong> <span id="receita-prevista" class="text-green-600 dark:text-green-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Custo Consultor:</strong> <span id="custo-consultor-total" class="text-red-600 dark:text-red-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Custo Gerente:</strong> <span id="custo-gerente-total" class="text-red-600 dark:text-red-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Custo Total:</strong> <span id="custo-total" class="text-red-600 dark:text-red-400">R$ 0,00</span></p>
+                </div>
+                <div>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Impostos (15%):</strong> <span id="impostos" class="text-orange-600 dark:text-orange-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Royalties (12%):</strong> <span id="royalties" class="text-orange-600 dark:text-orange-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Margem de Contribuição:</strong> <span id="margem-contribuicao" class="text-blue-600 dark:text-blue-400">R$ 0,00</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>% Margem:</strong> <span id="percentual-margem" class="font-bold">0,00%</span></p>
+                </div>
+            </div>
+            <div id="margem-alert" class="hidden mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900 dark:text-red-100">
+                <span class="font-semibold">OS não exequível:</span> A margem de contribuição é menor que 20%. Ajuste os valores para tornar a OS exequível.
+            </div>
+            <div id="margem-ok" class="hidden mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900 dark:text-green-100">
+                <span class="font-semibold">OS exequível:</span> A margem de contribuição está dentro do limite mínimo (≥20%).
+            </div>
+        </div>
+
+        <!-- Card: Total da OS e Documentação -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calculator mr-2 text-green-500"></i>Total da OS e Documentação
+            </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="{{ form.quantidade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Total OS Quantidade
+                    </label>
+                    <div>
+                        {{ form.quantidade|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5" }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Quantidade do item do contrato que será consumida</p>
+                </div>
+                <div>
+                    <label for="id_valor_os" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Valor da OS (R$):
+                    </label>
+                    <input type="text" 
+                           id="id_valor_os" 
+                           name="valor_os" 
+                           readonly
+                           class="bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5"
+                           value="R$ 0,00">
+                    <p class="text-xs text-gray-500 mt-1">Valor calculado: Quantidade × Valor Unitário do Item do Contrato</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div id="div_data_emissao_trd">
-                <label for="id_data_emissao_trd" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Data Emissão TRD:
+                    <label for="{{ form.data_emissao_trd.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.data_emissao_trd.label }}
                 </label>
                 {{ form.data_emissao_trd }}
             </div>
             <div id="div_data_faturamento">
-                {{ form.data_faturamento.label_tag }}{{ form.data_faturamento }}
+                    <label for="{{ form.data_faturamento.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.data_faturamento.label }}
+                    </label>
+                    {{ form.data_faturamento }}
+                </div>
             </div>
         </div>
 
         <!-- Botões -->
+        <div id="saldo-alert" class="hidden mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900 dark:text-red-100">
+            <span class="font-semibold">Saldo insuficiente:</span> O saldo do item selecionado não suporta o total calculado desta OS.
+        </div>
+
         <div class="flex justify-end gap-2 mt-6">
             <button type="submit"
                     class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
@@ -102,13 +303,18 @@
     const clienteSelect = document.getElementById('id_cliente');
     const contratoSelect = document.getElementById('id_contrato');
     const itemContratoSelect = document.getElementById('id_item_contrato');
-    const itemFornecedorSelect = document.getElementById('id_item_fornecedor');
+    const quantidadeItemContratoInput = document.getElementById('id_quantidade_item_contrato');
+    const itemFornecedorConsultorSelect = document.getElementById('id_item_fornecedor_consultor');
+    const itemFornecedorGerenteSelect = document.getElementById('id_item_fornecedor_gerente');
+    const valorOsInput = document.getElementById('id_valor_os');
 
     const quantidadeInput = document.getElementById('id_quantidade');
     const dataInicioInput = document.getElementById('id_data_inicio');
     const horaInicioInput = document.getElementById('id_hora_inicio');
     const dataTerminoInput = document.getElementById('id_data_termino');
     const horaTerminoInput = document.getElementById('id_hora_termino');
+    const numeroOsInput = document.getElementById('id_numero_os');
+    const numeroOsInfo = document.getElementById('numero-os-info');
 
     const horasConsultorInput = document.getElementById('id_horas_consultor');
     const horasGerenteInput = document.getElementById('id_horas_gerente');
@@ -121,12 +327,46 @@
     const divDataEmissaoTrd = document.getElementById('div_data_emissao_trd');
     const divDataFaturamento = document.getElementById('div_data_faturamento');
 
+    if (quantidadeInput) {
+        quantidadeInput.readOnly = true;
+        quantidadeInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+    }
+    
+    // Configurar campo numero_os como readonly
+    if (numeroOsInput) {
+        numeroOsInput.readOnly = true;
+        numeroOsInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+    }
+    
+    // Atualizar mensagem do número da OS quando a data de início mudar
+    if (dataInicioInput) {
+        dataInicioInput.addEventListener('change', function() {
+            if (this.value && numeroOsInfo) {
+                const ano = new Date(this.value).getFullYear();
+                numeroOsInfo.textContent = `O número será gerado automaticamente no formato: XXXX/${ano} (incremental por ano)`;
+            } else if (numeroOsInfo) {
+                numeroOsInfo.textContent = 'O número será gerado automaticamente após preencher a data de início';
+            }
+        });
+    }
+
     // Carregar contratos com base no cliente
     clienteSelect.addEventListener('change', function () {
         const clienteId = this.value;
+        const contratoValue = contratoSelect.value; // Preservar valor atual
+        const itemContratoValue = itemContratoSelect.value; // Preservar valor atual
+        
         contratoSelect.innerHTML = '<option value="">---------</option>';
         itemContratoSelect.innerHTML = '<option value="">---------</option>';
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+        
+        // Só limpar se não estiver editando ou se o cliente mudou
+        if (!isNew && clienteId && clienteId == "{{ form.instance.cliente.id|default:'' }}") {
+            // Preservar valores ao recarregar
+        } else {
+            if (quantidadeItemContratoInput) quantidadeItemContratoInput.value = '';
+            if (quantidadeInput) quantidadeInput.value = '';
+            if (valorOsInput) valorOsInput.value = 'R$ 0,00';
+        }
 
         if (clienteId) {
             fetch(`/api/contratos_por_cliente/?cliente_id=${clienteId}`)
@@ -136,8 +376,17 @@
                         const option = document.createElement('option');
                         option.value = contrato.id;
                         option.textContent = contrato.numero;
+                        if (contrato.id == contratoValue) {
+                            option.selected = true;
+                        }
                         contratoSelect.appendChild(option);
                     });
+                    
+                    // Se o contrato estava selecionado, recarregar itens
+                    if (contratoValue) {
+                        contratoSelect.value = contratoValue;
+                        contratoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 });
         }
     });
@@ -145,8 +394,28 @@
     // Atualizar itens do contrato com base no contrato selecionado
     contratoSelect.addEventListener('change', function () {
         const contratoId = this.value;
+        const itemContratoValue = itemContratoSelect.value; // Preservar valor atual
+        const itemFornecedorConsultorValue = itemFornecedorConsultorSelect?.value || ''; // Preservar valor atual
+        const itemFornecedorGerenteValue = itemFornecedorGerenteSelect?.value || ''; // Preservar valor atual
+        
         itemContratoSelect.innerHTML = '<option value="">---------</option>';
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
+        
+        // Só limpar se não estiver editando ou se o contrato mudou
+        if (!isNew && contratoId && contratoId == "{{ form.instance.contrato.id|default:'' }}") {
+            // Preservar valores ao recarregar
+        } else {
+            if (quantidadeItemContratoInput) quantidadeItemContratoInput.value = '';
+            if (quantidadeInput) quantidadeInput.value = '';
+            if (valorOsInput) valorOsInput.value = 'R$ 0,00';
+        }
+        
+        // Limpar e recarregar itens de fornecedor para timesheet (mas preservar valores selecionados)
+        if (itemFornecedorConsultorSelect) {
+            itemFornecedorConsultorSelect.innerHTML = '<option value="">---------</option>';
+        }
+        if (itemFornecedorGerenteSelect) {
+            itemFornecedorGerenteSelect.innerHTML = '<option value="">---------</option>';
+        }
 
         if (contratoId) {
             fetch(`/api/itens_contrato_por_contrato/?contrato_id=${contratoId}&tipo=servico,treinamento`)
@@ -156,48 +425,108 @@
                         const option = document.createElement('option');
                         option.value = item.id;
                         option.textContent = item.descricao;
+                        if (item.id == itemContratoValue) {
+                            option.selected = true;
+                        }
                         itemContratoSelect.appendChild(option);
                     });
 
-                    const valorAtual = "{{ form.item_contrato.value|default:'' }}";
-                    if (valorAtual !== "") {
-                        itemContratoSelect.value = valorAtual;
-                        itemContratoSelect.dispatchEvent(new Event('change'));
+                    // Se o item estava selecionado, restaurar e carregar dados
+                    if (itemContratoValue) {
+                        itemContratoSelect.value = itemContratoValue;
+                        carregarSaldoItem(itemContratoValue).then(() => {
+                            validarSaldoEmTempoReal();
+                        });
+                        carregarValorUnitarioItemContrato(itemContratoValue);
                     }
                 });
-        }
-    });
-
-    // Atualizar itens do fornecedor com base no item do contrato
-    itemContratoSelect.addEventListener('change', function () {
-        const contratoId = contratoSelect.value;
-        const itemContratoId = this.value;
-        itemFornecedorSelect.innerHTML = '<option value="">---------</option>';
-
-        if (contratoId && itemContratoId) {
-            fetch(`/api/itens_fornecedor_por_item_contrato/?contrato=${contratoId}&item_contrato=${itemContratoId}`)
+            
+            // Carregar itens de fornecedor do tipo serviço para timesheet
+            fetch(`/api/itens_fornecedor_servico_por_contrato/?contrato_id=${contratoId}`)
                 .then(response => response.json())
                 .then(data => {
-                    data.forEach(item => {
+                    if (itemFornecedorConsultorSelect) {
+                        data.itens.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = `${item.descricao} (${item.fornecedor}) - R$ ${item.valor_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            if (item.id == itemFornecedorConsultorValue) {
+                                option.selected = true;
+                                carregarValorUnitarioItemFornecedor(item.id, 'consultor');
+                            }
+                            itemFornecedorConsultorSelect.appendChild(option);
+                        });
+                    }
+                    if (itemFornecedorGerenteSelect) {
+                        data.itens.forEach(item => {
                         const option = document.createElement('option');
                         option.value = item.id;
-                        option.textContent = item.descricao;
-                        itemFornecedorSelect.appendChild(option);
-                    });
-
-                    const valorAtual = "{{ form.item_fornecedor.value|default:'' }}";
-                    if (valorAtual !== "") {
-                        itemFornecedorSelect.value = valorAtual;
+                            option.textContent = `${item.descricao} (${item.fornecedor}) - R$ ${item.valor_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            if (item.id == itemFornecedorGerenteValue) {
+                                option.selected = true;
+                                carregarValorUnitarioItemFornecedor(item.id, 'gerente');
+                            }
+                            itemFornecedorGerenteSelect.appendChild(option);
+                        });
                     }
                 });
         }
     });
 
+    // Atualizar quando o item do contrato for selecionado
+    itemContratoSelect.addEventListener('change', function () {
+        const itemContratoId = this.value;
+        
+        if (itemContratoId) {
+            carregarSaldoItem(itemContratoId).then(() => {
+                validarSaldoEmTempoReal();
+            });
+            carregarValorUnitarioItemContrato(itemContratoId);
+        } else {
+            if (quantidadeItemContratoInput) quantidadeItemContratoInput.value = '';
+            if (quantidadeInput) quantidadeInput.value = '';
+            if (valorOsInput) valorOsInput.value = 'R$ 0,00';
+            calcularExequibilidade();
+        }
+    });
+
+    // Função para atualizar quantidade e valor da OS baseado na quantidade do item do contrato
+    function atualizarQuantidadeEValorOS() {
+        const quantidadeItemContrato = parseFloat((quantidadeItemContratoInput?.value || "0").replace(',', '.')) || 0;
+        
+        // Atualizar campo quantidade (Total OS Quantidade)
+        if (quantidadeInput) {
+            quantidadeInput.value = quantidadeItemContrato.toFixed(2);
+            quantidadeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        // Calcular valor da OS usando o valor unitário do item do contrato
+        // Se o valor unitário ainda não foi carregado, tentar carregá-lo primeiro
+        if (itemContratoSelect && itemContratoSelect.value && valorUnitarioItemContrato === 0) {
+            carregarValorUnitarioItemContrato(itemContratoSelect.value).then(() => {
+                const valorOs = quantidadeItemContrato * valorUnitarioItemContrato;
+                if (valorOsInput) {
+                    valorOsInput.value = valorOs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                }
+                calcularExequibilidade();
+            });
+        } else {
+            // Calcular valor da OS diretamente se o valor unitário já estiver carregado
+            const valorOs = quantidadeItemContrato * valorUnitarioItemContrato;
+            if (valorOsInput) {
+                valorOsInput.value = valorOs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+        }
+        
+        // Atualizar exequibilidade
+        calcularExequibilidade();
+        validarSaldoEmTempoReal();
+    }
+    
+    // Manter função antiga para compatibilidade (não será mais usada para quantidade, mas mantida para horas)
     function atualizarQuantidade() {
-        const horasConsultor = parseFloat(horasConsultorInput.value) || 0;
-        const horasGerente = parseFloat(horasGerenteInput.value) || 0;
-        const quantidade = horasConsultor + horasGerente;
-        quantidadeInput.value = quantidade.toFixed(2);
+        // Esta função não atualiza mais a quantidade, apenas valida saldo
+        validarSaldoEmTempoReal();
     }
 
     function atualizarCamposStatus() {
@@ -225,8 +554,6 @@
         const horaInicio = horaInicioInput.value;
         const dataFim = dataTerminoInput.value;
         const horaFim = horaTerminoInput.value;
-
-        if (!dataInicio || !horaInicio || !dataFim || !horaFim) return;
 
         const inicio = new Date(`${dataInicio}T${horaInicio}`);
         const fim = new Date(`${dataFim}T${horaFim}`);
@@ -286,13 +613,13 @@
         const horasGerenteFinal = horasGerente.toFixed(2);
         const horasTotaisFinal = horasTotais.toFixed(2);
 
-        atualizarQuantidade();
-
         // Preencher campos
-        horasConsultorInput.value = horasConsultorFinal;
-        horasGerenteInput.value = horasGerenteFinal;
-        horasTotaisInput.value = horasTotaisFinal;
-        quantidadeInput.value = horasTotaisFinal;
+        if (horasConsultorInput) horasConsultorInput.value = horasConsultorFinal;
+        if (horasGerenteInput) horasGerenteInput.value = horasGerenteFinal;
+        if (horasTotaisInput) horasTotaisInput.value = horasTotaisFinal;
+
+        // Atualizar exequibilidade (não atualiza quantidade, que vem do item do contrato)
+        calcularExequibilidade();
 
         // Garantir que valores visuais e internos estejam sincronizados
         horasConsultorInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -302,13 +629,278 @@
 
     statusSelect.addEventListener('change', atualizarCamposStatus);
 
-    if (isNew) {
-        dataInicioInput.addEventListener('change', calcularHorasConsultor);
-        horaInicioInput.addEventListener('change', calcularHorasConsultor);
-        dataTerminoInput.addEventListener('change', calcularHorasConsultor);
-        horaTerminoInput.addEventListener('change', calcularHorasConsultor);
-        horasConsultorInput.addEventListener('input', atualizarQuantidade);
-        horasGerenteInput.addEventListener('input', atualizarQuantidade);
+    if (dataInicioInput) dataInicioInput.addEventListener('change', calcularHorasConsultor);
+    if (horaInicioInput) horaInicioInput.addEventListener('change', calcularHorasConsultor);
+    if (dataTerminoInput) dataTerminoInput.addEventListener('change', calcularHorasConsultor);
+    if (horaTerminoInput) horaTerminoInput.addEventListener('change', calcularHorasConsultor);
+    if (horasConsultorInput) horasConsultorInput.addEventListener('input', atualizarQuantidade);
+    if (horasGerenteInput) horasGerenteInput.addEventListener('input', atualizarQuantidade);
+
+    const formElement = document.getElementById('ordem-servico-form');
+    const saldoAlert = document.getElementById('saldo-alert');
+    const saldoInfo = document.getElementById('saldo-info');
+    const saldoValor = document.getElementById('saldo-valor');
+
+    let saldoItemAtual = null;
+
+    async function carregarSaldoItem(itemContratoId) {
+        if (!itemContratoId) {
+            saldoItemAtual = null;
+            if (saldoInfo) saldoInfo.classList.add('hidden');
+            return null;
+        }
+        try {
+            const response = await fetch(`/api/item_contrato/${itemContratoId}/saldo/`);
+            if (!response.ok) {
+                saldoItemAtual = null;
+                if (saldoInfo) saldoInfo.classList.add('hidden');
+                return null;
+            }
+            const data = await response.json();
+            saldoItemAtual = parseFloat(data.saldo) || 0;
+            if (saldoValor) {
+                saldoValor.textContent = saldoItemAtual.toFixed(2);
+            }
+            // Atualizar unidade do saldo
+            const saldoUnidade = document.getElementById('saldo-unidade');
+            if (saldoUnidade && data.unidade) {
+                saldoUnidade.textContent = data.unidade;
+            }
+            if (saldoInfo) saldoInfo.classList.remove('hidden');
+            return saldoItemAtual;
+        } catch (error) {
+            saldoItemAtual = null;
+            if (saldoInfo) saldoInfo.classList.add('hidden');
+            return null;
+        }
+    }
+
+    function validarSaldoEmTempoReal() {
+        if (saldoItemAtual === null || !quantidadeInput) {
+            if (saldoAlert) saldoAlert.classList.add('hidden');
+            return true;
+        }
+        const quantidade = parseFloat(quantidadeInput.value) || 0;
+        if (quantidade > saldoItemAtual) {
+            if (saldoAlert) saldoAlert.classList.remove('hidden');
+            saldoAlert.dataset.visible = "true";
+            return false;
+        }
+        if (saldoAlert) saldoAlert.classList.add('hidden');
+        saldoAlert.dataset.visible = "false";
+        return true;
+    }
+
+    async function validarSaldoAntesSubmit(event) {
+        if (!itemContratoSelect || !quantidadeInput) return true;
+        const itemId = itemContratoSelect.value;
+        if (!itemId) return true;
+
+        const saldo = await carregarSaldoItem(itemId);
+        if (saldo === null) return true;
+
+        const quantidade = parseFloat(quantidadeInput.value) || 0;
+        if (quantidade > saldo) {
+            event.preventDefault();
+            if (saldoAlert) {
+                saldoAlert.classList.remove('hidden');
+                saldoAlert.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                saldoAlert.dataset.visible = "true";
+            }
+            return false;
+        }
+
+        if (saldoAlert) {
+            saldoAlert.classList.add('hidden');
+            saldoAlert.dataset.visible = "false";
+        }
+        return true;
+    }
+
+    if (formElement) {
+        formElement.addEventListener('submit', async (event) => {
+            // Copiar valor de quantidade_item_contrato para quantidade antes de submeter
+            if (quantidadeItemContratoInput && quantidadeItemContratoInput.value) {
+                if (quantidadeInput) {
+                    quantidadeInput.value = quantidadeItemContratoInput.value;
+                }
+            }
+            
+            const valido = await validarSaldoAntesSubmit(event);
+            if (!valido) return false;
+        });
+    }
+
+    // Armazenar valores unitários dos itens de fornecedor
+    let valorUnitarioConsultor = 0;
+    let valorUnitarioGerente = 0;
+    let valorUnitarioItemContrato = 0;
+
+    // Carregar valores unitários dos itens de fornecedor
+    async function carregarValorUnitarioItemFornecedor(itemId, tipo) {
+        if (!itemId) {
+            if (tipo === 'consultor') {
+                valorUnitarioConsultor = 0;
+                document.getElementById('custo-consultor-valor').textContent = '0,00';
+            } else {
+                valorUnitarioGerente = 0;
+                document.getElementById('custo-gerente-valor').textContent = '0,00';
+            }
+            calcularExequibilidade();
+            return;
+        }
+        try {
+            const response = await fetch(`/api/item_fornecedor/${itemId}/valor/`);
+            if (response.ok) {
+                const data = await response.json();
+                const valor = parseFloat(data.valor_unitario) || 0;
+                if (tipo === 'consultor') {
+                    valorUnitarioConsultor = valor;
+                    document.getElementById('custo-consultor-valor').textContent = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                } else {
+                    valorUnitarioGerente = valor;
+                    document.getElementById('custo-gerente-valor').textContent = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+                calcularExequibilidade();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar valor unitário:', error);
+        }
+    }
+
+    // Carregar valor unitário do item do contrato
+    async function carregarValorUnitarioItemContrato(itemId) {
+        return new Promise((resolve, reject) => {
+            if (!itemId) {
+                valorUnitarioItemContrato = 0;
+                calcularExequibilidade();
+                // Atualizar valor da OS mesmo sem item
+                if (quantidadeItemContratoInput && valorOsInput) {
+                    const quantidade = parseFloat((quantidadeItemContratoInput.value || "0").replace(',', '.')) || 0;
+                    valorOsInput.value = (quantidade * 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                }
+                resolve(0);
+                return;
+            }
+            fetch(`/api/item_contrato/${itemId}/valor/`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Erro ao carregar valor unitário');
+                })
+                .then(data => {
+                    valorUnitarioItemContrato = parseFloat(data.valor_unitario) || 0;
+                    calcularExequibilidade();
+                    // Atualizar valor da OS após carregar o valor unitário
+                    if (quantidadeItemContratoInput && valorOsInput) {
+                        const quantidade = parseFloat((quantidadeItemContratoInput.value || quantidadeInput?.value || "0").replace(',', '.')) || 0;
+                        const valorOs = quantidade * valorUnitarioItemContrato;
+                        valorOsInput.value = valorOs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                    resolve(valorUnitarioItemContrato);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar valor unitário do item do contrato:', error);
+                    valorUnitarioItemContrato = 0;
+                    resolve(0);
+                });
+        });
+    }
+
+    // Calcular exequibilidade em tempo real
+    function calcularExequibilidade() {
+        const horasConsultor = parseFloat((horasConsultorInput?.value || "0").replace(',', '.')) || 0;
+        const horasGerente = parseFloat((horasGerenteInput?.value || "0").replace(',', '.')) || 0;
+        const quantidade = parseFloat((quantidadeItemContratoInput?.value || quantidadeInput?.value || "0").replace(',', '.')) || 0;
+
+        // Calcular custos
+        const custoConsultor = horasConsultor * valorUnitarioConsultor;
+        const custoGerente = horasGerente * valorUnitarioGerente;
+        const custoTotal = custoConsultor + custoGerente;
+
+        // Calcular receita prevista
+        const receitaPrevista = quantidade * valorUnitarioItemContrato;
+
+        // Calcular impostos (15%) e royalties (12%)
+        const impostos = receitaPrevista * 0.15;
+        const royalties = receitaPrevista * 0.12;
+
+        // Calcular margem de contribuição
+        const margemContribuicao = receitaPrevista - impostos - royalties - custoTotal;
+        const percentualMargem = receitaPrevista > 0 ? (margemContribuicao / receitaPrevista) * 100 : 0;
+
+        // Atualizar exibição
+        document.getElementById('receita-prevista').textContent = receitaPrevista.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('custo-consultor-total').textContent = custoConsultor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('custo-gerente-total').textContent = custoGerente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('custo-total').textContent = custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('impostos').textContent = impostos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('royalties').textContent = royalties.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('margem-contribuicao').textContent = margemContribuicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        const percentualMargemElement = document.getElementById('percentual-margem');
+        percentualMargemElement.textContent = percentualMargem.toFixed(2) + '%';
+        if (percentualMargem >= 20) {
+            percentualMargemElement.classList.remove('text-red-600', 'dark:text-red-400');
+            percentualMargemElement.classList.add('text-green-600', 'dark:text-green-400');
+        } else {
+            percentualMargemElement.classList.remove('text-green-600', 'dark:text-green-400');
+            percentualMargemElement.classList.add('text-red-600', 'dark:text-red-400');
+        }
+
+        // Mostrar/ocultar alertas
+        const margemAlert = document.getElementById('margem-alert');
+        const margemOk = document.getElementById('margem-ok');
+        
+        if (receitaPrevista > 0 && percentualMargem < 20) {
+            if (margemAlert) margemAlert.classList.remove('hidden');
+            if (margemOk) margemOk.classList.add('hidden');
+        } else if (receitaPrevista > 0 && percentualMargem >= 20) {
+            if (margemAlert) margemAlert.classList.add('hidden');
+            if (margemOk) margemOk.classList.remove('hidden');
+        } else {
+            if (margemAlert) margemAlert.classList.add('hidden');
+            if (margemOk) margemOk.classList.add('hidden');
+        }
+    }
+
+    // Event listeners para itens de fornecedor
+    if (itemFornecedorConsultorSelect) {
+        itemFornecedorConsultorSelect.addEventListener('change', function() {
+            carregarValorUnitarioItemFornecedor(this.value, 'consultor');
+        });
+    }
+
+    if (itemFornecedorGerenteSelect) {
+        itemFornecedorGerenteSelect.addEventListener('change', function() {
+            carregarValorUnitarioItemFornecedor(this.value, 'gerente');
+        });
+    }
+
+    // Event listeners para horas e quantidade
+    if (horasConsultorInput) {
+        horasConsultorInput.addEventListener('input', calcularExequibilidade);
+    }
+    if (horasGerenteInput) {
+        horasGerenteInput.addEventListener('input', calcularExequibilidade);
+    }
+    if (quantidadeItemContratoInput) {
+        quantidadeItemContratoInput.addEventListener('input', atualizarQuantidadeEValorOS);
+    }
+    if (quantidadeInput) {
+        quantidadeInput.addEventListener('input', calcularExequibilidade);
+    }
+
+    // Carregar valor do item do contrato quando selecionado
+    if (itemContratoSelect) {
+        itemContratoSelect.addEventListener('change', function() {
+            carregarValorUnitarioItemContrato(this.value);
+            // Limpar quantidade quando mudar o item
+            if (quantidadeItemContratoInput) quantidadeItemContratoInput.value = '';
+            if (quantidadeInput) quantidadeInput.value = '';
+            if (valorOsInput) valorOsInput.value = 'R$ 0,00';
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -334,14 +926,117 @@
             }
         }
 
-        // Carrega itens se campos estiverem preenchidos
-        if (contratoSelect.value) {
-            contratoSelect.dispatchEvent(new Event('change'));
+        // Preencher quantidade_item_contrato com valor existente de quantidade (edição)
+        if (quantidadeInput && quantidadeInput.value && quantidadeItemContratoInput) {
+            quantidadeItemContratoInput.value = quantidadeInput.value;
         }
 
-        if (itemContratoSelect.value) {
-            itemContratoSelect.dispatchEvent(new Event('change'));
+        // Carrega itens se campos estiverem preenchidos
+        // Preservar valores existentes ao carregar
+        const itemFornecedorConsultorValue = itemFornecedorConsultorSelect?.value || '';
+        const itemFornecedorGerenteValue = itemFornecedorGerenteSelect?.value || '';
+        const contratoValue = contratoSelect.value;
+        const itemContratoValue = itemContratoSelect.value;
+        
+        if (contratoSelect.value && clienteSelect.value) {
+            // Carregar itens do contrato preservando valores existentes
+            fetch(`/api/itens_contrato_por_contrato/?contrato_id=${contratoSelect.value}&tipo=servico,treinamento`)
+                .then(response => response.json())
+                .then(data => {
+                    // Não limpar o select, apenas adicionar opções que faltam
+                    const existingOptions = Array.from(itemContratoSelect.options).map(opt => opt.value);
+                    data.itens_contrato.forEach(item => {
+                        if (!existingOptions.includes(String(item.id))) {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.descricao;
+                            itemContratoSelect.appendChild(option);
+                        }
+                    });
+                    
+                    // Restaurar valor selecionado e carregar dados
+                    if (itemContratoValue) {
+                        itemContratoSelect.value = itemContratoValue;
+                        carregarSaldoItem(itemContratoValue).then(() => {
+                            validarSaldoEmTempoReal();
+                        });
+                        // Carregar valor unitário primeiro, depois atualizar valor da OS
+                        carregarValorUnitarioItemContrato(itemContratoValue).then(() => {
+                            // Após carregar o valor unitário, atualizar o valor da OS
+                            if (quantidadeItemContratoInput && quantidadeItemContratoInput.value && valorOsInput) {
+                                const quantidade = parseFloat((quantidadeItemContratoInput.value || quantidadeInput?.value || "0").replace(',', '.')) || 0;
+                                const valorOs = quantidade * valorUnitarioItemContrato;
+                                valorOsInput.value = valorOs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            }
+                        });
+                    }
+                });
+            
+            // Carregar itens de fornecedor preservando valores existentes
+            fetch(`/api/itens_fornecedor_servico_por_contrato/?contrato_id=${contratoSelect.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (itemFornecedorConsultorSelect) {
+                        const existingOptionsConsultor = Array.from(itemFornecedorConsultorSelect.options).map(opt => opt.value);
+                        data.itens.forEach(item => {
+                            if (!existingOptionsConsultor.includes(String(item.id))) {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = `${item.descricao} (${item.fornecedor}) - R$ ${item.valor_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                itemFornecedorConsultorSelect.appendChild(option);
+                            }
+                        });
+                        // Restaurar valor selecionado
+                        if (itemFornecedorConsultorValue) {
+                            itemFornecedorConsultorSelect.value = itemFornecedorConsultorValue;
+                            carregarValorUnitarioItemFornecedor(itemFornecedorConsultorValue, 'consultor');
+                        }
+                    }
+                    if (itemFornecedorGerenteSelect) {
+                        const existingOptionsGerente = Array.from(itemFornecedorGerenteSelect.options).map(opt => opt.value);
+                        data.itens.forEach(item => {
+                            if (!existingOptionsGerente.includes(String(item.id))) {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = `${item.descricao} (${item.fornecedor}) - R$ ${item.valor_unitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                itemFornecedorGerenteSelect.appendChild(option);
+                            }
+                        });
+                        // Restaurar valor selecionado
+                        if (itemFornecedorGerenteValue) {
+                            itemFornecedorGerenteSelect.value = itemFornecedorGerenteValue;
+                            carregarValorUnitarioItemFornecedor(itemFornecedorGerenteValue, 'gerente');
+                        }
+                    }
+                });
+        } else {
+            // Se não houver contrato selecionado, mas houver item do contrato e quantidade, calcular valor da OS
+            if (itemContratoSelect && itemContratoSelect.value && quantidadeItemContratoInput && quantidadeItemContratoInput.value) {
+                carregarValorUnitarioItemContrato(itemContratoSelect.value).then(() => {
+                    if (valorOsInput) {
+                        const quantidade = parseFloat((quantidadeItemContratoInput.value || quantidadeInput?.value || "0").replace(',', '.')) || 0;
+                        const valorOs = quantidade * valorUnitarioItemContrato;
+                        valorOsInput.value = valorOs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                });
+            }
         }
+
+        calcularHorasConsultor();
+        validarSaldoEmTempoReal();
+        
+        // Carregar valores iniciais se estiver editando
+        if (itemFornecedorConsultorSelect && itemFornecedorConsultorSelect.value) {
+            carregarValorUnitarioItemFornecedor(itemFornecedorConsultorSelect.value, 'consultor');
+        }
+        if (itemFornecedorGerenteSelect && itemFornecedorGerenteSelect.value) {
+            carregarValorUnitarioItemFornecedor(itemFornecedorGerenteSelect.value, 'gerente');
+        }
+        
+        // Calcular exequibilidade inicial após um pequeno delay para garantir que todos os valores foram carregados
+        setTimeout(() => {
+            calcularExequibilidade();
+        }, 500);
     });
 </script>
 {% endblock %}

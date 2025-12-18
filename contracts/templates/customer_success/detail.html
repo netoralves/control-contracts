@@ -1,0 +1,459 @@
+{% extends "contracts/base.html" %}
+{% load static %}
+
+{% block title %}Ticket de Contato - {{ feedback }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{% url 'customer_success_list' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-headset mr-2 text-emerald-500"></i>Ticket de Contato - Customer Success
+                </h1>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400">
+                {% if feedback.sprint %}
+                    Sprint: {{ feedback.sprint.nome }}
+                {% elif feedback.ordem_servico %}
+                    Ordem de Serviço: {{ feedback.ordem_servico.numero_os }}
+                {% else %}
+                    Ticket Manual
+                {% endif %}
+            </p>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <a href="{% url 'customer_success_delete' feedback.pk %}" 
+               class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors">
+                <i class="fas fa-trash mr-2"></i> Excluir Ticket
+            </a>
+        </div>
+    </div>
+
+    <!-- Card: Informações sobre NPS -->
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl shadow-md p-6 mb-6 border border-blue-200 dark:border-blue-800">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-info-circle text-white text-xl"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+                    <i class="fas fa-chart-line mr-2 text-blue-600 dark:text-blue-400"></i>
+                    Entendendo o NPS (Net Promoter Score)
+                </h3>
+                
+                <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 dark:text-white mb-2">📊 Como é Calculado o NPS?</h4>
+                        <p class="mb-2">
+                            O NPS é calculado com base na <strong>Pergunta Principal de Recomendação</strong>:
+                        </p>
+                        <ul class="list-disc list-inside ml-4 space-y-1 mb-3">
+                            <li><strong>Promotores (9-10):</strong> Clientes muito satisfeitos que provavelmente recomendarão seus serviços</li>
+                            <li><strong>Neutros (7-8):</strong> Clientes satisfeitos, mas não entusiastas</li>
+                            <li><strong>Detratores (0-6):</strong> Clientes insatisfeitos que podem desencorajar outros</li>
+                        </ul>
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                            <p class="font-mono text-xs">
+                                <strong>Fórmula do NPS:</strong> % Promotores - % Detratores
+                            </p>
+                            <p class="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                                O resultado varia de -100 a +100. Valores acima de 50 são considerados excelentes.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-blue-200 dark:border-blue-700 pt-4">
+                        <h4 class="font-semibold text-gray-800 dark:text-white mb-2">💡 Orientações para Obter Respostas Corretas</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <p class="font-medium text-gray-800 dark:text-white mb-1">
+                                    <i class="fas fa-question-circle text-blue-500 mr-1"></i>
+                                    Pergunta Principal (NPS)
+                                </p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">
+                                    <strong>"Qual a probabilidade de você recomendar nossos serviços a um amigo ou colega?"</strong>
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    Escala: 0 (Muito Improvável) a 10 (Muito Provável)
+                                </p>
+                            </div>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <p class="font-medium text-gray-800 dark:text-white mb-1">
+                                    <i class="fas fa-star text-yellow-500 mr-1"></i>
+                                    Perguntas de Satisfação
+                                </p>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">
+                                    Avaliam qualidade, prazos e comunicação separadamente
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    Escala: 0 (Muito Insatisfeito) a 10 (Muito Satisfeito)
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                            <p class="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">
+                                <i class="fas fa-lightbulb mr-1"></i> Dicas Importantes:
+                            </p>
+                            <ul class="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc list-inside ml-2">
+                                <li>Faça a pergunta de forma clara e direta</li>
+                                <li>Explique que a resposta é confidencial e ajuda a melhorar o serviço</li>
+                                <li>Peça feedback honesto, não apenas positivo</li>
+                                <li>Use o campo "Elogios ou Críticas" para entender o motivo da nota</li>
+                                <li>O NPS é calculado APENAS pela pergunta principal de recomendação</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-blue-200 dark:border-blue-700 pt-4">
+                        <h4 class="font-semibold text-gray-800 dark:text-white mb-2">📈 Interpretação dos Resultados</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-2">
+                                <p class="font-semibold text-green-800 dark:text-green-300">70+ Excelente</p>
+                                <p class="text-green-700 dark:text-green-400">Nível classe mundial</p>
+                            </div>
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-2">
+                                <p class="font-semibold text-blue-800 dark:text-blue-300">50-70 Muito Bom</p>
+                                <p class="text-blue-700 dark:text-blue-400">Acima da média</p>
+                            </div>
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-2">
+                                <p class="font-semibold text-yellow-800 dark:text-yellow-300">0-50 Bom</p>
+                                <p class="text-yellow-700 dark:text-yellow-400">Com espaço para melhorias</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-red-600 dark:text-red-400 mt-2">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <strong>NPS Negativo:</strong> Requer atenção imediata - há mais detratores que promotores
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Ticket -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Card: Informações Gerais -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Informações Gerais
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Número do Ticket</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300 font-mono">
+                            {{ feedback.numero_ticket|default:"-" }}
+                        </span>
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                        <p class="font-medium">
+                            {% if feedback.status == 'pendente' %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">Pendente de Contato</span>
+                            {% elif feedback.status == 'em_contato' %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Em Contato</span>
+                            {% elif feedback.status == 'respondido' %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Feedback Recebido</span>
+                            {% elif feedback.status == 'concluido' %}
+                                <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">Concluído</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Motivador do Contato</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        {% if feedback.motivador_contato == 'voluntario_cs' %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                <i class="fas fa-user-tie mr-1"></i>Iniciativa CS
+                            </span>
+                        {% elif feedback.motivador_contato == 'solicitacao_comercial' %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                                <i class="fas fa-briefcase mr-1"></i>Por Solicitação da Área Comercial
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                <i class="fas fa-robot mr-1"></i>Obter Feedback do Serviço Prestado (Automático)
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Cliente</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.cliente.nome_razao_social }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Contrato</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.contrato.numero_contrato }}</p>
+                </div>
+                {% if feedback.projeto %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Projeto</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.projeto.nome }}</p>
+                </div>
+                {% endif %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Gerente de Customer Success</p>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                        {% if feedback.gerente_sucessos %}
+                            {{ feedback.gerente_sucessos.nome_completo }}
+                        {% else %}
+                            <span class="text-gray-400">Não atribuído</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Datas e NPS -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-chart-line mr-2 text-green-500"></i>NPS e Datas
+            </h3>
+            <div class="space-y-4">
+                {% if feedback.nps_score is not None %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Net Promoter Score (NPS)</p>
+                    <div class="flex items-center gap-4">
+                        <div class="text-4xl font-bold 
+                            {% if feedback.nps_score >= 50 %}text-green-600 dark:text-green-400
+                            {% elif feedback.nps_score >= 0 %}text-yellow-600 dark:text-yellow-400
+                            {% else %}text-red-600 dark:text-red-400{% endif %}">
+                            {{ feedback.nps_score|default:"-" }}
+                        </div>
+                        <div>
+                            <span class="px-3 py-1 text-sm rounded-full font-semibold
+                                {% if feedback.nps_categoria == 'Promotor' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                                {% elif feedback.nps_categoria == 'Neutro' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
+                                {{ feedback.nps_categoria|default:"-" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Net Promoter Score (NPS)</p>
+                    <p class="text-gray-400">Aguardando preenchimento do questionário</p>
+                </div>
+                {% endif %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Data de Criação</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.criado_em|date:"d/m/Y H:i" }}</p>
+                </div>
+                {% if feedback.data_contato %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Data do Contato</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.data_contato|date:"d/m/Y H:i" }}</p>
+                </div>
+                {% endif %}
+                {% if feedback.data_resposta %}
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Data da Resposta</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{{ feedback.data_resposta|date:"d/m/Y H:i" }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Questionário NPS -->
+    {% if feedback.pergunta_nps or feedback.pergunta_satisfacao_qualidade or feedback.pergunta_satisfacao_prazos or feedback.pergunta_satisfacao_comunicacao %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-clipboard-list mr-2 text-purple-500"></i>Questionário de Feedback
+        </h3>
+        
+        <!-- Pergunta Principal NPS -->
+        {% if feedback.pergunta_nps is not None %}
+        <div class="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 rounded-lg border-2 border-indigo-300 dark:border-indigo-700">
+            <h4 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center">
+                <i class="fas fa-star mr-2 text-indigo-600 dark:text-indigo-400"></i>
+                Pergunta Principal NPS: Recomendação
+            </h4>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Qual a probabilidade de você recomendar nossos serviços a um amigo ou colega?</p>
+            <div class="flex items-center gap-4">
+                <span class="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{{ feedback.pergunta_nps }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">de 10</span>
+                <div class="flex gap-1 flex-wrap">
+                    {% for i in "0123456789"|make_list %}
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold
+                            {% if forloop.counter0 <= feedback.pergunta_nps %}
+                                bg-indigo-500 text-white
+                            {% else %}
+                                bg-gray-200 dark:bg-gray-700 text-gray-400
+                            {% endif %}">
+                            {{ forloop.counter0 }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Perguntas Complementares de Satisfação -->
+        {% if feedback.pergunta_satisfacao_qualidade or feedback.pergunta_satisfacao_prazos or feedback.pergunta_satisfacao_comunicacao %}
+        <div class="mt-4">
+            <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-3">Perguntas Complementares de Satisfação</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 p-4 rounded-lg">
+                    <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-2 text-sm">Qualidade do Serviço</h5>
+                    {% if feedback.pergunta_satisfacao_qualidade is not None %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ feedback.pergunta_satisfacao_qualidade }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">de 10</span>
+                        </div>
+                        <div class="flex gap-1 mt-2 flex-wrap">
+                            {% for i in "0123456789"|make_list %}
+                                <div class="w-4 h-4 rounded-full flex items-center justify-center text-xs
+                                    {% if forloop.counter0 <= feedback.pergunta_satisfacao_qualidade %}
+                                        bg-blue-500 text-white
+                                    {% else %}
+                                        bg-gray-200 dark:bg-gray-700 text-gray-400
+                                    {% endif %}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="text-gray-400 text-sm">Não respondido</span>
+                    {% endif %}
+                </div>
+                <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 p-4 rounded-lg">
+                    <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-2 text-sm">Cumprimento de Prazos</h5>
+                    {% if feedback.pergunta_satisfacao_prazos is not None %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl font-bold text-green-600 dark:text-green-400">{{ feedback.pergunta_satisfacao_prazos }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">de 10</span>
+                        </div>
+                        <div class="flex gap-1 mt-2 flex-wrap">
+                            {% for i in "0123456789"|make_list %}
+                                <div class="w-4 h-4 rounded-full flex items-center justify-center text-xs
+                                    {% if forloop.counter0 <= feedback.pergunta_satisfacao_prazos %}
+                                        bg-green-500 text-white
+                                    {% else %}
+                                        bg-gray-200 dark:bg-gray-700 text-gray-400
+                                    {% endif %}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="text-gray-400 text-sm">Não respondido</span>
+                    {% endif %}
+                </div>
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 p-4 rounded-lg">
+                    <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-2 text-sm">Comunicação e Atendimento</h5>
+                    {% if feedback.pergunta_satisfacao_comunicacao is not None %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ feedback.pergunta_satisfacao_comunicacao }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">de 10</span>
+                        </div>
+                        <div class="flex gap-1 mt-2 flex-wrap">
+                            {% for i in "0123456789"|make_list %}
+                                <div class="w-4 h-4 rounded-full flex items-center justify-center text-xs
+                                    {% if forloop.counter0 <= feedback.pergunta_satisfacao_comunicacao %}
+                                        bg-purple-500 text-white
+                                    {% else %}
+                                        bg-gray-200 dark:bg-gray-700 text-gray-400
+                                    {% endif %}">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="text-gray-400 text-sm">Não respondido</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Card: Elogios e Críticas -->
+    {% if feedback.elogios_criticas %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-comment-dots mr-2 text-purple-500"></i>Elogios e Críticas
+        </h3>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-gray-900 dark:text-white whitespace-pre-wrap">{{ feedback.elogios_criticas }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Card: Editar Ticket -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            <i class="fas fa-edit mr-2 text-blue-500"></i>Editar Ticket
+        </h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.motivador_contato.label }}</label>
+                    {{ form.motivador_contato }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.status.label }}</label>
+                    {{ form.status }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.pergunta_nps.label }} <span class="text-red-500">*</span>
+                    </label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Pergunta principal para cálculo do NPS</p>
+                    {{ form.pergunta_nps }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.pergunta_satisfacao_qualidade.label }}</label>
+                    {{ form.pergunta_satisfacao_qualidade }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.pergunta_satisfacao_prazos.label }}</label>
+                    {{ form.pergunta_satisfacao_prazos }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.pergunta_satisfacao_comunicacao.label }}</label>
+                    {{ form.pergunta_satisfacao_comunicacao }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.gerente_sucessos.label }}</label>
+                    {{ form.gerente_sucessos }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.data_contato.label }}</label>
+                    {{ form.data_contato }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.data_resposta.label }}</label>
+                    {{ form.data_resposta }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.elogios_criticas.label }}</label>
+                    {{ form.elogios_criticas }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.observacoes.label }}</label>
+                    {{ form.observacoes }}
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-save mr-1"></i> Salvar Alterações
+                </button>
+                <a href="{% url 'customer_success_list' %}" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times mr-1"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

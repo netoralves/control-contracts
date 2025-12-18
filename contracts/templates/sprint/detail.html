@@ -1,0 +1,187 @@
+{# sprint/detail.html #}
+{% extends 'contracts/base.html' %}
+{% load static math_extras form_filters %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold dark:text-white">{{ sprint.nome }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">{{ projeto.nome }} - {{ sprint.data_inicio|date:"d/m/Y" }} a {{ sprint.data_fim|date:"d/m/Y" }}</p>
+        </div>
+        <div class="flex gap-2">
+            {% if sprint.status == 'ativa' %}
+            <a href="{% url 'sprint_fechar' projeto.pk sprint.pk %}" 
+               class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-check mr-2"></i>Fechar Sprint
+            </a>
+            {% endif %}
+            <a href="{% url 'sprint_update' projeto.pk sprint.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-edit mr-2"></i>Editar
+            </a>
+            <a href="{% url 'projeto_detail' projeto.pk %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações da Sprint -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
+            <p class="text-lg font-semibold dark:text-white">
+                <span class="px-2 py-1 rounded {% if sprint.status == 'finalizada' %}bg-green-100 text-green-800{% elif sprint.status == 'ativa' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ sprint.get_status_display }}
+                </span>
+            </p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Total Tarefas</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sprint.total_tarefas }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Tarefas Concluídas</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sprint.tarefas_concluidas }}</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400">% Conclusão</p>
+            <p class="text-lg font-semibold dark:text-white">{{ sprint.percentual_conclusao|floatformat:1 }}%</p>
+        </div>
+    </div>
+
+    <!-- Barra de Progresso -->
+    <div class="mb-6">
+        <div class="w-full bg-gray-200 rounded-full h-4">
+            <div class="bg-blue-600 h-4 rounded-full transition-all" style="width: {{ sprint.percentual_conclusao }}%"></div>
+        </div>
+    </div>
+
+    <!-- Kanban: Backlog e Sprint -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Backlog (Tarefas Disponíveis) -->
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold dark:text-white mb-4">Backlog ({{ tarefas_backlog.count }})</h2>
+            {% if tarefas_backlog %}
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                {% for tarefa in tarefas_backlog %}
+                <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow border border-gray-200 dark:border-gray-600">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium dark:text-white text-sm">{{ tarefa.titulo }}</h3>
+                        <span class="px-2 py-1 rounded text-xs
+                            {% if tarefa.prioridade == 'alta' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                            {% elif tarefa.prioridade == 'media' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                            {{ tarefa.get_prioridade_display }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">{{ tarefa.horas_planejadas|floatformat:2 }}h</p>
+                    <a href="{% url 'tarefa_mover_sprint' projeto.pk sprint.pk tarefa.pk %}" 
+                       class="text-blue-600 hover:underline text-xs">
+                        <i class="fa-solid fa-arrow-right mr-1"></i>Mover para Sprint
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhuma tarefa disponível no backlog.</p>
+            {% endif %}
+        </div>
+
+        <!-- Sprint (Tarefas na Sprint) -->
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold dark:text-white mb-4">Sprint ({{ tarefas_sprint.count }})</h2>
+            {% if tarefas_sprint %}
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                <!-- Tarefas de Consultor -->
+                {% if tarefas_consultor %}
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Tarefas do Consultor ({{ tarefas_consultor.count }})</p>
+                    {% for tarefa in tarefas_consultor %}
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow border border-gray-200 dark:border-gray-600 mb-2">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-medium dark:text-white text-sm">{{ tarefa.titulo }}</h3>
+                            <span class="px-2 py-1 rounded text-xs
+                                {% if tarefa.status_sprint == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif tarefa.status_sprint == 'em_execucao' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                {{ tarefa.get_status_sprint_display|default:"Não Iniciada" }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            {{ tarefa.responsavel.nome_completo|default:"Sem responsável" }} - {{ tarefa.horas_planejadas|floatformat:2 }}h
+                        </p>
+                        <div class="flex gap-2">
+                            <a href="{% url 'tarefa_remover_sprint' projeto.pk sprint.pk tarefa.pk %}" 
+                               class="text-red-600 hover:underline text-xs">
+                                <i class="fa-solid fa-arrow-left mr-1"></i>Remover
+                            </a>
+                            <a href="{% url 'tarefa_projeto_update' projeto.pk tarefa.pk %}" class="text-blue-600 hover:underline text-xs">
+                                <i class="fa-solid fa-edit mr-1"></i>Editar
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Tarefa de Gestão -->
+                {% if tarefa_gestao %}
+                <div class="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Tarefa de Gestão (25% das horas do consultor)</p>
+                    <div class="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg shadow border border-blue-200 dark:border-blue-600">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-medium dark:text-white text-sm">{{ tarefa_gestao.titulo }}</h3>
+                            <span class="px-2 py-1 rounded text-xs
+                                {% if tarefa_gestao.status_sprint == 'finalizada' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif tarefa_gestao.status_sprint == 'em_execucao' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                {{ tarefa_gestao.get_status_sprint_display|default:"Não Iniciada" }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            {{ tarefa_gestao.responsavel.nome_completo|default:"Sem responsável" }} - {{ tarefa_gestao.horas_planejadas|floatformat:2 }}h
+                        </p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 italic mb-2">
+                            Total horas consultor: {{ total_horas_consultor|floatformat:2 }}h
+                        </p>
+                        <a href="{% url 'tarefa_projeto_update' projeto.pk tarefa_gestao.pk %}" 
+                           class="text-blue-600 hover:underline text-xs">
+                            <i class="fa-solid fa-edit mr-1"></i>Editar Tarefa de Gestão
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhuma tarefa na sprint. Mova tarefas do backlog para cá.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if sprint.ordem_servico %}
+    <div class="mt-6 bg-green-50 dark:bg-green-900 p-4 rounded-lg">
+        <p class="text-green-800 dark:text-green-200">
+            <i class="fa-solid fa-check-circle mr-2"></i>
+            Esta sprint foi criada e vinculada a OS <a href="{% url 'ordem_servico_detail' sprint.ordem_servico.pk %}" class="font-bold underline">{{ sprint.ordem_servico.numero_os }}</a>.
+        </p>
+    </div>
+    {% endif %}
+    
+    {% if dias_restantes is not None %}
+    <div class="mt-4 {% if dias_restantes < 0 %}bg-red-50 dark:bg-red-900{% elif dias_restantes <= 3 %}bg-yellow-50 dark:bg-yellow-900{% else %}bg-blue-50 dark:bg-blue-900{% endif %} p-4 rounded-lg">
+        <p class="{% if dias_restantes < 0 %}text-red-800 dark:text-red-200{% elif dias_restantes <= 3 %}text-yellow-800 dark:text-yellow-200{% else %}text-blue-800 dark:text-blue-200{% endif %}">
+            <i class="fa-solid fa-clock mr-2"></i>
+            {% if dias_restantes < 0 %}
+                <strong>Sprint encerrada há {{ dias_restantes|slice:"1:" }} dia(s).</strong>
+            {% elif dias_restantes == 0 %}
+                <strong>Último dia da sprint!</strong> Restam {{ horas_restantes }} hora(s).
+            {% else %}
+                Faltam <strong>{{ dias_restantes }} dia(s)</strong> e <strong>{{ horas_restantes }} hora(s)</strong> para o término da sprint.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
