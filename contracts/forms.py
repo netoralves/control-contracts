@@ -775,9 +775,10 @@ class CriarTicketContatoForm(forms.ModelForm):
             # Ordem de Serviço: se houver contrato selecionado, carregar OS desse contrato
             if contrato_id:
                 os_queryset = OrdemServico.objects.filter(contrato_id=contrato_id)
-                # Se também houver projeto, filtrar por projeto
+                # Se também houver projeto, filtrar por projeto (via Projeto vinculado à OS)
                 if projeto_id:
-                    os_queryset = os_queryset.filter(sprint__projeto_id=projeto_id)
+                    # Projeto está relacionado à OS via Projeto.ordem_servico (OneToOneField, related_name="projeto")
+                    os_queryset = os_queryset.filter(projeto__id=projeto_id)
                 self.fields['ordem_servico'].queryset = os_queryset
             else:
                 self.fields['ordem_servico'].queryset = OrdemServico.objects.none()
@@ -1053,16 +1054,19 @@ class ColaboradorForm(forms.ModelForm):
         password = self.cleaned_data.get('password')
         grupos = self.cleaned_data.get('grupos', [])
         user = self.cleaned_data.get('user')
+
+        # Usar user_id para evitar acessar o relacionamento OneToOne antes de existir
+        has_user = getattr(colaborador, "user_id", None) is not None
         
         # Se já tem usuário selecionado (vinculando a existente), usar ele
-        if user and not colaborador.user:
+        if user and not has_user:
             colaborador.user = user
             # Atualizar email do colaborador se necessário
             if email and not colaborador.email:
                 colaborador.email = email
         
         # Criar usuário se necessário
-        elif not colaborador.user and criar_usuario and email:
+        elif not has_user and criar_usuario and email:
             if not username:
                 username = email
             
@@ -1222,12 +1226,138 @@ class SprintForm(forms.ModelForm):
     class Meta:
         model = Sprint
         fields = "__all__"
+        widgets = {
+            'descricao': forms.Textarea(attrs={
+                'rows': 2,
+                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white resize-y',
+                'style': 'min-height: 3.5rem; max-height: 10rem;'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        projeto_id = kwargs.pop('projeto_id', None)
+        super().__init__(*args, **kwargs)
+        
+        # Configurar formato de data para dd/mm/yyyy
+        from django.forms.widgets import DateInput
+        if 'data_inicio' in self.fields:
+            self.fields['data_inicio'].widget = DateInput(
+                attrs={
+                    'type': 'text',
+                    'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white',
+                    'placeholder': 'dd/mm/yyyy',
+                },
+                format='%d/%m/%Y'
+            )
+            # Converter valor inicial se existir (será feito no template via JavaScript)
+            if self.instance and self.instance.pk and self.instance.data_inicio:
+                from datetime import date
+                if isinstance(self.instance.data_inicio, date):
+                    self.initial['data_inicio'] = self.instance.data_inicio.strftime('%d/%m/%Y')
+        if 'data_fim' in self.fields:
+            self.fields['data_fim'].widget = DateInput(
+                attrs={
+                    'type': 'text',
+                    'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white',
+                    'placeholder': 'dd/mm/yyyy',
+                },
+                format='%d/%m/%Y'
+            )
+            # Converter valor inicial se existir (será feito no template via JavaScript)
+            if self.instance and self.instance.pk and self.instance.data_fim:
+                from datetime import date
+                if isinstance(self.instance.data_fim, date):
+                    self.initial['data_fim'] = self.instance.data_fim.strftime('%d/%m/%Y')
+        
+        # Se projeto_id foi fornecido, definir projeto automaticamente (oculto)
+        if projeto_id:
+            from .models import Projeto
+            try:
+                projeto = Projeto.objects.get(pk=projeto_id)
+                # Definir projeto automaticamente (oculto)
+                if 'projeto' in self.fields:
+                    self.fields['projeto'].initial = projeto
+                    self.fields['projeto'].widget = forms.HiddenInput()
+            except Projeto.DoesNotExist:
+                pass
 
 
 class TarefaForm(forms.ModelForm):
     class Meta:
         model = Tarefa
         fields = "__all__"
+        widgets = {
+            'descricao': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white'
+            }),
+            'observacoes': forms.TextInput(attrs={
+                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        projeto_id = kwargs.pop('projeto_id', None)
+        super().__init__(*args, **kwargs)
+        
+        # Aplicar CSS padrão em todos os campos (exceto checkboxes e campos ocultos)
+        for field_name, field in self.fields.items():
+            if not isinstance(field.widget, (forms.CheckboxInput, forms.HiddenInput)):
+                if "class" not in field.widget.attrs:
+                    if isinstance(field.widget, forms.Textarea):
+                        field.widget.attrs.update({
+                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                        })
+                    elif isinstance(field.widget, forms.Select):
+                        field.widget.attrs.update({
+                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        })
+                    else:
+                        field.widget.attrs.update({
+                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                        })
+                
+                # Adicionar placeholder e padding para campos de data/hora
+                if field_name in ['data_inicio_prevista', 'data_termino_prevista']:
+                    if "placeholder" not in field.widget.attrs:
+                        field.widget.attrs.update({
+                            "placeholder": "dd/mm/yyyy, HH:MM"
+                        })
+                    # Adicionar padding-right para o ícone de calendário
+                    current_class = field.widget.attrs.get("class", "")
+                    if "pr-10" not in current_class:
+                        field.widget.attrs["class"] = current_class + " pr-10"
+        
+        # Se projeto_id foi fornecido, filtrar sprints e definir projeto
+        if projeto_id:
+            from .models import Projeto, Sprint
+            try:
+                projeto = Projeto.objects.get(pk=projeto_id)
+                # Filtrar sprints apenas do projeto
+                if 'sprint' in self.fields:
+                    self.fields['sprint'].queryset = Sprint.objects.filter(projeto=projeto)
+                # Definir projeto automaticamente (oculto)
+                if 'projeto' in self.fields:
+                    self.fields['projeto'].initial = projeto
+                    self.fields['projeto'].widget = forms.HiddenInput()
+                # Remover campo backlog - tarefas de projeto não têm backlog de origem
+                if 'backlog' in self.fields:
+                    del self.fields['backlog']
+                # Remover campo status (geral) - usar apenas status_sprint quando em sprint
+                if 'status' in self.fields:
+                    del self.fields['status']
+                # Ajustar status_sprint: mostrar apenas quando há sprint (na criação ou edição)
+                if 'status_sprint' in self.fields:
+                    # Se é edição e a tarefa já está em uma sprint, manter visível
+                    # Se é criação ou tarefa sem sprint, será controlado via JavaScript no template
+                    if self.instance and self.instance.sprint:
+                        # Tarefa já está em sprint: manter campo visível
+                        self.fields['status_sprint'].required = True
+                    else:
+                        # Tarefa sem sprint: tornar opcional (será mostrado via JS quando sprint for selecionada)
+                        self.fields['status_sprint'].required = False
+            except Projeto.DoesNotExist:
+                pass
 
 
 class LancamentoHoraForm(forms.ModelForm):

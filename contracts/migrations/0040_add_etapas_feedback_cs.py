@@ -11,42 +11,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="reclamacao",
-            name="ordem_servico",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reclamacoes",
-                to="contracts.ordemservico",
-                verbose_name="Ordem de Serviço",
-            ),
-        ),
-        migrations.AddField(
-            model_name="reclamacao",
-            name="projeto",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reclamacoes",
-                to="contracts.projeto",
-                verbose_name="Projeto",
-            ),
-        ),
-        migrations.AddField(
-            model_name="reclamacao",
-            name="sprint",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reclamacoes",
-                to="contracts.sprint",
-                verbose_name="Sprint",
-            ),
-        ),
+        # Nota: Operações do modelo 'reclamacao' removidas
+        # O modelo será removido na migração 0050, então não faz sentido adicionar campos aqui
+        # Se o modelo existir no banco, essas alterações já foram aplicadas diretamente
         migrations.CreateModel(
             name="FeedbackSprintOS",
             fields=[
@@ -145,50 +112,7 @@ class Migration(migrations.Migration):
                         verbose_name="Contrato",
                     ),
                 ),
-                (
-                    "gerente_sucessos",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="feedbacks_gerenciados",
-                        to="contracts.colaborador",
-                        verbose_name="Gerente de Customer Success",
-                    ),
-                ),
-                (
-                    "ordem_servico",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="feedbacks",
-                        to="contracts.ordemservico",
-                        verbose_name="Ordem de Serviço",
-                    ),
-                ),
-                (
-                    "projeto",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="feedbacks_sprint_os",
-                        to="contracts.projeto",
-                        verbose_name="Projeto",
-                    ),
-                ),
-                (
-                    "sprint",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="feedbacks",
-                        to="contracts.sprint",
-                        verbose_name="Sprint",
-                    ),
-                ),
+                # Campos 'gerente_sucessos', 'projeto' e 'sprint' serão adicionados na migração 0060 após a criação dos modelos
             ],
             options={
                 "verbose_name": "Feedback de Sprint/OS",
@@ -196,16 +120,5 @@ class Migration(migrations.Migration):
                 "ordering": ["-criado_em"],
             },
         ),
-        migrations.AddField(
-            model_name="reclamacao",
-            name="feedback_origem",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reclamacoes_geradas",
-                to="contracts.feedbacksprintos",
-                verbose_name="Feedback de Origem",
-            ),
-        ),
+        # Nota: Campo feedback_origem do reclamacao removido (modelo será deletado na 0050)
     ]

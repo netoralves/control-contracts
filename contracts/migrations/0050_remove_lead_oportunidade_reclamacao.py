@@ -10,73 +10,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="lead",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="cliente",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="contrato",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="feedback_origem",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="gerente_comercial",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="ordem_servico",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="projeto",
-        ),
-        migrations.RemoveField(
-            model_name="oportunidade",
-            name="sprint",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="cliente",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="contrato",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="feedback_origem",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="gerente_sucessos",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="ordem_servico",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="projeto",
-        ),
-        migrations.RemoveField(
-            model_name="reclamacao",
-            name="sprint",
-        ),
-        migrations.DeleteModel(
-            name="Lead",
-        ),
-        migrations.DeleteModel(
-            name="Oportunidade",
-        ),
-        migrations.DeleteModel(
-            name="Reclamacao",
-        ),
+        # Nota: Operações de remoção de campos e DeleteModel removidas
+        # Os modelos 'Lead', 'Oportunidade' e 'Reclamacao' não existem no estado das migrações
+        # Se existirem no banco, serão deletados diretamente via SQL se necessário
+        # Esta migração está vazia para manter a sequência
     ]

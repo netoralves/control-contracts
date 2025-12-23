@@ -1486,13 +1486,18 @@ def ordemservico_detail(request, pk):
     ordem = get_object_or_404(
         OrdemServico.objects.select_related(
             'cliente', 'contrato', 'item_contrato', 
-            'item_fornecedor_consultor', 'item_fornecedor_gerente', 'sprint__projeto'
+            'item_fornecedor_consultor', 'item_fornecedor_gerente', 'projeto'
         ),
         pk=pk
     )
     
-    # Tarefas vinculadas à OS com lançamentos de horas
-    tarefas = ordem.tarefas.all().select_related('responsavel').prefetch_related('lancamentos_horas__colaborador').order_by('-criado_em')
+    # Tarefas vinculadas à OS através do projeto
+    # Buscar tarefas do projeto vinculado à OS
+    tarefas = Tarefa.objects.none()
+    if hasattr(ordem, 'projeto') and ordem.projeto:
+        tarefas = Tarefa.objects.filter(
+            projeto=ordem.projeto
+        ).select_related('responsavel', 'projeto').prefetch_related('lancamentos_horas__colaborador').order_by('-criado_em')
     
     # Estatísticas de tarefas
     total_tarefas = tarefas.count()
@@ -2384,25 +2389,49 @@ def projeto_list(request):
 def projeto_detail(request, pk):
     """Detalhes do projeto com sprints e plano de trabalho"""
     projeto = get_object_or_404(
-        Projeto.objects.select_related('contrato', 'gerente_projeto', 'backlog_origem'),
+        Projeto.objects.select_related('contrato', 'gerente_projeto'),
         pk=pk
     )
     
-    # Buscar backlogs do contrato (não mais do projeto)
-    backlogs_contrato = projeto.contrato.backlogs.all() if projeto.contrato else Backlog.objects.none()
-    
-    # Tarefas do projeto (vinculadas a sprints do projeto)
+    # Tarefas do projeto (agora todas as tarefas têm projeto obrigatório)
     tarefas_projeto = Tarefa.objects.filter(
-        sprint__projeto=projeto
-    ).select_related('responsavel', 'sprint').order_by('-prioridade', '-criado_em')
+        projeto=projeto
+    ).select_related('responsavel', 'sprint', 'projeto').order_by('-prioridade', '-criado_em')
     
     # Todas as tarefas do projeto (para aba Tarefas)
     todas_tarefas = Tarefa.objects.filter(
-        Q(backlog__contrato=projeto.contrato) | Q(sprint__projeto=projeto)
-    ).select_related('responsavel', 'backlog', 'sprint').order_by('-criado_em')
+        projeto=projeto
+    ).select_related('responsavel', 'backlog', 'sprint', 'projeto').order_by('-criado_em')
     
     # Sprints
     sprints = projeto.sprints.all().order_by('-data_inicio')
+    
+    # Dados para Canvas (Kanban)
+    # Tarefas do backlog do projeto (sem sprint)
+    tarefas_backlog = Tarefa.objects.filter(
+        projeto=projeto,
+        sprint__isnull=True
+    ).select_related('responsavel').order_by('-prioridade', '-criado_em')
+    
+    # Sprints do projeto ordenadas por data (para canvas)
+    sprints_canvas = projeto.sprints.all().order_by('data_inicio', 'data_fim')
+    
+    # Para cada sprint, buscar suas tarefas (para canvas)
+    sprints_com_tarefas = []
+    for sprint in sprints_canvas:
+        tarefas_sprint = Tarefa.objects.filter(
+            projeto=projeto,
+            sprint=sprint
+        ).select_related('responsavel').order_by('ordem_sprint', '-criado_em')
+        
+        sprints_com_tarefas.append({
+            'sprint': sprint,
+            'tarefas': tarefas_sprint,
+            'total_tarefas': tarefas_sprint.count(),
+            'tarefas_nao_iniciadas': tarefas_sprint.filter(status_sprint='nao_iniciada').count(),
+            'tarefas_em_execucao': tarefas_sprint.filter(status_sprint='em_execucao').count(),
+            'tarefas_finalizadas': tarefas_sprint.filter(status_sprint='finalizada').count(),
+        })
     
     # Plano de trabalho do projeto
     plano_trabalho = getattr(projeto, 'plano_trabalho', None)
@@ -2414,6 +2443,7 @@ def projeto_detail(request, pk):
     sprints_execucao = sprints.filter(status="execucao").count()
     sprints_finalizadas = sprints.filter(status="finalizada").count()
     sprints_faturadas = sprints.filter(status="faturada").count()
+    total_tarefas_backlog = tarefas_backlog.count()
     
     # Calcular dias restantes para o vencimento do contrato
     from datetime import date
@@ -2427,8 +2457,6 @@ def projeto_detail(request, pk):
     
     context = {
         "projeto": projeto,
-        "backlog_origem": projeto.backlog_origem,
-        "backlogs_contrato": backlogs_contrato,
         "tarefas_projeto": tarefas_projeto,
         "todas_tarefas": todas_tarefas,
         "sprints": sprints,
@@ -2441,9 +2469,65 @@ def projeto_detail(request, pk):
         "sprints_faturadas": sprints_faturadas,
         "dias_restantes_contrato": dias_restantes_contrato,
         "meses_restantes": meses_restantes,
+        # Dados para Canvas
+        "tarefas_backlog": tarefas_backlog,
+        "sprints_com_tarefas": sprints_com_tarefas,
+        "total_tarefas_backlog": total_tarefas_backlog,
     }
     
     return render(request, "projeto/detail.html", context)
+
+
+# Projeto - Canvas (Visualização Kanban)
+@login_required
+def projeto_canvas(request, pk):
+    """Visualização de canvas (Kanban) do projeto com backlog e sprints"""
+    projeto = get_object_or_404(
+        Projeto.objects.select_related('contrato', 'gerente_projeto'),
+        pk=pk
+    )
+    
+    # Tarefas do backlog do projeto (sem sprint)
+    tarefas_backlog = Tarefa.objects.filter(
+        projeto=projeto,
+        sprint__isnull=True
+    ).select_related('responsavel').order_by('-prioridade', '-criado_em')
+    
+    # Sprints do projeto ordenadas por data
+    sprints = projeto.sprints.all().order_by('data_inicio', 'data_fim')
+    
+    # Para cada sprint, buscar suas tarefas
+    sprints_com_tarefas = []
+    for sprint in sprints:
+        tarefas_sprint = Tarefa.objects.filter(
+            projeto=projeto,
+            sprint=sprint
+        ).select_related('responsavel').order_by('-prioridade', '-criado_em')
+        
+        sprints_com_tarefas.append({
+            'sprint': sprint,
+            'tarefas': tarefas_sprint,
+            'total_tarefas': tarefas_sprint.count(),
+            'tarefas_nao_iniciadas': tarefas_sprint.filter(status_sprint='nao_iniciada').count(),
+            'tarefas_em_execucao': tarefas_sprint.filter(status_sprint='em_execucao').count(),
+            'tarefas_finalizadas': tarefas_sprint.filter(status_sprint='finalizada').count(),
+        })
+    
+    # Estatísticas
+    total_tarefas_backlog = tarefas_backlog.count()
+    total_sprints = sprints.count()
+    total_tarefas_projeto = Tarefa.objects.filter(projeto=projeto).count()
+    
+    context = {
+        "projeto": projeto,
+        "tarefas_backlog": tarefas_backlog,
+        "sprints_com_tarefas": sprints_com_tarefas,
+        "total_tarefas_backlog": total_tarefas_backlog,
+        "total_sprints": total_sprints,
+        "total_tarefas_projeto": total_tarefas_projeto,
+    }
+    
+    return render(request, "projeto/canvas.html", context)
 
 
 # Projeto - Criar
@@ -2816,13 +2900,11 @@ def sprint_detail(request, projeto_id, sprint_id):
     # Calcular total de horas do consultor
     total_horas_consultor = sum(t.horas_planejadas for t in tarefas_consultor if t.horas_planejadas)
     
-    # Tarefas disponíveis no backlog (ordenadas por prioridade)
-    # Usar o backlog de origem do projeto se existir, senão usar o primeiro backlog pendente do contrato
-    if projeto.backlog_origem:
-        backlog = projeto.backlog_origem
-    else:
-        backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
-    tarefas_backlog = backlog.tarefas.filter(sprint__isnull=True).select_related('responsavel').order_by('-prioridade', '-criado_em') if backlog else Tarefa.objects.none()
+    # Tarefas disponíveis no backlog do projeto (sem sprint)
+    tarefas_backlog = Tarefa.objects.filter(
+        projeto=projeto,
+        sprint__isnull=True
+    ).select_related('responsavel').order_by('-prioridade', '-criado_em')
     
     context = {
         "projeto": projeto,
@@ -2832,7 +2914,6 @@ def sprint_detail(request, projeto_id, sprint_id):
         "tarefa_gestao": tarefa_gestao,
         "total_horas_consultor": total_horas_consultor,
         "tarefas_backlog": tarefas_backlog,
-        "backlog": backlog,
         "dias_restantes": dias_restantes,
         "horas_restantes": horas_restantes,
     }
@@ -3024,7 +3105,8 @@ def tarefa_mover_sprint(request, projeto_id, sprint_id, tarefa_id):
     sprint = get_object_or_404(Sprint, pk=sprint_id, projeto=projeto)
     tarefa = get_object_or_404(Tarefa, pk=tarefa_id)
     
-    if tarefa.backlog and projeto.backlog_origem == tarefa.backlog:
+    # Validar se a tarefa pertence ao projeto
+    if tarefa.projeto == projeto:
         from datetime import datetime, time
         from django.utils import timezone as tz
         from decimal import Decimal
@@ -3073,18 +3155,6 @@ def tarefa_mover_sprint(request, projeto_id, sprint_id, tarefa_id):
                 # Criar tarefa de gestão (25% das horas do consultor)
                 horas_gestao = total_horas_consultor * Decimal('0.25')
                 
-                # Usar o backlog de origem do projeto se existir, senão usar o primeiro backlog pendente do contrato
-                if projeto.backlog_origem:
-                    backlog = projeto.backlog_origem
-                else:
-                    backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
-                    if not backlog:
-                        backlog = Backlog.objects.create(
-                            contrato=projeto.contrato,
-                            titulo=f"Backlog - {projeto.nome}",
-                            status='pendente'
-                        )
-                
                 # Converter datas da sprint para datetime se necessário
                 if isinstance(sprint.data_inicio, datetime):
                     data_inicio_gestao = sprint.data_inicio
@@ -3101,9 +3171,9 @@ def tarefa_mover_sprint(request, projeto_id, sprint_id, tarefa_id):
                         data_termino_gestao = tz.make_aware(data_termino_gestao)
                 
                 tarefa_gestao = Tarefa.objects.create(
+                    projeto=projeto,
                     titulo=f"Gestão de Projetos - {sprint.nome}",
                     descricao="Tarefa de gestão de projetos (25% das horas do consultor técnico)",
-                    backlog=backlog,
                     sprint=sprint,
                     responsavel=projeto.gerente_projeto,
                     prioridade="media",
@@ -3125,7 +3195,7 @@ def tarefa_mover_sprint(request, projeto_id, sprint_id, tarefa_id):
                 tarefa_gestao.save()
             messages.success(request, "Tarefa movida para a sprint!")
     else:
-        messages.error(request, "Tarefa não pertence ao backlog deste projeto!")
+        messages.error(request, "Tarefa não pertence a este projeto!")
     
     return redirect("sprint_detail", projeto_id=projeto_id, sprint_id=sprint_id)
 
@@ -3143,20 +3213,9 @@ def tarefa_remover_sprint(request, projeto_id, sprint_id, tarefa_id):
         messages.error(request, "A tarefa de gestão não pode ser removida da sprint!")
         return redirect("sprint_detail", projeto_id=projeto_id, sprint_id=sprint_id)
     
-    # Usar o backlog de origem do projeto se existir, senão usar o primeiro backlog pendente do contrato
-    if projeto.backlog_origem:
-        backlog = projeto.backlog_origem
-    else:
-        backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
-        if not backlog:
-            backlog = Backlog.objects.create(
-                contrato=projeto.contrato,
-                titulo=f"Backlog - {projeto.nome}",
-                status='pendente'
-            )
+    # Remover tarefa da sprint (volta para o backlog do projeto)
     tarefa.sprint = None
     tarefa.status_sprint = None
-    tarefa.backlog = backlog
     tarefa.save()
     
     # Atualizar horas da tarefa de gestão se ainda houver tarefas de consultor
@@ -3180,33 +3239,198 @@ def tarefa_remover_sprint(request, projeto_id, sprint_id, tarefa_id):
     return redirect("sprint_detail", projeto_id=projeto_id, sprint_id=sprint_id)
 
 
+# Tarefa - Mover via AJAX (para drag and drop no Canvas)
+@group_required("Admin", "Gerente")
+@require_http_methods(["POST"])
+def tarefa_mover_ajax(request, projeto_id, tarefa_id):
+    """Move uma tarefa para uma sprint ou para o backlog via AJAX"""
+    import json
+    from django.http import JsonResponse
+    
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    tarefa = get_object_or_404(Tarefa, pk=tarefa_id)
+    
+    # Validar se a tarefa pertence ao projeto
+    if tarefa.projeto != projeto:
+        return JsonResponse({'success': False, 'error': 'Tarefa não pertence a este projeto!'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        nova_sprint_id = data.get('sprint_id')  # None para mover para backlog
+        
+        from datetime import datetime, time
+        from django.utils import timezone as tz
+        from decimal import Decimal
+        
+        if nova_sprint_id:
+            # Mover para sprint
+            sprint = get_object_or_404(Sprint, pk=nova_sprint_id, projeto=projeto)
+            
+            # Validar datas da tarefa em relação à sprint
+            if tarefa.data_inicio_prevista:
+                if isinstance(sprint.data_inicio, datetime):
+                    data_inicio_sprint = sprint.data_inicio
+                else:
+                    data_inicio_sprint = datetime.combine(sprint.data_inicio, time.min)
+                    if tz.is_aware(tarefa.data_inicio_prevista):
+                        data_inicio_sprint = tz.make_aware(data_inicio_sprint)
+                
+                if tarefa.data_inicio_prevista < data_inicio_sprint:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'A data de início da tarefa não pode ser anterior à data de início da sprint!'
+                    }, status=400)
+            
+            if tarefa.data_termino_prevista:
+                if isinstance(sprint.data_fim, datetime):
+                    data_fim_sprint = sprint.data_fim
+                else:
+                    data_fim_sprint = datetime.combine(sprint.data_fim, time(23, 59, 59))
+                    if tz.is_aware(tarefa.data_termino_prevista):
+                        data_fim_sprint = tz.make_aware(data_fim_sprint)
+                
+                if tarefa.data_termino_prevista > data_fim_sprint:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'A data de término da tarefa não pode ser maior que a data de fim da sprint!'
+                    }, status=400)
+            
+            tarefa.sprint = sprint
+            tarefa.status_sprint = "nao_iniciada"  # Status inicial ao mover para sprint
+            
+            # Se uma posição foi especificada, reordenar as tarefas
+            if nova_posicao is not None:
+                # Obter todas as tarefas da sprint (exceto a que está sendo movida)
+                outras_tarefas = Tarefa.objects.filter(
+                    sprint=sprint,
+                    projeto=projeto
+                ).exclude(pk=tarefa.pk).order_by('ordem_sprint', '-criado_em')
+                
+                # Reordenar: inserir a tarefa na posição especificada
+                tarefas_lista = list(outras_tarefas)
+                tarefas_lista.insert(nova_posicao, tarefa)
+                
+                # Atualizar ordem_sprint de todas as tarefas
+                # Primeiro, atualizar todas as outras tarefas
+                for idx, t in enumerate(tarefas_lista):
+                    if t.pk != tarefa.pk:
+                        Tarefa.objects.filter(pk=t.pk).update(ordem_sprint=idx)
+                
+                # Depois, atualizar a tarefa que está sendo movida
+                tarefa.ordem_sprint = nova_posicao
+                tarefa.save(update_fields=['sprint', 'status_sprint', 'ordem_sprint'])
+            else:
+                # Se não especificou posição, colocar no final
+                from django.db.models import Max
+                ultima_ordem = Tarefa.objects.filter(
+                    sprint=sprint,
+                    projeto=projeto
+                ).exclude(pk=tarefa.pk).aggregate(
+                    max_ordem=Max('ordem_sprint')
+                )['max_ordem'] or -1
+                tarefa.ordem_sprint = ultima_ordem + 1
+                tarefa.save(update_fields=['sprint', 'status_sprint', 'ordem_sprint'])
+            
+            # Recalcular total de horas de todas as tarefas de consultor na sprint
+            tarefas_consultor_sprint = sprint.tarefas.exclude(titulo__icontains="gestão").exclude(titulo__icontains="gerente")
+            total_horas_consultor = sum(t.horas_planejadas for t in tarefas_consultor_sprint if t.horas_planejadas) or Decimal('0.00')
+            
+            # Se for a primeira tarefa de consultor movida, criar tarefa de gestão automaticamente
+            if tarefas_consultor_sprint.count() == 1:
+                if not sprint.tarefas.filter(titulo__icontains="gestão").exists():
+                    horas_gestao = total_horas_consultor * Decimal('0.25')
+                    
+                    if isinstance(sprint.data_inicio, datetime):
+                        data_inicio_gestao = sprint.data_inicio
+                    else:
+                        data_inicio_gestao = datetime.combine(sprint.data_inicio, time.min)
+                        if tz.is_aware(tarefa.data_inicio_prevista) if tarefa.data_inicio_prevista else False:
+                            data_inicio_gestao = tz.make_aware(data_inicio_gestao)
+                    
+                    if isinstance(sprint.data_fim, datetime):
+                        data_termino_gestao = sprint.data_fim
+                    else:
+                        data_termino_gestao = datetime.combine(sprint.data_fim, time(23, 59, 59))
+                        if tz.is_aware(tarefa.data_termino_prevista) if tarefa.data_termino_prevista else False:
+                            data_termino_gestao = tz.make_aware(data_termino_gestao)
+                    
+                    Tarefa.objects.create(
+                        projeto=projeto,
+                        titulo=f"Gestão de Projetos - {sprint.nome}",
+                        descricao="Tarefa de gestão de projetos (25% das horas do consultor técnico)",
+                        sprint=sprint,
+                        responsavel=projeto.gerente_projeto,
+                        prioridade="media",
+                        status_sprint="nao_iniciada",
+                        data_inicio_prevista=data_inicio_gestao,
+                        data_termino_prevista=data_termino_gestao,
+                        horas_planejadas=horas_gestao,
+                    )
+            else:
+                # Atualizar horas da tarefa de gestão se já existir
+                tarefa_gestao = sprint.tarefas.filter(titulo__icontains="gestão").first()
+                if tarefa_gestao:
+                    horas_gestao = total_horas_consultor * Decimal('0.25')
+                    tarefa_gestao.horas_planejadas = horas_gestao
+                    tarefa_gestao.save()
+        else:
+            # Mover para backlog (remover da sprint)
+            # Não permitir remover tarefa de gestão
+            if "gestão" in tarefa.titulo.lower():
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'A tarefa de gestão não pode ser removida da sprint!'
+                }, status=400)
+            
+            sprint_anterior = tarefa.sprint
+            tarefa.sprint = None
+            tarefa.status_sprint = None
+            tarefa.ordem_sprint = 0  # Resetar ordem ao voltar para backlog
+            tarefa.save(update_fields=['sprint', 'status_sprint', 'ordem_sprint'])
+            
+            # Atualizar horas da tarefa de gestão se ainda houver tarefas de consultor
+            if sprint_anterior:
+                tarefas_consultor_sprint = sprint_anterior.tarefas.exclude(titulo__icontains="gestão").exclude(titulo__icontains="gerente")
+                tarefa_gestao = sprint_anterior.tarefas.filter(titulo__icontains="gestão").first()
+                
+                if tarefa_gestao:
+                    if tarefas_consultor_sprint.exists():
+                        total_horas_consultor = sum(t.horas_planejadas for t in tarefas_consultor_sprint if t.horas_planejadas) or Decimal('0.00')
+                        horas_gestao = total_horas_consultor * Decimal('0.25')
+                        tarefa_gestao.horas_planejadas = horas_gestao
+                        tarefa_gestao.save()
+                    else:
+                        # Se não houver mais tarefas de consultor, remover tarefa de gestão
+                        tarefa_gestao.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Tarefa movida com sucesso!'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 # Tarefa - Criar (no projeto)
 @group_required("Admin", "Gerente")
 def tarefa_projeto_create(request, projeto_id):
     """Cria uma nova tarefa no projeto"""
     from .forms import TarefaForm
     projeto = get_object_or_404(Projeto, pk=projeto_id)
-    # Usar o backlog de origem do projeto se existir, senão usar o primeiro backlog pendente do contrato
-    if projeto.backlog_origem:
-        backlog = projeto.backlog_origem
-    else:
-        # Buscar o primeiro backlog pendente do contrato
-        backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
-        if not backlog:
-            # Se não houver backlog pendente, criar um novo
-            backlog = Backlog.objects.create(
-                contrato=projeto.contrato,
-                titulo=f"Backlog - {projeto.nome}",
-                status='pendente'
-            )
-    
     if request.method == "POST":
-        form = TarefaForm(request.POST, projeto_id=projeto_id)
+        # Garantir que o projeto seja enviado no POST
+        post_data = request.POST.copy()
+        post_data['projeto'] = projeto_id
+        form = TarefaForm(post_data, projeto_id=projeto_id)
         if form.is_valid():
             tarefa = form.save(commit=False)
-            # Se não foi selecionada sprint, alocar no backlog
-            if not tarefa.sprint:
-                tarefa.backlog = backlog
+            # Definir projeto obrigatoriamente
+            tarefa.projeto = projeto
+            # Se não foi selecionada sprint, a tarefa fica no backlog do projeto (sprint=None)
             # Se foi selecionada sprint, definir status_sprint inicial
             if tarefa.sprint and not tarefa.status_sprint:
                 tarefa.status_sprint = "nao_iniciada"
@@ -3234,21 +3458,12 @@ def tarefa_projeto_update(request, projeto_id, tarefa_id):
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     tarefa = get_object_or_404(Tarefa, pk=tarefa_id)
     
-    # Verificar se a tarefa pertence ao projeto
-    if tarefa.backlog:
-        # Verificar se o backlog está relacionado ao projeto através de backlog_origem
-        if projeto.backlog_origem != tarefa.backlog:
-            # Se não estiver relacionado pelo backlog, verificar se está em sprint do projeto
-            if not (tarefa.sprint and tarefa.sprint.projeto == projeto):
-                messages.error(request, "Tarefa não pertence a este projeto!")
-                if tarefa.sprint:
-                    return redirect("sprint_detail", projeto_id=projeto_id, sprint_id=tarefa.sprint.pk)
-                return redirect("projeto_detail", pk=projeto_id)
-    elif tarefa.sprint:
-        # Se não tem backlog, verificar se está em sprint do projeto
-        if tarefa.sprint.projeto != projeto:
-            messages.error(request, "Tarefa não pertence a este projeto!")
-            return redirect("projeto_detail", pk=projeto_id)
+    # Verificar se a tarefa pertence ao projeto (agora tarefa tem projeto obrigatório)
+    if tarefa.projeto != projeto:
+        messages.error(request, "Tarefa não pertence a este projeto!")
+        if tarefa.sprint:
+            return redirect("sprint_detail", projeto_id=tarefa.projeto.pk, sprint_id=tarefa.sprint.pk)
+        return redirect("projeto_detail", pk=tarefa.projeto.pk)
     
     if request.method == "POST":
         form = TarefaForm(request.POST, instance=tarefa, projeto_id=projeto_id)
@@ -3324,71 +3539,16 @@ def tarefa_projeto_detail(request, projeto_id, tarefa_id):
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     tarefa = get_object_or_404(Tarefa, pk=tarefa_id)
     
-    # Verificar se a tarefa pertence ao projeto
-    if tarefa.backlog:
-        # Verificar se o backlog está relacionado ao projeto através de backlog_origem
-        if projeto.backlog_origem != tarefa.backlog:
-            # Se não estiver relacionado pelo backlog, verificar se está em sprint do projeto
-            if not (tarefa.sprint and tarefa.sprint.projeto == projeto):
-                messages.error(request, "Tarefa não pertence a este projeto!")
-                return redirect("projeto_detail", pk=projeto_id)
-    elif tarefa.sprint:
-        # Se não tem backlog, verificar se está em sprint do projeto
-        if tarefa.sprint.projeto != projeto:
-            messages.error(request, "Tarefa não pertence a este projeto!")
-            return redirect("projeto_detail", pk=projeto_id)
+    # Verificar se a tarefa pertence ao projeto (agora tarefa tem projeto obrigatório)
+    if tarefa.projeto != projeto:
+        messages.error(request, "Tarefa não pertence a este projeto!")
+        return redirect("projeto_detail", pk=tarefa.projeto.pk)
     
     context = {
         "projeto": projeto,
         "tarefa": tarefa,
     }
     return render(request, "tarefa/detail_projeto.html", context)
-
-
-# Tarefa - Criar (no projeto)
-@group_required("Admin", "Gerente")
-def tarefa_projeto_create(request, projeto_id):
-    """Cria uma nova tarefa no projeto"""
-    from .forms import TarefaForm
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    # Usar o backlog de origem do projeto se existir, senão usar o primeiro backlog pendente do contrato
-    if projeto.backlog_origem:
-        backlog = projeto.backlog_origem
-    else:
-        # Buscar o primeiro backlog pendente do contrato
-        backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
-        if not backlog:
-            # Se não houver backlog pendente, criar um novo
-            backlog = Backlog.objects.create(
-                contrato=projeto.contrato,
-                titulo=f"Backlog - {projeto.nome}",
-                status='pendente'
-            )
-    
-    if request.method == "POST":
-        form = TarefaForm(request.POST, projeto_id=projeto_id)
-        if form.is_valid():
-            tarefa = form.save(commit=False)
-            # Se não foi selecionada sprint, alocar no backlog
-            if not tarefa.sprint:
-                tarefa.backlog = backlog
-            # Se foi selecionada sprint, definir status_sprint inicial
-            if tarefa.sprint and not tarefa.status_sprint:
-                tarefa.status_sprint = "nao_iniciada"
-            tarefa.save()
-            messages.success(request, "Tarefa criada com sucesso!")
-            return redirect("projeto_detail", pk=projeto_id)
-        else:
-            messages.error(request, "Erro ao criar a tarefa. Verifique os campos.")
-    else:
-        form = TarefaForm(projeto_id=projeto_id)
-    
-    context = {
-        "form": form,
-        "projeto": projeto,
-        "sprints": projeto.sprints.all().order_by('-data_inicio'),
-    }
-    return render(request, "tarefa/form_projeto_create.html", context)
 
 
 # Tarefa - Deletar (do projeto)
@@ -3398,19 +3558,10 @@ def tarefa_projeto_delete(request, projeto_id, tarefa_id):
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     tarefa = get_object_or_404(Tarefa, pk=tarefa_id)
     
-    # Verificar se a tarefa pertence ao projeto
-    if tarefa.backlog:
-        # Verificar se o backlog está relacionado ao projeto através de backlog_origem
-        if projeto.backlog_origem != tarefa.backlog:
-            # Se não estiver relacionado pelo backlog, verificar se está em sprint do projeto
-            if not (tarefa.sprint and tarefa.sprint.projeto == projeto):
-                messages.error(request, "Tarefa não pertence a este projeto!")
-                return redirect("projeto_detail", pk=projeto_id)
-    elif tarefa.sprint:
-        # Se não tem backlog, verificar se está em sprint do projeto
-        if tarefa.sprint.projeto != projeto:
-            messages.error(request, "Tarefa não pertence a este projeto!")
-            return redirect("projeto_detail", pk=projeto_id)
+    # Verificar se a tarefa pertence ao projeto (agora tarefa tem projeto obrigatório)
+    if tarefa.projeto != projeto:
+        messages.error(request, "Tarefa não pertence a este projeto!")
+        return redirect("projeto_detail", pk=tarefa.projeto.pk)
     
     if request.method == "POST":
         tarefa.delete()
@@ -3562,7 +3713,7 @@ def gestao_contratos_detail(request, pk):
     backlogs = contrato.backlogs.filter(status__in=['pendente', 'em_analise']).order_by('-prioridade', '-criado_em')
     
     # Projetos do contrato
-    projetos = contrato.projetos.all().select_related('gerente_projeto', 'backlog_origem').prefetch_related('plano_trabalho').order_by('-criado_em')
+    projetos = contrato.projetos.all().select_related('gerente_projeto').prefetch_related('plano_trabalho').order_by('-criado_em')
     
     # Gerentes de projeto para o formulário
     from .models import Colaborador
@@ -4401,11 +4552,10 @@ def api_ordens_servico_por_contrato(request):
     
     os_queryset = OrdemServico.objects.filter(contrato_id=contrato_id)
     
-    # Se projeto_id for fornecido, filtrar também por projeto (via sprint)
+    # Se projeto_id for fornecido, filtrar também por projeto (via Projeto vinculado à OS)
     if projeto_id:
-        os_queryset = os_queryset.filter(
-            Q(sprint__projeto_id=projeto_id) | Q(sprint__isnull=True)
-        )
+        # Projeto está relacionado à OS via Projeto.ordem_servico (OneToOneField, related_name="projeto")
+        os_queryset = os_queryset.filter(projeto__id=projeto_id)
     
     ordens = os_queryset.values("id", "numero_os")
     return JsonResponse({"ordens": list(ordens)}, safe=False)
@@ -4764,7 +4914,7 @@ def plano_trabalho_gerar(request, projeto_id):
         
         provider = request.GET.get('provider', 'openai')
         dados_plano = ContractAIService.gerar_plano_trabalho_completo(
-            contrato, 
+            projeto, 
             analise.texto_consolidado,
             provider=provider
         )

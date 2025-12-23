@@ -619,7 +619,19 @@ class ContractAIService:
     # Prompt otimizado com melhores práticas de gestão de projetos (PMBOK, Scrum, Agile)
     PLANO_TRABALHO_PROMPT = """Você é especialista em gestão de projetos de infraestrutura de TI e cibersegurança, certificado (PMP/PMI, Scrum Master, ITIL, CISSP) com expertise em metodologias ágeis aplicadas a projetos de infraestrutura e segurança da informação.
 
-Analise o contrato e documentos fornecidos, com FOCO ESPECIAL nos ITENS DO CONTRATO (software, hardware ou solução) listados, aplicando as melhores práticas de gestão ágil de projetos de infraestrutura de TI e cibersegurança.
+ESTRUTURA DO PROJETO:
+- PROJETO: Contém múltiplas SPRINTS e TAREFAS
+- SPRINT: Ciclo de desenvolvimento que agrupa TAREFAS relacionadas
+- TAREFA: Unidade de trabalho que pode estar em uma SPRINT ou no BACKLOG do projeto (sem sprint atribuída)
+- BACKLOG DO PROJETO: Tarefas sem sprint atribuída que aguardam alocação
+
+IMPORTANTE: 
+- Tarefas podem ser criadas sem sprint (ficam no backlog do projeto)
+- Tarefas precisam ser atribuídas a uma sprint para serem iniciadas/executadas
+- Tarefas precisam ter um responsável para serem executadas
+- Tarefas podem ter uma flag para bilhetar ou não na Ordem de Serviço (OS) do projeto
+
+Analise o contrato e documentos fornecidos, com FOCO ESPECIAL nos ITENS DO CONTRATO (Serviço ou Treinamento) vinculados ao projeto, aplicando as melhores práticas de gestão ágil de projetos de infraestrutura de TI e cibersegurança.
 
 MELHORES PRÁTICAS A APLICAR (Infraestrutura de TI e Cibersegurança):
 1. ITIL 4: Framework de gerenciamento de serviços de TI (Service Strategy, Design, Transition, Operation, Continual Improvement)
@@ -858,17 +870,27 @@ Gere JSON estruturado seguindo este formato:
 
 REGRAS E DIRETRIZES OBRIGATÓRIAS:
 
-1. FOCO NOS ITENS DO CONTRATO:
-   - O plano deve ser estruturado POR ITEM do contrato (software, hardware ou solução)
-   - Cada item deve ter suas próprias etapas de Planejamento, Implantação, Execução e Suporte
-   - O objetivo é que TODOS os itens cheguem à fase de Suporte (implantados e em uso)
-   - Considere dependências entre itens (ex: software pode depender de hardware)
+1. ESTRUTURA DO PLANO DE TRABALHO:
+   - O plano é para um PROJETO específico vinculado a um ITEM DO CONTRATO (tipo Serviço ou Treinamento)
+   - Estrutura: PROJETO → SPRINTS → TAREFAS
+   - Tarefas podem ser criadas sem sprint (ficam no backlog do projeto)
+   - Tarefas precisam ser atribuídas a uma sprint para serem iniciadas/executadas
+   - Tarefas precisam ter um responsável para serem executadas
+   - Tarefas podem ter flag para bilhetar ou não na Ordem de Serviço (OS) do projeto
 
-2. PROCESSO DE EXECUÇÃO (Etapas por Item):
-   - Cada item deve ter 4 etapas obrigatórias: Planejamento, Implantação, Execução e Suporte
-   - As etapas NÃO são sprints/tarefas, mas sim marcos/estágios que estarão disponíveis para vinculação quando sprints forem criadas
-   - Cada etapa deve ter: nome, descrição, objetivo, duração estimada, entregáveis, atividades principais, dependências, riscos e critérios de aceitação
-   - As etapas serão usadas como referência histórica e para vinculação em sprints futuras
+2. FOCO NO ITEM DO CONTRATO VINCULADO AO PROJETO:
+   - O plano deve ser estruturado considerando o ITEM DO CONTRATO específico vinculado ao projeto (tipo Serviço ou Treinamento)
+   - Analise o nome do projeto, descrição e características do item do contrato para refinar o plano
+   - O plano deve refletir as necessidades específicas do item (Serviço ou Treinamento)
+   - Considere o modelo de plano de trabalho do fornecedor vinculado ao contrato
+
+3. PROCESSO DE EXECUÇÃO (Sprints e Tarefas):
+   - O plano deve criar SPRINTS que agrupam TAREFAS relacionadas
+   - Cada sprint deve ter: nome, objetivo, data de início, data de fim, e lista de tarefas
+   - Cada tarefa deve ter: título, descrição, horas planejadas, prioridade, responsável sugerido
+   - Tarefas podem ser criadas sem sprint (ficam no backlog do projeto para alocação futura)
+   - Tarefas atribuídas a sprints podem ser iniciadas/executadas quando tiverem responsável
+   - Considere criar algumas tarefas no backlog (sem sprint) para alocação posterior
 
 3. CRONOGRAMA:
    - Deve respeitar rigorosamente a vigência do contrato
@@ -934,12 +956,12 @@ REGRAS E DIRETRIZES OBRIGATÓRIAS:
 """
     
     @staticmethod
-    def gerar_plano_trabalho_completo(contrato, texto_documento: str, provider: str = "openai") -> Dict[str, Any]:
+    def gerar_plano_trabalho_completo(projeto, texto_documento: str, provider: str = "openai") -> Dict[str, Any]:
         """
-        Gera um plano de trabalho completo usando IA
+        Gera um plano de trabalho completo usando IA para um projeto específico
         
         Args:
-            contrato: Instância de Contrato
+            projeto: Instância de Projeto (com item_contrato vinculado)
             texto_documento: Texto extraído do documento
             provider: "openai" ou "anthropic"
             
@@ -947,22 +969,43 @@ REGRAS E DIRETRIZES OBRIGATÓRIAS:
             Dict com o plano completo
         """
         analyzer = ContractAIAnalyzer(provider=provider)
+        contrato = projeto.contrato
         
-        # Busca itens do contrato para incluir no contexto
-        itens_contrato = contrato.itens.filter(tipo__in=['software', 'hardware', 'solucao'])
-        itens_info = []
-        for item in itens_contrato:
-            itens_info.append(f"- Item {item.numero_item} ({item.tipo}): {item.descricao[:100]}")
+        # Busca informações do item do contrato vinculado ao projeto
+        item_contrato_info = ""
+        if projeto.item_contrato:
+            item = projeto.item_contrato
+            item_contrato_info = f"""
+ITEM DO CONTRATO VINCULADO AO PROJETO:
+- Número: {item.numero_item}
+- Tipo: {item.get_tipo_display()} ({item.tipo})
+- Descrição: {item.descricao}
+- Quantidade: {item.quantidade} {item.unidade}
+- Valor Unitário: R$ {item.valor_unitario}
+"""
         
-        itens_texto = "\n".join(itens_info) if itens_info else "Nenhum item de produto (software/hardware/solução) cadastrado"
+        # Identifica fornecedor principal para modelo de plano
+        fornecedor_info = ""
+        if contrato.fornecedores:
+            fornecedor_principal = contrato.fornecedores[0] if isinstance(contrato.fornecedores, list) else contrato.fornecedores
+            fornecedor_info = f"\nFornecedor Principal: {fornecedor_principal}\n"
         
-        # Monta contexto otimizado incluindo itens do contrato
-        contexto = f"""Contrato: {contrato.numero_contrato} | Cliente: {contrato.cliente.nome_razao_social} | Objeto: {contrato.objeto[:200]} | Vigência: {contrato.vigencia}m | Início: {contrato.data_assinatura} | Valor: R$ {contrato.valor_inicial} | Regime: {contrato.regime_legal}
-
-ITENS DO CONTRATO (Software, Hardware ou Solução):
-{itens_texto}
-
-Documento:
+        # Monta contexto otimizado incluindo informações do projeto e item do contrato
+        contexto = f"""PROJETO:
+- Nome: {projeto.nome}
+- Descrição: {projeto.descricao or 'Sem descrição'}
+{item_contrato_info}
+CONTRATO:
+- Número: {contrato.numero_contrato}
+- Cliente: {contrato.cliente.nome_razao_social}
+- Objeto: {contrato.objeto[:200]}
+- Vigência: {contrato.vigencia} meses
+- Data de Início: {contrato.data_assinatura}
+- Data de Término: {contrato.data_fim_atual or contrato.data_fim}
+- Valor: R$ {contrato.valor_inicial}
+- Regime Legal: {contrato.get_regime_legal_display()}
+{fornecedor_info}
+Documento do Contrato:
 {texto_documento[:80000] if provider == "openai" else texto_documento[:120000]}
 """
         
@@ -1005,7 +1048,7 @@ Documento:
         Cria o PlanoTrabalho a partir dos dados gerados pela IA
         
         Args:
-            projeto: Instância de Projeto
+            projeto: Instância de Projeto (já deve ter item_contrato vinculado)
             dados_plano: Dict com dados do plano
             usuario: Usuário que está criando
         """
@@ -1013,6 +1056,15 @@ Documento:
         from datetime import datetime
         
         contrato = projeto.contrato
+        
+        # Identificar fornecedor principal do projeto (baseado no contrato ou item do contrato)
+        fornecedor = None
+        if contrato.fornecedores:
+            fornecedor = contrato.fornecedores[0] if isinstance(contrato.fornecedores, list) and contrato.fornecedores else None
+        elif projeto.item_contrato:
+            # Tenta identificar fornecedor pelo item do contrato
+            # (pode ser necessário buscar em ItemFornecedor relacionado)
+            pass
         
         # Define datas padrão: data de assinatura e data de término do contrato
         # Se a IA fornecer datas, tenta usar, senão usa as do contrato
@@ -1081,12 +1133,6 @@ Documento:
         # Se ainda não tiver, usa processo_execucao antigo
         if not processo_execucao:
             processo_execucao = dados_plano.get('processo_execucao', [])
-        
-        # Identificar fornecedor principal do projeto (baseado nos itens do contrato)
-        fornecedor = None
-        if contrato.fornecedores:
-            # Pega o primeiro fornecedor da lista
-            fornecedor = contrato.fornecedores[0] if isinstance(contrato.fornecedores, list) and contrato.fornecedores else None
         
         plano = PlanoTrabalho(
             projeto=projeto,
@@ -1861,14 +1907,18 @@ Documento:
                 else:
                     # Cria nova tarefa
                     try:
+                        bilhetar_na_os = tarefa_data.get('bilhetar_na_os', True)
+                        
                         tarefa = Tarefa(
-                            sprint=sprint,
+                            projeto=projeto,  # Projeto obrigatório
+                            sprint=sprint,  # Sprint pode ser None (fica no backlog)
                             titulo=titulo_tarefa,
                             descricao=descricao_completa.strip(),
-                            tipo=tipo_map.get(tarefa_data.get('tipo', '').lower(), 'desenvolvimento'),
                             prioridade=prioridade_map.get(tarefa_data.get('prioridade', '').lower(), 'media'),
                             horas_planejadas=horas_planejadas,
                             responsavel=responsavel_tarefa,
+                            bilhetar_na_os=bilhetar_na_os,
+                            status='pendente',
                         )
                         tarefa.save()
                         tarefas_criadas += 1

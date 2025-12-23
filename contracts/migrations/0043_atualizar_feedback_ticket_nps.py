@@ -22,10 +22,9 @@ class Migration(migrations.Migration):
             model_name="feedbacksprintos",
             name="comentarios",
         ),
-        migrations.RemoveField(
-            model_name="feedbacksprintos",
-            name="oportunidade_gerada",
-        ),
+        # Nota: Campos 'oportunidade_gerada' e 'reclamacao_gerada' removidos da migração
+        # Esses campos nunca foram adicionados via migração (0042 foi esvaziada)
+        # Se existirem no banco, serão removidos diretamente
         migrations.RemoveField(
             model_name="feedbacksprintos",
             name="pontos_melhoria",
@@ -33,10 +32,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name="feedbacksprintos",
             name="pontos_positivos",
-        ),
-        migrations.RemoveField(
-            model_name="feedbacksprintos",
-            name="reclamacao_gerada",
         ),
         migrations.RemoveField(
             model_name="feedbacksprintos",

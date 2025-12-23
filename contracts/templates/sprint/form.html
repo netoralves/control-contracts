@@ -2,6 +2,13 @@
 {% extends 'contracts/base.html' %}
 {% load static form_filters %}
 
+{% block extra_head %}
+<!-- Flatpickr CSS e JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
     <div class="flex items-center justify-between mb-6">
@@ -47,39 +54,103 @@
         {% endif %}
         
         <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+            {# Linha 1: Nome (esquerda) e Status (direita) #}
+            {% if form.nome %}
+            <div>
+                <label for="{{ form.nome.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.nome.label }}
+                    {% if form.nome.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                {{ form.nome|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.nome.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.nome.help_text }}</p>
+                {% endif %}
+                {% if form.nome.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.nome.errors }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if form.status %}
+            <div>
+                <label for="{{ form.status.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.status.label }}
+                    {% if form.status.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                {{ form.status|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.status.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.status.help_text }}</p>
+                {% endif %}
+                {% if form.status.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.status.errors }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {# Linha 2: Data de Início (esquerda) e Data de Término (direita) #}
+            {% if form.data_inicio %}
+            <div>
+                <label for="{{ form.data_inicio.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.data_inicio.label }}
+                    {% if form.data_inicio.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                <div class="relative">
+                    {{ form.data_inicio|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_inicio">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
+                </div>
+                {% if form.data_inicio.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.data_inicio.help_text }}</p>
+                {% endif %}
+                {% if form.data_inicio.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.data_inicio.errors }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if form.data_fim %}
+            <div>
+                <label for="{{ form.data_fim.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.data_fim.label }}
+                    {% if form.data_fim.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                <div class="relative">
+                    {{ form.data_fim|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_fim">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
+                </div>
+                {% if form.data_fim.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.data_fim.help_text }}</p>
+                {% endif %}
+                {% if form.data_fim.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.data_fim.errors }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {# Linha 3: Descrição (2 colunas) #}
+            {% if form.descricao %}
+            <div class="md:col-span-2">
+                <label for="{{ form.descricao.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {{ form.descricao.label }}
+                    {% if form.descricao.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
+                {{ form.descricao|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                {% if form.descricao.help_text %}
+                    <p class="mt-1 text-xs text-gray-500">{{ form.descricao.help_text }}</p>
+                {% endif %}
+                {% if form.descricao.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.descricao.errors }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {# Outros campos #}
             {% for field in form %}
-                {% if field.name == 'nome' %}
-                    {# Nome da Sprint - coluna esquerda #}
-                    <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
-                        {% endif %}
-                        {% if field.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                        {% endif %}
-                    </div>
-                {% elif field.name == 'status' %}
-                    {# Status - coluna direita, ao lado do Nome #}
-                    <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}
-                            <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
-                        {% endif %}
-                        {% if field.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                        {% endif %}
-                    </div>
-                {% elif field.name != 'projeto' %}
-                    <div class="{% if field.name == 'descricao' %}md:col-span-2{% elif field.name == 'ordem_servico' %}md:col-span-2{% endif %}">
+                {% if field.name != 'nome' and field.name != 'status' and field.name != 'data_inicio' and field.name != 'data_fim' and field.name != 'descricao' and field.name != 'projeto' %}
+                    <div class="{% if field.name == 'ordem_servico' %}md:col-span-2{% endif %}">
                         <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             {{ field.label }}
                             {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
@@ -107,5 +178,113 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara para campos de data (dd/mm/yyyy)
+    const dataInicioField = document.getElementById('id_data_inicio');
+    const dataFimField = document.getElementById('id_data_fim');
+    
+    let isFlatpickrUpdating = false;
+    
+    function aplicarMascaraData(input) {
+        if (!input) return;
+        
+        // Converter valor inicial se existir (formato YYYY-MM-DD para dd/mm/yyyy)
+        if (input.value && input.value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const parts = input.value.split('-');
+            input.value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        
+        input.addEventListener('input', function(e) {
+            // Não aplicar máscara se o Flatpickr estiver atualizando
+            if (isFlatpickrUpdating) return;
+            
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 8) {
+                value = value.slice(0, 8);
+            }
+            
+            let formattedValue = '';
+            if (value.length > 0) {
+                formattedValue = value.slice(0, 2);
+            }
+            if (value.length > 2) {
+                formattedValue += '/' + value.slice(2, 4);
+            }
+            if (value.length > 4) {
+                formattedValue += '/' + value.slice(4, 8);
+            }
+            
+            e.target.value = formattedValue;
+        });
+        
+        // Converter para formato ISO antes de enviar
+        const form = input.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (input.value && input.value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                    const parts = input.value.split('/');
+                    input.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            });
+        }
+    }
+    
+    // Configurar Flatpickr para Data de Início
+    if (dataInicioField) {
+        aplicarMascaraData(dataInicioField);
+        
+        // Inicializar Flatpickr
+        const flatpickrInicio = flatpickr(dataInicioField, {
+            dateFormat: "d/m/Y",
+            locale: "pt",
+            allowInput: true,
+            clickOpens: false, // Abre apenas pelo ícone
+            onChange: function(selectedDates, dateStr, instance) {
+                // Atualiza o campo com o valor formatado
+                isFlatpickrUpdating = true;
+                dataInicioField.value = dateStr;
+                setTimeout(() => { isFlatpickrUpdating = false; }, 100);
+            }
+        });
+        
+        // Abrir calendário ao clicar no ícone
+        const calendarBtnInicio = document.getElementById('calendar_btn_inicio');
+        if (calendarBtnInicio) {
+            calendarBtnInicio.addEventListener('click', function() {
+                flatpickrInicio.open();
+            });
+        }
+    }
+    
+    // Configurar Flatpickr para Data de Término
+    if (dataFimField) {
+        aplicarMascaraData(dataFimField);
+        
+        // Inicializar Flatpickr
+        const flatpickrFim = flatpickr(dataFimField, {
+            dateFormat: "d/m/Y",
+            locale: "pt",
+            allowInput: true,
+            clickOpens: false, // Abre apenas pelo ícone
+            onChange: function(selectedDates, dateStr, instance) {
+                // Atualiza o campo com o valor formatado
+                isFlatpickrUpdating = true;
+                dataFimField.value = dateStr;
+                setTimeout(() => { isFlatpickrUpdating = false; }, 100);
+            }
+        });
+        
+        // Abrir calendário ao clicar no ícone
+        const calendarBtnFim = document.getElementById('calendar_btn_fim');
+        if (calendarBtnFim) {
+            calendarBtnFim.addEventListener('click', function() {
+                flatpickrFim.open();
+            });
+        }
+    }
+});
+</script>
 {% endblock %}
 

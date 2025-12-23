@@ -11,15 +11,17 @@ from .models import Tarefa, LancamentoHora, OrdemServico, Sprint, FeedbackSprint
 @receiver([post_save, post_delete], sender=Tarefa)
 def atualizar_horas_os_tarefa(sender, instance, **kwargs):
     """Atualiza horas planejadas e realizadas da OS quando uma tarefa é salva ou deletada"""
-    if instance.ordem_servico:
-        instance.ordem_servico.calcular_horas_tarefas()
+    # A ordem de serviço agora está vinculada ao projeto, não diretamente à tarefa
+    if instance.projeto and hasattr(instance.projeto, 'ordem_servico') and instance.projeto.ordem_servico:
+        instance.projeto.ordem_servico.calcular_horas_tarefas()
 
 
 @receiver([post_save, post_delete], sender=LancamentoHora)
 def atualizar_horas_os_lancamento(sender, instance, **kwargs):
     """Atualiza horas realizadas da OS quando um lançamento de hora é salvo ou deletado"""
-    if instance.tarefa and instance.tarefa.ordem_servico:
-        instance.tarefa.ordem_servico.calcular_horas_tarefas()
+    # A ordem de serviço agora está vinculada ao projeto, não diretamente à tarefa
+    if instance.tarefa and instance.tarefa.projeto and hasattr(instance.tarefa.projeto, 'ordem_servico') and instance.tarefa.projeto.ordem_servico:
+        instance.tarefa.projeto.ordem_servico.calcular_horas_tarefas()
 
 
 @receiver(post_save, sender=Sprint)

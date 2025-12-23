@@ -155,17 +155,7 @@ class Migration(migrations.Migration):
                         verbose_name="Criado por",
                     ),
                 ),
-                (
-                    "projeto",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="planos_trabalho",
-                        to="contracts.projeto",
-                        verbose_name="Projeto Gerado",
-                    ),
-                ),
+                # Campo 'projeto' será adicionado na migração 0060 após a criação do modelo Projeto
             ],
             options={
                 "verbose_name": "Plano de Trabalho",
@@ -232,17 +222,7 @@ class Migration(migrations.Migration):
                         verbose_name="Contrato",
                     ),
                 ),
-                (
-                    "sla",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="slas_importantes",
-                        to="contracts.sla",
-                        verbose_name="SLA Vinculado",
-                    ),
-                ),
+                # Campo 'sla' será adicionado na migração 0060 após a criação do modelo SLA
             ],
             options={
                 "verbose_name": "SLA Importante",

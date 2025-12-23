@@ -43,13 +43,21 @@
             margin-left: 80px;
         }
 
-        body.sidebar-minimized .nav-text, 
-        body.sidebar-minimized #logo-container span {
-            display: none; /* Esconde o texto dos links e da logo */
+        body.sidebar-minimized .nav-text {
+            display: none; /* Esconde o texto dos links */
         }
 
         body.sidebar-minimized #logo-container {
             justify-content: center;
+        }
+
+        body.sidebar-minimized #logo-container a {
+            justify-content: center;
+        }
+
+        body.sidebar-minimized #logo-container img {
+            margin: 0;
+            height: 2.5rem; /* Ajusta o tamanho quando minimizado */
         }
 
         body.sidebar-minimized #default-sidebar ul a {
@@ -131,6 +139,8 @@
         }
     </script>
 
+    {% block extra_head %}{% endblock %}
+
 </head>
 <body class="bg-gray-100 dark:bg-gray-900">
 
@@ -144,8 +154,9 @@
     <div class="h-full px-3 py-4 overflow-y-auto">
         <!-- Logo -->
         <div id="logo-container" class="flex items-center ps-2.5 mb-5 h-12">
-            <img src="{% static 'img/logo_alltech_branco2.png' %}" class="h-7 me-3" alt="Alltech Logo" />
-            <span class="self-center text-xl font-semibold text-gray-500 whitespace-nowrap dark:text-white">AllTech</span>
+            <a href="{% url 'dashboard' %}" class="flex items-center w-full hover:opacity-80 transition-opacity duration-200" title="Ir para o Dashboard">
+                <img src="{% static 'img/LOGO-COLORIDA-ALLTECH.png' %}" class="h-10 max-w-full object-contain" alt="Alltech Logo" />
+            </a>
         </div>
 
         <ul class="space-y-1 font-medium">

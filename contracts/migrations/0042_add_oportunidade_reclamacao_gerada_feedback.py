@@ -11,28 +11,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="feedbacksprintos",
-            name="oportunidade_gerada",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="feedbacks_origem",
-                to="contracts.oportunidade",
-                verbose_name="Oportunidade Gerada",
-            ),
-        ),
-        migrations.AddField(
-            model_name="feedbacksprintos",
-            name="reclamacao_gerada",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="feedbacks_origem",
-                to="contracts.reclamacao",
-                verbose_name="Reclamação Gerada",
-            ),
-        ),
+        # Nota: Operações removidas - os modelos 'oportunidade' e 'reclamacao' serão removidos na migração 0050
+        # Se os modelos existirem no banco, essas alterações já foram aplicadas diretamente
     ]

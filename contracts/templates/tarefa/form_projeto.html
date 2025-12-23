@@ -1,325 +1,817 @@
-{# tarefa/form_projeto.html #}
 {% extends 'contracts/base.html' %}
 {% load static form_filters %}
 
+{% block extra_head %}
+<!-- Flatpickr CSS e JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+{% endblock %}
+
+{% block title %}Editar Tarefa{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-    <div class="flex items-center justify-between mb-6">
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% if tarefa.sprint %}{% url 'sprint_detail' projeto.pk tarefa.sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Editar Tarefa</h1>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                <i class="fas fa-tasks mr-2"></i>Editar Tarefa
+            </h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
                 Projeto: {{ projeto.nome }}
                 {% if tarefa.sprint %} - Sprint: {{ tarefa.sprint.nome }}{% endif %}
             </p>
-            {% if form.non_field_errors or form.errors %}
-            <div class="mt-4 bg-red-50 dark:bg-red-900 p-4 rounded-lg">
-                <p class="text-red-800 dark:text-red-200 font-semibold mb-2">Erros no formulário:</p>
-                <ul class="list-disc list-inside text-red-700 dark:text-red-300">
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
+        </div>
+    </div>
+
+    <!-- Mensagens de erro -->
+    {% if form.errors %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+            <div>
+                <p class="font-semibold text-red-700 dark:text-red-300">Por favor, corrija os erros abaixo:</p>
+                <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-400 mt-2">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
                     {% endfor %}
-                    {% for field, errors in form.errors.items %}
-                        {% if field != 'backlog' and field != 'status' %}
-                            {% for error in errors %}
-                            <li><strong>{{ field|title }}:</strong> {{ error }}</li>
-                            {% endfor %}
-                        {% endif %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
                     {% endfor %}
                 </ul>
             </div>
-            {% endif %}
         </div>
-        <a href="{% if tarefa.sprint %}{% url 'sprint_detail' projeto.pk tarefa.sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}"
-           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
-            <i class="fa fa-arrow-left"></i> Voltar
-        </a>
     </div>
+    {% endif %}
 
-    <form method="post" novalidate>
+    <!-- Formulário -->
+    <form method="post" class="space-y-6" novalidate id="tarefa_form_edit">
         {% csrf_token %}
         
         <!-- Campos ocultos -->
-        {{ form.backlog }}
-        {{ form.status }}
-        {# Campo status_sprint: oculto se não estiver em sprint, será renderizado explicitamente depois se necessário #}
-        {% if form.status_sprint.field.widget.is_hidden %}
-            {{ form.status_sprint }}
+        {% if form.projeto %}
+            {{ form.projeto }}
         {% endif %}
-        {# Campo sprint: oculto se não for necessário, ou será renderizado explicitamente depois #}
         {% if form.sprint.field.widget.is_hidden %}
             {{ form.sprint }}
         {% endif %}
+        {% if form.status_sprint.field.widget.is_hidden %}
+            {{ form.status_sprint }}
+        {% endif %}
         
-        <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
-            {# Renderizar campos na ordem específica - começar sempre com titulo #}
-            {# Primeiro renderizar titulo explicitamente #}
-            {% if form.titulo %}
-            <div>
-                <label for="{{ form.titulo.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    {{ form.titulo.label }}
-                    {% if form.titulo.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
-                {{ form.titulo|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                {% if form.titulo.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.titulo.help_text }}</p>{% endif %}
-                {% if form.titulo.errors %}<p class="mt-1 text-sm text-red-600">{{ form.titulo.errors }}</p>{% endif %}
-            </div>
-            {% endif %}
+        <!-- Informações Básicas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>Informações Básicas
+            </h3>
             
-            {# Renderizar campos na ordem específica: Responsável, Status (Sprint), Prioridade, Ciclo Atual (Sprint) #}
-            {# Primeiro renderizar Responsável (coluna esquerda) #}
-            {% if form.responsavel %}
-            <div>
-                <label for="{{ form.responsavel.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    {{ form.responsavel.label }}
-                    {% if form.responsavel.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
-                {{ form.responsavel|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                {% if form.responsavel.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.responsavel.help_text }}</p>{% endif %}
-                {% if form.responsavel.errors %}<p class="mt-1 text-sm text-red-600">{{ form.responsavel.errors }}</p>{% endif %}
-            </div>
-            {% endif %}
-            
-            {# Status (Sprint) - coluna direita, abaixo do Responsável #}
-            {% if tarefa.sprint and form.status_sprint and not form.status_sprint.field.widget.is_hidden %}
-            <div>
-                <label for="{{ form.status_sprint.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    {{ form.status_sprint.label }}
-                    {% if form.status_sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
-                {{ form.status_sprint|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                {% if form.status_sprint.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.status_sprint.help_text }}</p>{% endif %}
-                {% if form.status_sprint.errors %}<p class="mt-1 text-sm text-red-600">{{ form.status_sprint.errors }}</p>{% endif %}
-            </div>
-            {% endif %}
-            
-            {# Prioridade - coluna direita, abaixo do Status #}
-            {% if form.prioridade %}
-            <div>
-                <label for="{{ form.prioridade.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    {{ form.prioridade.label }}
-                    {% if form.prioridade.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
-                {{ form.prioridade|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                {% if form.prioridade.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.prioridade.help_text }}</p>{% endif %}
-                {% if form.prioridade.errors %}<p class="mt-1 text-sm text-red-600">{{ form.prioridade.errors }}</p>{% endif %}
-            </div>
-            {% endif %}
-            
-            {# Ciclo Atual (Sprint) - coluna esquerda, abaixo do Responsável #}
-            {% if form.sprint and not form.sprint.field.widget.is_hidden %}
-            <div>
-                <label for="{{ form.sprint.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Ciclo Atual (Sprint)
-                    {% if form.sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
-                {{ form.sprint|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                {% if form.sprint.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.sprint.help_text }}</p>{% endif %}
-                {% if form.sprint.errors %}<p class="mt-1 text-sm text-red-600">{{ form.sprint.errors }}</p>{% endif %}
-            </div>
-            {% endif %}
-            
-            {# Depois renderizar os outros campos na ordem específica #}
-            {# Filtrar apenas campos visíveis e que não são titulo, sprint, backlog, status, status_sprint, responsavel, prioridade ou ocultos #}
-            {% for field in form.visible_fields %}
-                {% if field.name == 'titulo' or field.name == 'sprint' or field.name == 'backlog' or field.name == 'status' or field.name == 'status_sprint' or field.name == 'responsavel' or field.name == 'prioridade' or field.field.widget.is_hidden %}
-                    {# Já renderizado acima, ou oculto, pular #}
-                {% elif field.name == 'descricao' %}
-                    <div class="md:col-span-2">
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
-                    </div>
-                {% elif field.name == 'horas_consumidas' %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Coluna 1-2: Título e Descrição -->
+                <div class="md:col-span-2 flex flex-col gap-2">
+                    <!-- Título -->
+                    {% if form.titulo %}
                     <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
+                        <label for="{{ form.titulo.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.titulo.label }} <span class="text-red-500">*</span>
                         </label>
-                        {{ field|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        <p class="mt-1 text-xs text-gray-500">Calculado automaticamente baseado nos lançamentos de horas</p>
+                        {{ form.titulo }}
+                        {% if form.titulo.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.titulo.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                {% elif field.name == 'data_inicio_prevista' %}
+                    {% endif %}
+                    
+                    <!-- Descrição -->
+                    {% if form.descricao %}
                     <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Data/Hora de Início Planejado (dd/mm/yyyy, --:--)
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        <label for="{{ form.descricao.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.descricao.label }} <span class="text-red-500">*</span>
                         </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                        {{ form.descricao }}
+                        {% if form.descricao.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ form.descricao.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                {% elif field.name == 'data_termino_prevista' %}
-                    <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Data/Hora de Término Planejado (dd/mm/yyyy, --:--)
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    {% endif %}
+                </div>
+                
+                <!-- Coluna 3: Campo Bilhetar na OS -->
+                {% if form.bilhetar_na_os %}
+                <div class="flex items-center justify-center">
+                    <div class="w-full max-w-[180px]">
+                        <label for="{{ form.bilhetar_na_os.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {{ form.bilhetar_na_os.label }}
                         </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
+                        <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center gap-2 min-h-[110px]">
+                            <div class="relative">
+                                <input type="checkbox" 
+                                       name="{{ form.bilhetar_na_os.name }}" 
+                                       id="{{ form.bilhetar_na_os.id_for_label }}"
+                                       {% if form.bilhetar_na_os.value %}checked{% endif %}
+                                       class="w-8 h-8 rounded-lg border-2 border-blue-400 dark:border-blue-600 bg-white dark:bg-gray-700 cursor-pointer appearance-none checked:bg-blue-600 checked:border-blue-700 dark:checked:bg-blue-700 dark:checked:border-blue-500 focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-200 bilhetar-os-checkbox">
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none bilhetar-os-icon">
+                                    {% if form.bilhetar_na_os.value %}
+                                    <i class="fas fa-check text-white text-xs font-bold"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if form.bilhetar_na_os.help_text %}
+                            <p class="text-xs text-blue-800 dark:text-blue-300 text-center leading-snug px-1" style="min-height: 2.5rem; display: flex; align-items: center; justify-content: center;">
+                                {{ form.bilhetar_na_os.help_text }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% if form.bilhetar_na_os.errors %}
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.bilhetar_na_os.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                {% elif field.name == 'horas_planejadas' %}
-                    <div>
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
-                    </div>
-                {% elif field.name not in 'backlog,sprint,status_sprint,status,titulo,descricao,responsavel,prioridade,horas_consumidas,data_inicio_prevista,data_termino_prevista,horas_planejadas'|make_list %}
-                    <div class="{% if field.name == 'observacoes' %}md:col-span-2{% endif %}">
-                        <label for="{{ field.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {{ field.label }}
-                            {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-                        </label>
-                        {{ field|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
-                        {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-                        {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>{% endif %}
-                    </div>
+                </div>
                 {% endif %}
-            {% endfor %}
+            </div>
         </div>
 
-        <div class="flex justify-end gap-2 mt-6">
-            <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="fa fa-save"></i> Salvar
-            </button>
-            <a href="{% if tarefa.sprint %}{% url 'sprint_detail' projeto.pk tarefa.sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                <i class="fa fa-times"></i> Cancelar
+        <!-- Atribuição e Prioridade -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-users mr-2 text-green-500"></i>Atribuição e Prioridade
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Responsável -->
+                {% if form.responsavel %}
+                <div>
+                    <label for="{{ form.responsavel.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.responsavel.label }}
+                        {% if form.responsavel.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {{ form.responsavel }}
+                    {% if form.responsavel.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.responsavel.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Prioridade -->
+                {% if form.prioridade %}
+                <div>
+                    <label for="{{ form.prioridade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.prioridade.label }}
+                        {% if form.prioridade.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {{ form.prioridade }}
+                    {% if form.prioridade.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.prioridade.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Planejamento e Datas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>Planejamento e Datas
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Horas Consumidas (somente leitura) -->
+                {% if form.horas_consumidas %}
+                <div>
+                    <label for="{{ form.horas_consumidas.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.horas_consumidas.label }}
+                    </label>
+                    {{ form.horas_consumidas|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed" }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Calculado automaticamente baseado nos lançamentos de horas</p>
+                </div>
+                {% endif %}
+                
+                <!-- Data Início -->
+                {% if form.data_inicio_prevista %}
+                <div>
+                    <label for="{{ form.data_inicio_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Data/Hora de Início Planejado
+                        {% if form.data_inicio_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    <div class="relative">
+                        {{ form.data_inicio_prevista }}
+                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_inicio_edit">
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Formato: dd/mm/yyyy, HH:MM</p>
+                    {% if form.data_inicio_prevista.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.data_inicio_prevista.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Data Término -->
+                {% if form.data_termino_prevista %}
+                <div>
+                    <label for="{{ form.data_termino_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Data/Hora de Término Planejado
+                        {% if form.data_termino_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    <div class="relative">
+                        {{ form.data_termino_prevista }}
+                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_termino_edit">
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Formato: dd/mm/yyyy, HH:MM</p>
+                    {% if form.data_termino_prevista.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.data_termino_prevista.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Horas Planejadas -->
+                {% if form.horas_planejadas %}
+                <div>
+                    <label for="{{ form.horas_planejadas.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.horas_planejadas.label }}
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">(sugestão automática - pode editar)</span>
+                    </label>
+                    {{ form.horas_planejadas }}
+                    {% if form.horas_planejadas.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.horas_planejadas.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Observações -->
+                {% if form.observacoes %}
+                <div>
+                    <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.observacoes.label }}
+                    </label>
+                    {{ form.observacoes }}
+                    {% if form.observacoes.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.observacoes.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sprint e Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                <i class="fas fa-rocket mr-2 text-orange-500"></i>Sprint e Status
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Sprint -->
+                {% if form.sprint and not form.sprint.field.widget.is_hidden %}
+                <div>
+                    <label for="{{ form.sprint.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ form.sprint.label }}
+                        {% if form.sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {{ form.sprint }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <i class="fa-solid fa-info-circle mr-1"></i>
+                        Selecione uma sprint para alocar a tarefa, ou deixe em branco para alocar no backlog do projeto.
+                    </p>
+                    {% if form.sprint.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.sprint.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Status da Tarefa -->
+                {% if form.status_sprint and not form.status_sprint.field.widget.is_hidden %}
+                <div id="status_sprint_container_edit">
+                    <label for="{{ form.status_sprint.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Status da Tarefa
+                        {% if form.status_sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    {{ form.status_sprint }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <i class="fa-solid fa-info-circle mr-1"></i>
+                        Status da tarefa quando atribuída a uma sprint.
+                    </p>
+                    {% if form.status_sprint.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.status_sprint.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex justify-end gap-4">
+            <a href="{% if tarefa.sprint %}{% url 'sprint_detail' projeto.pk tarefa.sprint.pk %}{% else %}{% url 'projeto_detail' projeto.pk %}{% endif %}" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-white rounded-lg font-medium transition">
+                <i class="fas fa-times mr-2"></i>Cancelar
             </a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                <i class="fas fa-save mr-2"></i>Salvar Tarefa
+            </button>
         </div>
     </form>
 </div>
 
 <script>
-// Calcular horas automaticamente quando as datas/horas mudarem
+// Função para aplicar máscara de data/hora: dd/mm/yyyy, HH:MM
+function aplicarMascaraDataHora(input) {
+    input.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+        
+        // Limita o tamanho máximo (16 caracteres: ddmm yyyy HHMM)
+        if (value.length > 16) {
+            value = value.slice(0, 16);
+        }
+        
+        // Aplica a máscara conforme o usuário digita
+        let formattedValue = '';
+        
+        if (value.length > 0) {
+            formattedValue = value.slice(0, 2); // dd
+        }
+        if (value.length > 2) {
+            formattedValue += '/' + value.slice(2, 4); // /mm
+        }
+        if (value.length > 4) {
+            formattedValue += '/' + value.slice(4, 8); // /yyyy
+        }
+        if (value.length > 8) {
+            formattedValue += ', ' + value.slice(8, 10); // , HH
+        }
+        if (value.length > 10) {
+            formattedValue += ':' + value.slice(10, 12); // :MM
+        }
+        
+        e.target.value = formattedValue;
+    });
+    
+    // Permite backspace e delete
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            return true;
+        }
+    });
+}
+
+// Calcular horas automaticamente quando as datas/horas mudarem e controlar status_sprint
 document.addEventListener('DOMContentLoaded', function() {
+    const sprintField = document.getElementById('id_sprint');
+    const statusSprintField = document.getElementById('id_status_sprint');
+    const statusSprintContainer = document.getElementById('status_sprint_container_edit');
     const dataInicioField = document.getElementById('id_data_inicio_prevista');
     const dataTerminoField = document.getElementById('id_data_termino_prevista');
-    const horasPlanejadasField = document.getElementById('id_horas_planejadas');
     
-    function calcularHorasDiasUteis(dataInicio, dataTermino) {
-        if (!dataInicio || !dataTermino) return 0;
+    // Função para converter formato ISO (YYYY-MM-DD HH:MM:SS) para formato brasileiro (dd/mm/yyyy, HH:MM)
+    function converterDataHoraISOParaBrasileiro(valor) {
+        if (!valor) return '';
+        // Verificar se está no formato ISO (YYYY-MM-DD HH:MM:SS ou YYYY-MM-DDTHH:MM:SS)
+        const isoRegex = /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/;
+        const match = valor.match(isoRegex);
+        if (match) {
+            const [, ano, mes, dia, hora, minuto] = match;
+            return `${dia}/${mes}/${ano}, ${hora}:${minuto}`;
+        }
+        return valor;
+    }
+    
+    // Configurar Flatpickr e máscara nos campos de data/hora
+    if (dataInicioField) {
+        // Converter valor inicial se estiver no formato ISO
+        let valorInicialConvertido = '';
+        let initialDateInicio = null;
         
-        const inicio = new Date(dataInicio);
-        const termino = new Date(dataTermino);
+        if (dataInicioField.value) {
+            valorInicialConvertido = converterDataHoraISOParaBrasileiro(dataInicioField.value);
+            dataInicioField.value = valorInicialConvertido;
+            
+            // Parsear valor convertido para o Flatpickr
+            const brRegex = /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2})/;
+            const match = valorInicialConvertido.match(brRegex);
+            if (match) {
+                const [, dia, mes, ano, hora, minuto] = match;
+                initialDateInicio = new Date(`${ano}-${mes}-${dia}T${hora}:${minuto}:00`);
+            }
+        }
         
-        if (inicio > termino) return 0;
+        // Adicionar placeholder
+        if (!dataInicioField.placeholder) {
+            dataInicioField.placeholder = 'dd/mm/yyyy, HH:MM';
+        }
         
-        // Horário de trabalho: 09:00-12:00 (3h) e 14:00-19:00 (5h) = 8h por dia útil
-        const horaInicioTrabalho = 9; // 09:00
-        const horaFimManha = 12; // 12:00
-        const horaInicioTarde = 14; // 14:00
-        const horaFimTrabalho = 19; // 19:00
+        let isFlatpickrUpdating = false;
         
-        let totalHoras = 0;
-        let dataAtual = new Date(inicio);
+        // Configurar Flatpickr para data/hora
+        const flatpickrInicio = flatpickr(dataInicioField, {
+            enableTime: true,
+            dateFormat: "d/m/Y, H:i",
+            time_24hr: true,
+            locale: "pt",
+            allowInput: true,
+            clickOpens: false, // Desabilita abertura ao clicar no campo
+            defaultDate: initialDateInicio,
+            onReady: function(selectedDates, dateStr, instance) {
+                // Adiciona listener ao botão do calendário
+                const calendarBtn = document.getElementById('calendar_btn_inicio_edit');
+                if (calendarBtn) {
+                    calendarBtn.addEventListener('click', function() {
+                        instance.open();
+                    });
+                }
+                // Garantir que o valor está no formato correto após o Flatpickr inicializar
+                if (valorInicialConvertido && valorInicialConvertido.match(/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}/)) {
+                    dataInicioField.value = valorInicialConvertido;
+                }
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                // Atualiza o campo com o valor formatado
+                isFlatpickrUpdating = true;
+                dataInicioField.value = dateStr;
+                setTimeout(() => { isFlatpickrUpdating = false; }, 100);
+                // Recalcular horas planejadas
+                calcularHorasPlanejadas();
+            }
+        });
         
-        while (dataAtual <= termino) {
-            // Verificar se é dia útil (segunda a sexta, 0-4)
-            const diaSemana = dataAtual.getDay();
-            if (diaSemana >= 1 && diaSemana <= 5) {
-                const horaAtual = dataAtual.getHours();
-                const minutosAtual = dataAtual.getMinutes();
+        // Aplicar máscara apenas quando o usuário digita manualmente
+        dataInicioField.addEventListener('input', function(e) {
+            if (!isFlatpickrUpdating) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 16) {
+                    value = value.slice(0, 16);
+                }
+                let formattedValue = '';
+                if (value.length > 0) {
+                    formattedValue = value.slice(0, 2);
+                }
+                if (value.length > 2) {
+                    formattedValue += '/' + value.slice(2, 4);
+                }
+                if (value.length > 4) {
+                    formattedValue += '/' + value.slice(4, 8);
+                }
+                if (value.length > 8) {
+                    formattedValue += ', ' + value.slice(8, 10);
+                }
+                if (value.length > 10) {
+                    formattedValue += ':' + value.slice(10, 12);
+                }
+                e.target.value = formattedValue;
+                // Recalcular horas planejadas
+                calcularHorasPlanejadas();
+            }
+        });
+    }
+    
+    if (dataTerminoField) {
+        // Converter valor inicial se estiver no formato ISO
+        let valorInicialConvertido = '';
+        let initialDateTermino = null;
+        
+        if (dataTerminoField.value) {
+            valorInicialConvertido = converterDataHoraISOParaBrasileiro(dataTerminoField.value);
+            dataTerminoField.value = valorInicialConvertido;
+            
+            // Parsear valor convertido para o Flatpickr
+            const brRegex = /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2})/;
+            const match = valorInicialConvertido.match(brRegex);
+            if (match) {
+                const [, dia, mes, ano, hora, minuto] = match;
+                initialDateTermino = new Date(`${ano}-${mes}-${dia}T${hora}:${minuto}:00`);
+            }
+        }
+        
+        // Adicionar placeholder
+        if (!dataTerminoField.placeholder) {
+            dataTerminoField.placeholder = 'dd/mm/yyyy, HH:MM';
+        }
+        
+        let isFlatpickrUpdating = false;
+        
+        // Configurar Flatpickr para data/hora
+        const flatpickrTermino = flatpickr(dataTerminoField, {
+            enableTime: true,
+            dateFormat: "d/m/Y, H:i",
+            time_24hr: true,
+            locale: "pt",
+            allowInput: true,
+            clickOpens: false, // Desabilita abertura ao clicar no campo
+            defaultDate: initialDateTermino,
+            onReady: function(selectedDates, dateStr, instance) {
+                // Adiciona listener ao botão do calendário
+                const calendarBtn = document.getElementById('calendar_btn_termino_edit');
+                if (calendarBtn) {
+                    calendarBtn.addEventListener('click', function() {
+                        instance.open();
+                    });
+                }
+                // Garantir que o valor está no formato correto após o Flatpickr inicializar
+                if (valorInicialConvertido && valorInicialConvertido.match(/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}/)) {
+                    dataTerminoField.value = valorInicialConvertido;
+                }
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                // Atualiza o campo com o valor formatado
+                isFlatpickrUpdating = true;
+                dataTerminoField.value = dateStr;
+                setTimeout(() => { isFlatpickrUpdating = false; }, 100);
+                // Recalcular horas planejadas
+                calcularHorasPlanejadas();
+            }
+        });
+        
+        // Aplicar máscara apenas quando o usuário digita manualmente
+        dataTerminoField.addEventListener('input', function(e) {
+            if (!isFlatpickrUpdating) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 16) {
+                    value = value.slice(0, 16);
+                }
+                let formattedValue = '';
+                if (value.length > 0) {
+                    formattedValue = value.slice(0, 2);
+                }
+                if (value.length > 2) {
+                    formattedValue += '/' + value.slice(2, 4);
+                }
+                if (value.length > 4) {
+                    formattedValue += '/' + value.slice(4, 8);
+                }
+                if (value.length > 8) {
+                    formattedValue += ', ' + value.slice(8, 10);
+                }
+                if (value.length > 10) {
+                    formattedValue += ':' + value.slice(10, 12);
+                }
+                e.target.value = formattedValue;
+                // Recalcular horas planejadas
+                calcularHorasPlanejadas();
+            }
+        });
+    }
+    
+    // Função para calcular horas planejadas baseado em dias úteis
+    function calcularHorasPlanejadas() {
+        const horasPlanejadasField = document.getElementById('id_horas_planejadas');
+        if (!horasPlanejadasField || !dataInicioField || !dataTerminoField) {
+            return;
+        }
+        
+        // Verificar se o campo está focado (usuário está editando manualmente)
+        if (document.activeElement === horasPlanejadasField) {
+            return; // Não sobrescrever se o usuário está editando
+        }
+        
+        const dataInicioStr = dataInicioField.value.trim();
+        const dataTerminoStr = dataTerminoField.value.trim();
+        
+        if (!dataInicioStr || !dataTerminoStr) {
+            return;
+        }
+        
+        try {
+            // Parse das datas no formato "dd/mm/yyyy, HH:MM"
+            const parseDateTime = (dateStr) => {
+                const parts = dateStr.split(', ');
+                if (parts.length !== 2) return null;
                 
-                // Primeiro dia: calcular horas do início até o fim do dia
-                if (dataAtual.toDateString() === inicio.toDateString()) {
-                    let horasDia = 0;
-                    
-                    // Manhã: 09:00-12:00
-                    if (horaAtual <= horaFimManha) {
-                        const inicioManha = Math.max(horaAtual, horaInicioTrabalho);
-                        if (inicioManha < horaFimManha) {
-                            horasDia += (horaFimManha - inicioManha);
-                            if (inicioManha === horaAtual && minutosAtual > 0) {
-                                horasDia -= minutosAtual / 60;
-                            }
-                        }
-                    }
-                    
-                    // Tarde: 14:00-19:00
-                    if (horaAtual < horaFimManha || (horaAtual >= horaInicioTarde && dataAtual.toDateString() === termino.toDateString())) {
-                        const horaTermino = termino.getHours();
-                        const minutosTermino = termino.getMinutes();
-                        
-                        if (horaAtual < horaFimManha) {
-                            // Incluir toda a tarde
-                            horasDia += (horaFimTrabalho - horaInicioTarde);
-                        } else if (horaAtual >= horaInicioTarde) {
-                            // Começa na tarde
-                            const fimTarde = dataAtual.toDateString() === termino.toDateString() 
-                                ? horaTermino + (minutosTermino / 60)
-                                : horaFimTrabalho;
-                            if (horaAtual + (minutosAtual / 60) < fimTarde) {
-                                horasDia += (fimTarde - (horaAtual + (minutosAtual / 60)));
-                            }
-                        }
-                    }
-                    
-                    totalHoras += horasDia;
+                const datePart = parts[0].split('/');
+                const timePart = parts[1].split(':');
+                
+                if (datePart.length !== 3 || timePart.length !== 2) return null;
+                
+                const day = parseInt(datePart[0], 10);
+                const month = parseInt(datePart[1], 10) - 1; // JavaScript months are 0-indexed
+                const year = parseInt(datePart[2], 10);
+                const hour = parseInt(timePart[0], 10);
+                const minute = parseInt(timePart[1], 10);
+                
+                return new Date(year, month, day, hour, minute);
+            };
+            
+            const inicio = parseDateTime(dataInicioStr);
+            const termino = parseDateTime(dataTerminoStr);
+            
+            if (!inicio || !termino || inicio >= termino) {
+                return;
+            }
+            
+            // Lista de feriados fixos (formato: "DD/MM")
+            const feriados = [
+                '01/01', // Ano Novo
+                '21/04', // Tiradentes
+                '01/05', // Dia do Trabalhador
+                '07/09', // Independência
+                '12/10', // Nossa Senhora Aparecida
+                '02/11', // Finados
+                '15/11', // Proclamação da República
+                '25/12', // Natal
+            ];
+            
+            // Verificar se é feriado
+            const isFeriado = (date) => {
+                const dateStr = String(date.getDate()).padStart(2, '0') + '/' + String(date.getMonth() + 1).padStart(2, '0');
+                return feriados.includes(dateStr);
+            };
+            
+            // Verificar se é dia útil (segunda a sexta, não feriado)
+            const isDiaUtil = (date) => {
+                const day = date.getDay();
+                return day >= 1 && day <= 5 && !isFeriado(date); // 1 = segunda, 5 = sexta
+            };
+            
+            // Horários de trabalho
+            const HORA_INICIO_MANHA = 9;
+            const HORA_FIM_MANHA = 12;
+            const HORA_INICIO_TARDE = 14;
+            const HORA_FIM_TARDE = 19;
+            
+            // Função para calcular horas de um período no dia
+            const calcularHorasPeriodo = (horaInicio, horaFim, inicioPeriodo, fimPeriodo) => {
+                if (horaInicio >= fimPeriodo || horaFim <= inicioPeriodo) {
+                    return 0;
                 }
-                // Último dia: calcular horas do início do dia até o término
-                else if (dataAtual.toDateString() === termino.toDateString()) {
-                    let horasDia = 0;
-                    const horaTermino = termino.getHours();
-                    const minutosTermino = termino.getMinutes();
+                const inicio = Math.max(horaInicio, inicioPeriodo);
+                const fim = Math.min(horaFim, fimPeriodo);
+                return Math.max(0, fim - inicio);
+            };
+            
+            // Calcular horas úteis
+            let totalHoras = 0;
+            
+            // Se for o mesmo dia
+            if (inicio.toDateString() === termino.toDateString()) {
+                if (isDiaUtil(inicio)) {
+                    const horaInicio = inicio.getHours() + inicio.getMinutes() / 60;
+                    const horaTermino = termino.getHours() + termino.getMinutes() / 60;
                     
-                    // Manhã: 09:00-12:00
-                    if (horaTermino >= horaInicioTrabalho && horaTermino <= horaFimManha) {
-                        horasDia += (horaTermino + (minutosTermino / 60) - horaInicioTrabalho);
-                    } else if (horaTermino > horaFimManha) {
-                        horasDia += (horaFimManha - horaInicioTrabalho);
-                    }
+                    // Horário da manhã (09:00 - 12:00)
+                    totalHoras += calcularHorasPeriodo(horaInicio, horaTermino, HORA_INICIO_MANHA, HORA_FIM_MANHA);
                     
-                    // Tarde: 14:00-19:00
-                    if (horaTermino >= horaInicioTarde) {
-                        const fimTarde = Math.min(horaTermino + (minutosTermino / 60), horaFimTrabalho);
-                        horasDia += (fimTarde - horaInicioTarde);
-                    }
-                    
-                    totalHoras += horasDia;
+                    // Horário da tarde (14:00 - 19:00)
+                    totalHoras += calcularHorasPeriodo(horaInicio, horaTermino, HORA_INICIO_TARDE, HORA_FIM_TARDE);
                 }
-                // Dias intermediários: 8 horas completas
-                else {
-                    totalHoras += 8;
+            } else {
+                // Múltiplos dias - iterar dia a dia
+                const currentDate = new Date(inicio);
+                const endDate = new Date(termino);
+                
+                // Primeiro dia
+                if (isDiaUtil(currentDate)) {
+                    const horaInicio = currentDate.getHours() + currentDate.getMinutes() / 60;
+                    const horaFimDia = HORA_FIM_TARDE;
+                    
+                    // Manhã
+                    totalHoras += calcularHorasPeriodo(horaInicio, horaFimDia, HORA_INICIO_MANHA, HORA_FIM_MANHA);
+                    
+                    // Tarde
+                    totalHoras += calcularHorasPeriodo(horaInicio, horaFimDia, HORA_INICIO_TARDE, HORA_FIM_TARDE);
+                }
+                
+                // Avançar para o próximo dia
+                currentDate.setDate(currentDate.getDate() + 1);
+                currentDate.setHours(0, 0, 0, 0);
+                
+                // Dias intermediários (dias completos)
+                while (currentDate < endDate && currentDate.toDateString() !== endDate.toDateString()) {
+                    if (isDiaUtil(currentDate)) {
+                        // Dia completo: 3 horas manhã + 5 horas tarde = 8 horas
+                        totalHoras += (HORA_FIM_MANHA - HORA_INICIO_MANHA) + (HORA_FIM_TARDE - HORA_INICIO_TARDE);
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                // Último dia
+                if (currentDate.toDateString() === endDate.toDateString() && isDiaUtil(endDate)) {
+                    const horaInicioDia = HORA_INICIO_MANHA;
+                    const horaTermino = endDate.getHours() + endDate.getMinutes() / 60;
+                    
+                    // Manhã
+                    totalHoras += calcularHorasPeriodo(horaInicioDia, horaTermino, HORA_INICIO_MANHA, HORA_FIM_MANHA);
+                    
+                    // Tarde
+                    totalHoras += calcularHorasPeriodo(horaInicioDia, horaTermino, HORA_INICIO_TARDE, HORA_FIM_TARDE);
                 }
             }
             
-            // Avançar para o próximo dia
-            dataAtual.setDate(dataAtual.getDate() + 1);
-            dataAtual.setHours(0, 0, 0, 0);
+            // Atualizar o campo de horas planejadas
+            if (totalHoras > 0) {
+                horasPlanejadasField.value = totalHoras.toFixed(2);
+            } else {
+                horasPlanejadasField.value = '';
+            }
+        } catch (error) {
+            console.error('Erro ao calcular horas planejadas:', error);
         }
-        
-        return Math.round(totalHoras * 100) / 100; // Arredondar para 2 casas decimais
     }
     
-    function calcularHoras() {
-        if (dataInicioField && dataTerminoField && dataInicioField.value && dataTerminoField.value && horasPlanejadasField) {
-            const horasCalculadas = calcularHorasDiasUteis(dataInicioField.value, dataTerminoField.value);
-            if (horasCalculadas > 0) {
-                horasPlanejadasField.value = horasCalculadas.toFixed(2);
+    // Função para atualizar visibilidade do status_sprint baseado na sprint
+    function updateStatusSprintVisibility() {
+        if (sprintField && statusSprintContainer && statusSprintField) {
+            if (sprintField.value) {
+                // Sprint selecionada: mostrar status_sprint
+                statusSprintContainer.style.display = 'block';
+                statusSprintField.required = true;
+                // Definir valor padrão se estiver vazio
+                if (!statusSprintField.value) {
+                    statusSprintField.value = 'nao_iniciada';
+                }
+            } else {
+                // Sem sprint: ocultar status_sprint
+                statusSprintContainer.style.display = 'none';
+                statusSprintField.required = false;
+                statusSprintField.value = '';
             }
         }
     }
     
-    if (dataInicioField) {
-        dataInicioField.addEventListener('change', calcularHoras);
-        dataInicioField.addEventListener('input', calcularHoras);
-    }
-    if (dataTerminoField) {
-        dataTerminoField.addEventListener('change', calcularHoras);
-        dataTerminoField.addEventListener('input', calcularHoras);
+    // Atualizar quando sprint mudar
+    if (sprintField) {
+        sprintField.addEventListener('change', updateStatusSprintVisibility);
+        // Inicializar visibilidade
+        updateStatusSprintVisibility();
     }
     
-    // Calcular horas iniciais se os campos já tiverem valores
-    if (dataInicioField && dataTerminoField && dataInicioField.value && dataTerminoField.value) {
-        calcularHoras();
+    // Atualizar ícone do checkbox "Bilhetar na OS"
+    const bilhetarCheckbox = document.getElementById('id_bilhetar_na_os');
+    const bilhetarIcon = bilhetarCheckbox ? bilhetarCheckbox.nextElementSibling : null;
+    
+    if (bilhetarCheckbox && bilhetarIcon) {
+        function updateBilhetarIcon() {
+            if (bilhetarCheckbox.checked) {
+                if (!bilhetarIcon.querySelector('i')) {
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-check text-white text-xl font-bold';
+                    bilhetarIcon.appendChild(icon);
+                }
+            } else {
+                const icon = bilhetarIcon.querySelector('i');
+                if (icon) {
+                    icon.remove();
+                }
+            }
+        }
+        
+        bilhetarCheckbox.addEventListener('change', updateBilhetarIcon);
+        updateBilhetarIcon(); // Inicializar
+    }
+    
+    // Converter formato de data brasileiro para ISO antes de enviar
+    const form = document.getElementById('tarefa_form_edit');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const dataInicioField = document.getElementById('id_data_inicio_prevista');
+            const dataTerminoField = document.getElementById('id_data_termino_prevista');
+            
+            // Converter data de início
+            if (dataInicioField && dataInicioField.value) {
+                const dataInicioStr = dataInicioField.value.trim();
+                if (dataInicioStr && dataInicioStr.includes('/')) {
+                    // Formato: "dd/mm/yyyy, HH:MM"
+                    const parts = dataInicioStr.split(', ');
+                    if (parts.length === 2) {
+                        const datePart = parts[0].split('/');
+                        const timePart = parts[1].split(':');
+                        if (datePart.length === 3 && timePart.length === 2) {
+                            // Converter para formato ISO: "YYYY-MM-DD HH:MM:SS"
+                            const year = datePart[2];
+                            const month = datePart[1].padStart(2, '0');
+                            const day = datePart[0].padStart(2, '0');
+                            const hour = timePart[0].padStart(2, '0');
+                            const minute = timePart[1].padStart(2, '0');
+                            dataInicioField.value = `${year}-${month}-${day} ${hour}:${minute}:00`;
+                        }
+                    }
+                }
+            }
+            
+            // Converter data de término
+            if (dataTerminoField && dataTerminoField.value) {
+                const dataTerminoStr = dataTerminoField.value.trim();
+                if (dataTerminoStr && dataTerminoStr.includes('/')) {
+                    // Formato: "dd/mm/yyyy, HH:MM"
+                    const parts = dataTerminoStr.split(', ');
+                    if (parts.length === 2) {
+                        const datePart = parts[0].split('/');
+                        const timePart = parts[1].split(':');
+                        if (datePart.length === 3 && timePart.length === 2) {
+                            // Converter para formato ISO: "YYYY-MM-DD HH:MM:SS"
+                            const year = datePart[2];
+                            const month = datePart[1].padStart(2, '0');
+                            const day = datePart[0].padStart(2, '0');
+                            const hour = timePart[0].padStart(2, '0');
+                            const minute = timePart[1].padStart(2, '0');
+                            dataTerminoField.value = `${year}-${month}-${day} ${hour}:${minute}:00`;
+                        }
+                    }
+                }
+            }
+        });
     }
 });
 </script>
 {% endblock %}
-

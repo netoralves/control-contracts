@@ -11,64 +11,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="oportunidade",
-            name="contrato",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="oportunidades",
-                to="contracts.contrato",
-                verbose_name="Contrato Relacionado",
-            ),
-        ),
-        migrations.AddField(
-            model_name="oportunidade",
-            name="feedback_origem",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="oportunidades_geradas",
-                to="contracts.feedbacksprintos",
-                verbose_name="Feedback de Origem",
-            ),
-        ),
-        migrations.AddField(
-            model_name="oportunidade",
-            name="ordem_servico",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="oportunidades",
-                to="contracts.ordemservico",
-                verbose_name="Ordem de Serviço Relacionada",
-            ),
-        ),
-        migrations.AddField(
-            model_name="oportunidade",
-            name="projeto",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="oportunidades",
-                to="contracts.projeto",
-                verbose_name="Projeto Relacionado",
-            ),
-        ),
-        migrations.AddField(
-            model_name="oportunidade",
-            name="sprint",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="oportunidades",
-                to="contracts.sprint",
-                verbose_name="Sprint Relacionada",
-            ),
-        ),
+        # Nota: Operações do modelo 'oportunidade' removidas
+        # O modelo será removido na migração 0050, então não faz sentido adicionar campos aqui
+        # Se o modelo existir no banco, essas alterações já foram aplicadas diretamente
     ]
