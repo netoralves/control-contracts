@@ -1,0 +1,232 @@
+{% extends "contracts/base.html" %}
+{% load static form_filters %}
+
+{% block title %}{{ action }} Stakeholder - {{ contrato.numero_contrato }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+                    <i class="fas fa-users mr-2 text-purple-500"></i>{{ action }} Stakeholder
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">
+                    Contrato: {{ contrato.numero_contrato }} - {{ contrato.cliente.nome_razao_social }}
+                </p>
+            </div>
+            <a href="{% url 'gestao_contratos_detail' contrato.pk %}?tab=stakeholders" 
+               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-white">
+                <i class="fa fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <form method="post" novalidate id="stakeholderForm">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            
+            <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">
+                <div>
+                    <label for="{{ form.tipo.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.tipo.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.tipo|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.tipo.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.tipo.help_text }}</p>
+                    {% endif %}
+                    {% if form.tipo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.tipo.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div id="papel-field">
+                    <label for="{{ form.papel.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.papel.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.papel|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.papel.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.papel.help_text }}</p>
+                    {% endif %}
+                    {% if form.papel.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.papel.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div id="colaborador-field">
+                    <label for="{{ form.colaborador.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.colaborador.label }}
+                        <span class="text-red-500" id="colaborador-required" style="display: none;">*</span>
+                    </label>
+                    {{ form.colaborador|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.colaborador.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.colaborador.help_text }}</p>
+                    {% endif %}
+                    {% if form.colaborador.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.colaborador.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div id="contato-cliente-field">
+                    <label for="{{ form.contato_cliente.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.contato_cliente.label }}
+                        <span class="text-red-500" id="contato-required" style="display: none;">*</span>
+                    </label>
+                    {{ form.contato_cliente|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.contato_cliente.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.contato_cliente.help_text }}</p>
+                    {% endif %}
+                    {% if form.contato_cliente.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.contato_cliente.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label for="{{ form.observacoes.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.observacoes.label }}
+                    </label>
+                    {{ form.observacoes|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.observacoes.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.observacoes.help_text }}</p>
+                    {% endif %}
+                    {% if form.observacoes.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.observacoes.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="flex items-center">
+                    <label for="{{ form.ativo.id_for_label }}" class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+                        {{ form.ativo }}
+                        {{ form.ativo.label }}
+                    </label>
+                    {% if form.ativo.help_text %}
+                        <p class="mt-1 text-xs text-gray-500 ml-2">{{ form.ativo.help_text }}</p>
+                    {% endif %}
+                    {% if form.ativo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.ativo.errors }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">
+                    <i class="fa fa-save"></i> Salvar
+                </button>
+                <a href="{% url 'gestao_contratos_detail' contrato.pk %}?tab=stakeholders" 
+                   class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+                    <i class="fa fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function updateStakeholderFields(tipo) {
+    const papelField = document.getElementById('{{ form.papel.id_for_label }}');
+    const colaboradorField = document.getElementById('colaborador-field');
+    const contatoClienteField = document.getElementById('contato-cliente-field');
+    const colaboradorRequired = document.getElementById('colaborador-required');
+    const contatoRequired = document.getElementById('contato-required');
+    
+    // Opções de papel baseadas no tipo
+    const papeisContratada = [
+        ['', '---------'],
+        ['PREPOSTO', 'Preposto'],
+        ['PREPOSTO_SUBSTITUTO', 'Preposto Substituto'],
+        ['CS', 'CS (Customer Success)'],
+        ['GERENTE_CONTRATO', 'Gerente do Contrato'],
+        ['GERENTE_PROJETO', 'Gerente do Projeto'],
+        ['GERENTE_SUBSTITUTO', 'Gerente Substituto'],
+        ['GERENTE_COMERCIAL', 'Gerente Comercial'],
+    ];
+    
+    const papeisContratante = [
+        ['', '---------'],
+        ['GESTOR_CONTRATO', 'Gestor do Contrato'],
+        ['FISCAL_ADMINISTRATIVO', 'Fiscal Administrativo'],
+        ['FISCAL_TECNICO', 'Fiscal Técnico'],
+    ];
+    
+    if (tipo === 'CONTRATADA') {
+        // Atualizar opções de papel
+        papelField.innerHTML = '';
+        papeisContratada.forEach(function(papel) {
+            const option = document.createElement('option');
+            option.value = papel[0];
+            option.textContent = papel[1];
+            papelField.appendChild(option);
+        });
+        
+        // Mostrar colaborador, ocultar contato cliente
+        colaboradorField.style.display = 'block';
+        contatoClienteField.style.display = 'none';
+        colaboradorRequired.style.display = 'inline';
+        contatoRequired.style.display = 'none';
+        
+        // Tornar colaborador obrigatório
+        const colaboradorInput = document.getElementById('{{ form.colaborador.id_for_label }}');
+        if (colaboradorInput) {
+            colaboradorInput.required = true;
+        }
+        
+        // Tornar contato cliente não obrigatório
+        const contatoInput = document.getElementById('{{ form.contato_cliente.id_for_label }}');
+        if (contatoInput) {
+            contatoInput.required = false;
+        }
+    } else if (tipo === 'CONTRATANTE') {
+        // Atualizar opções de papel
+        papelField.innerHTML = '';
+        papeisContratante.forEach(function(papel) {
+            const option = document.createElement('option');
+            option.value = papel[0];
+            option.textContent = papel[1];
+            papelField.appendChild(option);
+        });
+        
+        // Ocultar colaborador, mostrar contato cliente
+        colaboradorField.style.display = 'none';
+        contatoClienteField.style.display = 'block';
+        colaboradorRequired.style.display = 'none';
+        contatoRequired.style.display = 'inline';
+        
+        // Tornar colaborador não obrigatório
+        const colaboradorInput = document.getElementById('{{ form.colaborador.id_for_label }}');
+        if (colaboradorInput) {
+            colaboradorInput.required = false;
+        }
+        
+        // Tornar contato cliente obrigatório
+        const contatoInput = document.getElementById('{{ form.contato_cliente.id_for_label }}');
+        if (contatoInput) {
+            contatoInput.required = true;
+        }
+    } else {
+        // Estado inicial - ambos visíveis
+        colaboradorField.style.display = 'block';
+        contatoClienteField.style.display = 'block';
+        colaboradorRequired.style.display = 'none';
+        contatoRequired.style.display = 'none';
+    }
+}
+
+// Atualizar campos quando o tipo mudar
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoField = document.getElementById('{{ form.tipo.id_for_label }}');
+    if (tipoField) {
+        // Atualizar campos baseado no valor inicial
+        if (tipoField.value) {
+            updateStakeholderFields(tipoField.value);
+        }
+        
+        // Atualizar campos quando o tipo mudar
+        tipoField.addEventListener('change', function() {
+            updateStakeholderFields(this.value);
+        });
+    }
+});
+</script>
+{% endblock %}
+

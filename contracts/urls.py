@@ -258,6 +258,11 @@ urlpatterns = [
     path("gestao-contratos/<int:contrato_id>/termos-aditivos/<int:pk>/editar/", views.termo_aditivo_update, name="termo_aditivo_update"),
     path("gestao-contratos/<int:contrato_id>/termos-aditivos/<int:pk>/excluir/", views.termo_aditivo_delete, name="termo_aditivo_delete"),
     
+    # Stakeholder Contrato
+    path("stakeholder/<int:contrato_id>/criar/", views.stakeholder_contrato_create, name="stakeholder_contrato_create"),
+    path("stakeholder/<int:pk>/editar/", views.stakeholder_contrato_update, name="stakeholder_contrato_update"),
+    path("stakeholder/<int:pk>/excluir/", views.stakeholder_contrato_delete, name="stakeholder_contrato_delete"),
+    
     # Timesheet
     path("timesheet/", views.timesheet_list, name="timesheet_list"),
     path("timesheet/tarefa/<int:tarefa_id>/", views.timesheet_tarefa_detail, name="timesheet_tarefa_detail"),

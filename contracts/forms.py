@@ -1280,27 +1280,46 @@ class StakeholderContratoForm(forms.ModelForm):
         self.contrato = kwargs.pop('contrato', None)
         super().__init__(*args, **kwargs)
         
+        # Filtrar colaboradores ativos
+        from .models import Colaborador
+        self.fields['colaborador'].queryset = Colaborador.objects.filter(ativo=True).order_by("nome_completo")
+        
         # Filtrar contatos do cliente do contrato
         if self.contrato and self.contrato.cliente:
             self.fields['contato_cliente'].queryset = ContatoCliente.objects.filter(
                 cliente=self.contrato.cliente
-            )
+            ).order_by("nome")
         else:
             self.fields['contato_cliente'].queryset = ContatoCliente.objects.none()
         
         # Ajustar opções de papel baseado no tipo
         if self.instance and self.instance.pk:
             tipo_atual = self.instance.tipo
+        elif self.data and 'tipo' in self.data:
+            tipo_atual = self.data.get('tipo')
         else:
-            tipo_atual = self.initial.get('tipo') or (self.data.get('tipo') if hasattr(self, 'data') and self.data else None)
+            tipo_atual = self.initial.get('tipo', None)
         
         if tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATADA:
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA
+            self.fields['colaborador'].required = True
+            self.fields['contato_cliente'].required = False
+            self.fields['contato_cliente'].widget = forms.HiddenInput()
         elif tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATANTE:
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATANTE
+            self.fields['contato_cliente'].required = True
+            self.fields['colaborador'].required = False
+            self.fields['colaborador'].widget = forms.HiddenInput()
         else:
-            # Inicialmente mostra todos os papéis
+            # Estado inicial - ambos visíveis mas não obrigatórios
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA + self.PAPEIS_CONTRATANTE
+            self.fields['colaborador'].required = False
+            self.fields['contato_cliente'].required = False
+        
+        # JavaScript será usado para atualizar dinamicamente
+        self.fields['tipo'].widget.attrs.update({
+            'onchange': 'updateStakeholderFields(this.value);'
+        })
     
     def clean(self):
         cleaned_data = super().clean()
@@ -1343,16 +1362,46 @@ class StakeholderContratoForm(forms.ModelForm):
         self.contrato = kwargs.pop('contrato', None)
         super().__init__(*args, **kwargs)
         
+        # Filtrar colaboradores ativos
+        from .models import Colaborador
+        self.fields['colaborador'].queryset = Colaborador.objects.filter(ativo=True).order_by("nome_completo")
+        
         # Filtrar contatos do cliente do contrato
         if self.contrato and self.contrato.cliente:
             self.fields['contato_cliente'].queryset = ContatoCliente.objects.filter(
                 cliente=self.contrato.cliente
-            )
+            ).order_by("nome")
         else:
             self.fields['contato_cliente'].queryset = ContatoCliente.objects.none()
         
-        # JavaScript será usado para mostrar/ocultar campos baseado no tipo
-        self.fields['tipo'].widget.attrs['onchange'] = 'toggleStakeholderFields()'
+        # Ajustar opções de papel baseado no tipo
+        if self.instance and self.instance.pk:
+            tipo_atual = self.instance.tipo
+        elif self.data and 'tipo' in self.data:
+            tipo_atual = self.data.get('tipo')
+        else:
+            tipo_atual = self.initial.get('tipo', None)
+        
+        if tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATADA:
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA
+            self.fields['colaborador'].required = True
+            self.fields['contato_cliente'].required = False
+            self.fields['contato_cliente'].widget = forms.HiddenInput()
+        elif tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATANTE:
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATANTE
+            self.fields['contato_cliente'].required = True
+            self.fields['colaborador'].required = False
+            self.fields['colaborador'].widget = forms.HiddenInput()
+        else:
+            # Estado inicial - ambos visíveis mas não obrigatórios
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA + self.PAPEIS_CONTRATANTE
+            self.fields['colaborador'].required = False
+            self.fields['contato_cliente'].required = False
+        
+        # JavaScript será usado para atualizar dinamicamente
+        self.fields['tipo'].widget.attrs.update({
+            'onchange': 'updateStakeholderFields(this.value);'
+        })
     
     def clean(self):
         cleaned_data = super().clean()

@@ -3690,7 +3690,8 @@ class StakeholderContrato(models.Model):
     )
     papel = models.CharField(
         max_length=50,
-        verbose_name="Papel/Função"
+        verbose_name="Papel/Função",
+        help_text="Papel do stakeholder no contrato"
     )
     colaborador = models.ForeignKey(
         "Colaborador",

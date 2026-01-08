@@ -44,6 +44,7 @@ from .models import (
     Backlog,
     Sprint,
     FeedbackSprintOS,
+    StakeholderContrato,
 )
 from .models import (
     TermoAditivo,
@@ -3667,6 +3668,11 @@ def gestao_contratos_detail(request, pk):
         else:
             messages.error(request, "Erro ao adicionar SLA. Verifique os campos.")
     
+    # Stakeholders do contrato
+    stakeholders = contrato.stakeholders.filter(ativo=True).order_by('tipo', 'papel')
+    stakeholders_contratada = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATADA)
+    stakeholders_contratante = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATANTE)
+    
     context = {
         "contrato": contrato,
         "resumo": resumo,
@@ -3681,6 +3687,9 @@ def gestao_contratos_detail(request, pk):
         "backlogs": backlogs,
         "projetos": projetos,
         "gerentes": gerentes,
+        "stakeholders": stakeholders,
+        "stakeholders_contratada": stakeholders_contratada,
+        "stakeholders_contratante": stakeholders_contratante,
     }
     return render(request, "gestao_contratos/detail.html", context)
 
@@ -3724,6 +3733,8 @@ def stakeholder_contrato_update(request, pk):
             form.save()
             messages.success(request, f"Stakeholder '{stakeholder.get_papel_display()}' atualizado com sucesso!")
             return redirect(f"{reverse('gestao_contratos_detail', kwargs={'pk': contrato.pk})}?tab=stakeholders")
+        else:
+            messages.error(request, "Erro ao atualizar stakeholder. Verifique os campos.")
     else:
         form = StakeholderContratoForm(instance=stakeholder, contrato=contrato)
     
