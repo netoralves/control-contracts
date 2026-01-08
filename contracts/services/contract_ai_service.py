@@ -1,7 +1,7 @@
 """
 Serviço de Análise de Contratos com Inteligência Artificial
 Suporta extração de texto de PDFs e documentos Word,
-e análise com OpenAI GPT ou Anthropic Claude.
+e análise com OpenAI GPT.
 """
 
 import json
@@ -130,63 +130,175 @@ class DocumentExtractor:
 
 
 class ContractAIAnalyzer:
-    """Analisa contratos usando IA (OpenAI ou Anthropic)"""
+    """Analisa contratos usando IA (OpenAI)"""
     
     # Prompt base para análise de contratos
     SYSTEM_PROMPT = """Você é um especialista em análise de contratos públicos e privados no Brasil.
-Sua tarefa é extrair informações estruturadas de documentos contratuais.
+Sua tarefa é extrair informações estruturadas de documentos contratuais de forma COMPLETA e PRECISA.
 
 Analise o documento fornecido e extraia as seguintes informações em formato JSON:
 
 {
     "cliente": {
-        "nome_razao_social": "Nome completo da empresa/órgão contratante",
-        "cnpj_cpf": "CNPJ ou CPF (apenas números)",
+        "nome_razao_social": "Nome completo da empresa/órgão contratante (OBRIGATÓRIO)",
+        "nome_fantasia": "Nome fantasia se disponível",
+        "cnpj_cpf": "CNPJ ou CPF (apenas números, 11 ou 14 dígitos)",
         "tipo_cliente": "publico ou privado",
         "tipo_pessoa": "fisica ou juridica",
-        "endereco": "Endereço completo",
+        "natureza_juridica": "Natureza jurídica da empresa (ex: Sociedade Anônima, Autarquia, etc)",
+        "inscricao_estadual": "Inscrição Estadual (IE) se disponível",
+        "inscricao_municipal": "Inscrição Municipal se disponível",
+        "endereco": "Logradouro/rua (sem número)",
+        "numero": "Número do endereço",
+        "complemento": "Complemento do endereço (apto, sala, etc)",
+        "bairro": "Bairro",
         "cidade": "Cidade",
-        "estado": "UF (2 letras)",
-        "cep": "CEP",
-        "nome_responsavel": "Nome do responsável/signatário",
+        "estado": "UF (2 letras, ex: SP, RJ, DF)",
+        "cep": "CEP (formato: 00000-000 ou apenas números)",
+        "pais": "País (padrão: Brasil)",
+        "nome_responsavel": "Nome do responsável/signatário legal",
         "cargo_responsavel": "Cargo do responsável",
-        "email_contato": "Email se disponível",
-        "telefone_contato": "Telefone se disponível"
+        "email_contato": "Email principal de contato",
+        "telefone_contato": "Telefone principal de contato"
     },
     "contrato": {
-        "numero_contrato": "Número do contrato",
-        "objeto": "Descrição do objeto do contrato",
+        "numero_contrato": "Número do contrato (OBRIGATÓRIO, ex: 001/2025, 123/2024)",
+        "objeto": "Descrição completa e detalhada do objeto do contrato",
         "regime_legal": "LEI_14133 ou LEI_13303 ou PRIVADO",
-        "modalidade_licitacao": "Pregão Eletrônico, Dispensa, etc.",
-        "numero_processo": "Número do processo licitatório",
-        "data_assinatura": "YYYY-MM-DD",
-        "vigencia_meses": "Número de meses de vigência",
-        "valor_inicial": "Valor total em decimal (ex: 150000.00)",
-        "fornecedores": ["Lista de fornecedores/fabricantes mencionados"],
+        "modalidade_licitacao": "Modalidade de licitação (Pregão Eletrônico, Tomada de Preços, Concorrência, Dispensa, Inexigibilidade, etc)",
+        "numero_processo": "Número do processo licitatório/administrativo",
+        "numero_edital": "Número do edital de licitação se disponível",
+        "pregao_eletronico": "Número do pregão eletrônico se aplicável",
+        "ata_registro_preco": "Número da ARP (Ata de Registro de Preços) se aplicável",
+        "orgao_gerenciador_arp": "Órgão gerenciador da ARP se aplicável",
+        "termo_referencia": "Número do Termo de Referência (TR) se disponível",
+        "numero_rfp_rfq": "Número do RFP/RFQ se for contrato privado",
+        "data_assinatura": "YYYY-MM-DD (data de assinatura do contrato)",
+        "vigencia_meses": "Número de meses de vigência (12, 24, 36, 48, 60 ou 120)",
+        "valor_inicial": "Valor total do contrato em decimal (ex: 150000.00)",
+        "fornecedores": ["Lista completa de fornecedores/fabricantes mencionados no contrato"],
         "origem_contrato": "LIC_14133_PROPRIA | ARP_GERENCIADOR | ARP_PARTICIPANTE | ARP_ADESAO_CARONA | DISPENSA_14133 | INEXIGIBILIDADE_14133 | LIC_13303_PROPRIA | CONTR_ESTATAL_DIRETA | RFP_PRIVADA | RFQ_PRIVADA | NEGOCIACAO_DIRETA_PRIVADA | FRAMEWORK_PRIVADO | OUTRO",
-        "origem_contrato_justificativa": "Texto explicando por que esta origem foi escolhida com base nas cláusulas e dispositivos legais do contrato",
+        "origem_contrato_justificativa": "Texto detalhado explicando por que esta origem foi escolhida com base nas cláusulas e dispositivos legais do contrato",
         "origem_contrato_confianca": 0.0
     },
     "itens": [
         {
-            "lote": "Número do lote",
-            "numero_item": "Número do item",
-            "descricao": "Descrição do item/serviço",
-            "tipo": "hardware, software, solucao, servico ou treinamento",
-            "unidade": "Unidade de medida",
-            "quantidade": "Quantidade",
-            "valor_unitario": "Valor unitário em decimal"
+            "lote": "Número do lote (padrão: 1 se não especificado)",
+            "numero_item": "Número do item conforme documento (OBRIGATÓRIO)",
+            "descricao": "Descrição completa e detalhada do item/serviço/produto",
+            "tipo": "hardware, software, solucao, servico ou treinamento (IDENTIFICAR CORRETAMENTE baseado na descrição)",
+            "unidade": "Unidade de medida (UN, HORA, MES, ANO, etc)",
+            "quantidade": "Quantidade total (número decimal)",
+            "valor_unitario": "Valor unitário em decimal (ex: 1500.00)",
+            "vigencia_produto": "Vigência do produto em meses se aplicável (12, 24, 36, 48, 60, 120 ou null)"
         }
     ],
     "slas": [
         {
-            "nome": "Nome do SLA",
-            "descricao": "Descrição",
-            "tempo_resposta_horas": "Tempo em horas",
-            "tempo_solucao_horas": "Tempo em horas",
-            "penalidade_percentual": "Percentual de penalidade"
+            "titulo": "Título do SLA (ex: Disponibilidade do Sistema, Tempo de Resposta, etc)",
+            "descricao": "Descrição completa do SLA, incluindo condições e critérios",
+            "tipo": "disponibilidade, tempo_resposta, resolucao, atendimento ou outro",
+            "tempo_resposta_horas": "Tempo de resposta em horas (se aplicável)",
+            "tempo_solucao_horas": "Tempo de solução/resolução em horas (se aplicável)",
+            "percentual_disponibilidade": "Percentual de disponibilidade exigido (ex: 99.9)",
+            "penalidade_percentual": "Percentual de penalidade/glosa se não cumprido",
+            "observacoes": "Observações adicionais sobre o SLA"
         }
     ],
+    "contatos_cliente": [
+        {
+            "nome": "Nome do contato",
+            "email": "Email do contato",
+            "telefone": "Telefone do contato",
+            "funcao": "Função/cargo do contato"
+        }
+    ],
+    "registros_existentes": {
+        "cliente_existente": {
+            "id": "ID do cliente se já existir no sistema (null se não existir)",
+            "nome": "Nome do cliente existente",
+            "cnpj_cpf": "CNPJ/CPF do cliente existente",
+            "corresponde": true
+        },
+        "contrato_existente": {
+            "id": "ID do contrato se já existir no sistema (null se não existir)",
+            "numero_contrato": "Número do contrato existente",
+            "corresponde": true
+        },
+        "itens_existentes": [
+            {
+                "id": "ID do item se já existir",
+                "numero_item": "Número do item existente",
+                "corresponde": true
+            }
+        ],
+        "contatos_existentes": [
+            {
+                "id": "ID do contato se já existir",
+                "nome": "Nome do contato existente",
+                "email": "Email do contato existente",
+                "corresponde": true
+            }
+        ]
+    },
+    "diario_bordo": {
+        "resumo_geral": "Resumo executivo completo do contrato (2-3 parágrafos destacando objetivo principal, valor, vigência, principais entregas e características relevantes)",
+        "itens_mais_importantes": [
+            {
+                "numero_item": "Número do item",
+                "descricao": "Descrição resumida",
+                "motivo_importancia": "Por que este item é importante para o contrato"
+            }
+        ],
+        "operacionalizacao_equipe": "Texto detalhado explicando como o contrato deve ser operacionalizado pela equipe, incluindo processos, fluxos de trabalho, responsabilidades e procedimentos principais",
+        "informacoes_gerente_contrato_cs": {
+            "pontos_atencao": [
+                {
+                    "titulo": "Título do ponto de atenção",
+                    "descricao": "Descrição detalhada",
+                    "prioridade": "critica, alta, media ou baixa",
+                    "acao_necessaria": "Ação específica a ser tomada"
+                }
+            ],
+            "clausulas_criticas": [
+                {
+                    "numero_clausula": "Número da cláusula se disponível",
+                    "titulo": "Título da cláusula",
+                    "descricao": "Descrição completa da cláusula e seu impacto",
+                    "prazo_atencao": "YYYY-MM-DD ou null se não houver prazo específico"
+                }
+            ],
+            "slas_criticos": [
+                {
+                    "nome": "Nome do SLA crítico",
+                    "descricao": "Descrição do SLA e por que é crítico",
+                    "penalizacoes": "Descrição das penalizações/glosas se não cumprido"
+                }
+            ],
+            "informacoes_comerciais": "Informações relevantes para gestão comercial e customer success (relacionamento com cliente, expectativas, pontos de atenção no relacionamento)"
+        },
+        "informacoes_gerente_projetos": {
+            "escopo_execucao": "Descrição detalhada do escopo de execução dos serviços",
+            "entregaveis_principais": [
+                {
+                    "nome": "Nome do entregável",
+                    "descricao": "Descrição detalhada",
+                    "prazo_estimado": "Prazo estimado ou referência temporal",
+                    "dependencias": "Dependências de outros entregáveis ou atividades"
+                }
+            ],
+            "requisitos_tecnicos": "Requisitos técnicos essenciais para execução dos serviços",
+            "recursos_necessarios": "Recursos necessários (humanos, tecnológicos, materiais) para execução",
+            "riscos_execucao": [
+                {
+                    "risco": "Descrição do risco",
+                    "impacto": "Impacto potencial",
+                    "mitigacao": "Estratégia de mitigação sugerida"
+                }
+            ],
+            "cronograma_sugerido": "Sugestão de cronograma de execução baseado nas cláusulas e prazos do contrato"
+        }
+    },
     "observacoes": "Informações adicionais relevantes não capturadas nos campos acima",
     "confianca": {
         "geral": "alta, media ou baixa",
@@ -202,17 +314,48 @@ REGRAS IMPORTANTES:
 5. Para regime_legal, identifique pela menção às leis ou contexto
 6. Para origem_contrato, escolha APENAS UM dos códigos permitidos e utilize o campo origem_contrato_justificativa para explicar sua decisão.
 7. origem_contrato_confianca deve ser um número entre 0 e 1 indicando o nível de confiança na classificação da origem.
-8. Retorne APENAS o JSON, sem texto adicional
+8. VERIFICAÇÃO DE REGISTROS EXISTENTES:
+   - Se houver uma seção "REGISTROS EXISTENTES NO SISTEMA" no prompt, compare os dados extraídos com os registros listados.
+   - Para cliente: compare CNPJ/CPF e nome. Se corresponder, preencha "registros_existentes.cliente_existente" com o ID e "corresponde": true.
+   - Para contrato: compare número do contrato. Se corresponder, preencha "registros_existentes.contrato_existente" com o ID e "corresponde": true.
+   - Para itens: compare número do item e descrição. Se corresponder, adicione em "registros_existentes.itens_existentes".
+   - Para contatos: compare nome e email. Se corresponder, adicione em "registros_existentes.contatos_existentes".
+   - Se não houver correspondência, deixe os campos como null ou array vazio.
+9. CONTATOS DO CLIENTE:
+   - Extraia TODOS os contatos mencionados no documento (não apenas o responsável).
+   - Inclua nome, email, telefone e função/cargo de cada contato identificado.
+
+10. IDENTIFICAÇÃO DO TIPO DE ITEM:
+   - Analise cuidadosamente a descrição de cada item para identificar corretamente o tipo:
+     * "hardware": Equipamentos físicos (servidores, switches, roteadores, computadores, etc)
+     * "software": Licenças de software, aplicativos, sistemas
+     * "solucao": Soluções completas que combinam hardware e software
+     * "servico": Serviços de consultoria, suporte, manutenção, implementação
+     * "treinamento": Cursos, capacitações, treinamentos
+   - Seja preciso na classificação baseado na descrição real do item.
+
+11. SLAs:
+   - Extraia TODOS os SLAs mencionados no contrato.
+   - Identifique corretamente o tipo (disponibilidade, tempo_resposta, resolucao, atendimento, outro).
+   - Inclua valores de meta, penalizações e condições específicas.
+   - Se houver percentuais de disponibilidade, inclua em "percentual_disponibilidade".
+
+12. DIÁRIO DE BORDO:
+   - O campo "diario_bordo" contém informações estratégicas para diferentes perfis:
+     * "resumo_geral": Visão executiva do contrato
+     * "itens_mais_importantes": Itens críticos que merecem atenção especial
+     * "operacionalizacao_equipe": Como a equipe deve trabalhar com este contrato
+     * "informacoes_gerente_contrato_cs": Informações para Gerente de Contrato e Customer Success
+     * "informacoes_gerente_projetos": Informações técnicas para Gerente de Projetos
+   - Seja detalhado e específico em cada seção, baseando-se nas cláusulas e termos do contrato.
+
+13. Retorne APENAS o JSON, sem texto adicional
 """
 
-    def __init__(self, provider: str = "openai"):
+    def __init__(self):
         """
-        Inicializa o analisador de IA
-        
-        Args:
-            provider: "openai" ou "anthropic"
+        Inicializa o analisador de IA usando OpenAI
         """
-        self.provider = provider
         self._client = None
     
     def _get_openai_client(self):
@@ -220,28 +363,23 @@ REGRAS IMPORTANTES:
         if self._client is None:
             try:
                 from openai import OpenAI
-                api_key = getattr(settings, 'OPENAI_API_KEY', os.environ.get('OPENAI_API_KEY'))
+                from decouple import config
+                
+                # Tenta ler do settings primeiro, depois do .env usando decouple
+                api_key = getattr(settings, 'OPENAI_API_KEY', None)
                 if not api_key:
-                    raise ValueError("OPENAI_API_KEY não configurada")
+                    api_key = config('OPENAI_API_KEY', default=None)
+                if not api_key:
+                    api_key = os.environ.get('OPENAI_API_KEY')
+                
+                if not api_key:
+                    raise ValueError("OPENAI_API_KEY não configurada. Configure no arquivo .env ou nas variáveis de ambiente.")
                 self._client = OpenAI(api_key=api_key)
             except ImportError:
                 raise ImportError("Biblioteca openai não instalada. Execute: pip install openai")
         return self._client
     
-    def _get_anthropic_client(self):
-        """Retorna cliente Anthropic configurado"""
-        if self._client is None:
-            try:
-                import anthropic
-                api_key = getattr(settings, 'ANTHROPIC_API_KEY', os.environ.get('ANTHROPIC_API_KEY'))
-                if not api_key:
-                    raise ValueError("ANTHROPIC_API_KEY não configurada")
-                self._client = anthropic.Anthropic(api_key=api_key)
-            except ImportError:
-                raise ImportError("Biblioteca anthropic não instalada. Execute: pip install anthropic")
-        return self._client
-    
-    def analyze_with_openai(self, text: str, model: str = "gpt-4o") -> Dict[str, Any]:
+    def analyze_with_openai(self, text: str, registros_existentes: Dict[str, Any] = None, model: str = "gpt-4o") -> Dict[str, Any]:
         """Analisa texto usando OpenAI GPT"""
         client = self._get_openai_client()
         
@@ -250,11 +388,18 @@ REGRAS IMPORTANTES:
         if len(text) > max_chars:
             text = text[:max_chars] + "\n\n[... documento truncado ...]"
         
+        # Monta prompt com informações de registros existentes
+        user_prompt = f"Analise o seguinte documento:\n\n{text}"
+        
+        if registros_existentes:
+            registros_info = self._formatar_registros_existentes(registros_existentes)
+            user_prompt += f"\n\n=== REGISTROS EXISTENTES NO SISTEMA ===\n{registros_info}\n\nIMPORTANTE: Verifique se os dados extraídos do documento correspondem a algum dos registros acima. Se corresponder, indique no campo 'registro_existente' do JSON."
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": f"Analise o seguinte documento:\n\n{text}"}
+                {"role": "user", "content": user_prompt}
             ],
             temperature=0.1,
             response_format={"type": "json_object"}
@@ -263,43 +408,40 @@ REGRAS IMPORTANTES:
         result = response.choices[0].message.content
         return json.loads(result)
     
-    def analyze_with_anthropic(self, text: str, model: str = "claude-sonnet-4-20250514") -> Dict[str, Any]:
-        """Analisa texto usando Anthropic Claude"""
-        client = self._get_anthropic_client()
+    def _formatar_registros_existentes(self, registros: Dict[str, Any]) -> str:
+        """Formata informações de registros existentes para incluir no prompt"""
+        texto = ""
         
-        # Limita o texto
-        max_chars = 150000  # Claude tem contexto maior
-        if len(text) > max_chars:
-            text = text[:max_chars] + "\n\n[... documento truncado ...]"
+        if registros.get('clientes'):
+            texto += "CLIENTES CADASTRADOS:\n"
+            for cliente in registros['clientes']:
+                texto += f"- ID: {cliente['id']}, Nome: {cliente['nome_razao_social']}, CNPJ/CPF: {cliente['cnpj_cpf']}, Tipo: {cliente['tipo_cliente']}\n"
+                if cliente.get('contatos'):
+                    texto += "  Contatos:\n"
+                    for contato in cliente['contatos']:
+                        texto += f"    - {contato['nome']} ({contato['email']}, {contato['telefone']}) - {contato.get('funcao', 'N/A')}\n"
         
-        response = client.messages.create(
-            model=model,
-            max_tokens=8000,
-            system=self.SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": f"Analise o seguinte documento:\n\n{text}"}
-            ]
-        )
+        if registros.get('contratos'):
+            texto += "\nCONTRATOS CADASTRADOS:\n"
+            for contrato in registros['contratos']:
+                texto += f"- ID: {contrato['id']}, Número: {contrato['numero_contrato']}, Cliente: {contrato['cliente']}\n"
+                texto += f"  Objeto: {contrato['objeto']}\n"
+                if contrato.get('itens'):
+                    texto += "  Itens:\n"
+                    for item in contrato['itens']:
+                        texto += f"    - Item {item['numero_item']}: {item['descricao']} (Tipo: {item['tipo']})\n"
         
-        result = response.content[0].text
-        # Remove possíveis marcadores de código
-        if result.startswith("```json"):
-            result = result[7:]
-        if result.startswith("```"):
-            result = result[3:]
-        if result.endswith("```"):
-            result = result[:-3]
-        
-        return json.loads(result.strip())
+        return texto
     
-    def analyze(self, text: str) -> Dict[str, Any]:
-        """Analisa texto usando o provider configurado"""
-        if self.provider == "openai":
-            return self.analyze_with_openai(text)
-        elif self.provider == "anthropic":
-            return self.analyze_with_anthropic(text)
-        else:
-            raise ValueError(f"Provider não suportado: {self.provider}")
+    def analyze(self, text: str, registros_existentes: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Analisa texto usando OpenAI GPT
+        
+        Args:
+            text: Texto a ser analisado
+            registros_existentes: Dict com informações de registros existentes no sistema
+        """
+        return self.analyze_with_openai(text, registros_existentes)
 
 
 class ContractAIService:
@@ -307,9 +449,9 @@ class ContractAIService:
     Serviço principal para processamento de documentos de contrato
     """
     
-    def __init__(self, provider: str = "openai"):
+    def __init__(self):
         self.extractor = DocumentExtractor()
-        self.analyzer = ContractAIAnalyzer(provider=provider)
+        self.analyzer = ContractAIAnalyzer()
     
     def process_multiple_documents(self, analise) -> Dict[str, Any]:
         """
@@ -321,7 +463,7 @@ class ContractAIService:
         Returns:
             Dict com dados extraídos consolidados
         """
-        from contracts.models import AnaliseContrato
+        from contracts.models import AnaliseContrato, Cliente, ContatoCliente, Contrato, ItemContrato
         
         try:
             # Atualiza status
@@ -369,14 +511,20 @@ class ContractAIService:
             analise.texto_consolidado = texto_consolidado
             analise.save(update_fields=['texto_consolidado'])
             
-            # Analisa com IA usando todos os textos
-            dados = self.analyzer.analyze(texto_consolidado)
+            # Busca registros existentes para incluir no contexto da análise
+            registros_existentes = self._buscar_registros_existentes(analise)
+            
+            # Analisa com IA usando todos os textos e informações de registros existentes
+            dados = self.analyzer.analyze(texto_consolidado, registros_existentes)
             
             # Adiciona informações sobre os documentos processados
             dados['documentos_processados'] = {
                 tipo: [doc['nome'] for doc in docs]
                 for tipo, docs in textos_por_tipo.items()
             }
+            
+            # Adiciona informações sobre registros existentes encontrados
+            dados['registros_existentes'] = registros_existentes
             
             analise.dados_extraidos = dados
             analise.status = 'analisado'
@@ -390,6 +538,65 @@ class ContractAIService:
             analise.mensagem_erro = str(e)
             analise.save(update_fields=['status', 'mensagem_erro'])
             raise
+    
+    def _buscar_registros_existentes(self, analise) -> Dict[str, Any]:
+        """
+        Busca registros existentes no sistema que podem estar relacionados à análise
+        
+        Args:
+            analise: Instância de AnaliseContrato
+            
+        Returns:
+            Dict com informações de registros existentes
+        """
+        from contracts.models import Cliente, ContatoCliente, Contrato, ItemContrato
+        
+        registros = {
+            'clientes': [],
+            'contratos': [],
+            'itens_contrato': []
+        }
+        
+        # Se já tem cliente/contrato vinculado, busca informações completas
+        if analise.cliente_gerado:
+            cliente = analise.cliente_gerado
+            registros['clientes'].append({
+                'id': cliente.id,
+                'nome_razao_social': cliente.nome_razao_social,
+                'cnpj_cpf': cliente.cnpj_cpf,
+                'tipo_cliente': cliente.tipo_cliente,
+                'contatos': [
+                    {
+                        'nome': contato.nome,
+                        'email': contato.email,
+                        'telefone': contato.telefone,
+                        'funcao': contato.funcao
+                    }
+                    for contato in cliente.contatos.filter(ativo=True)
+                ]
+            })
+        
+        if analise.contrato_gerado:
+            contrato = analise.contrato_gerado
+            registros['contratos'].append({
+                'id': contrato.id,
+                'numero_contrato': contrato.numero_contrato,
+                'cliente': contrato.cliente.nome_razao_social,
+                'objeto': contrato.objeto[:200] if contrato.objeto else '',
+                'itens': [
+                    {
+                        'numero_item': item.numero_item,
+                        'descricao': item.descricao[:100],
+                        'tipo': item.tipo
+                    }
+                    for item in contrato.itens.all()[:10]  # Limita a 10 itens
+                ]
+            })
+        
+        # Busca clientes similares por CNPJ parcial (se houver número de contrato na análise)
+        # Isso ajuda a identificar possíveis matches mesmo sem CNPJ completo
+        
+        return registros
     
     @staticmethod
     def verificar_contrato_existente(numero_contrato: str = None, cnpj_cliente: str = None):
@@ -446,15 +653,21 @@ class ContractAIService:
         
         cliente = Cliente(
             nome_razao_social=cliente_data.get('nome_razao_social', ''),
+            nome_fantasia=cliente_data.get('nome_fantasia') or None,
             tipo_cliente=cliente_data.get('tipo_cliente', 'publico'),
             tipo_pessoa=cliente_data.get('tipo_pessoa', 'juridica'),
             cnpj_cpf=cnpj or 'A_DEFINIR',
+            natureza_juridica=cliente_data.get('natureza_juridica') or None,
+            inscricao_estadual=cliente_data.get('inscricao_estadual') or None,
+            inscricao_municipal=cliente_data.get('inscricao_municipal') or None,
             endereco=cliente_data.get('endereco') or 'A definir',
             numero=cliente_data.get('numero') or 'S/N',
+            complemento=cliente_data.get('complemento') or None,
             bairro=cliente_data.get('bairro') or 'Centro',
             cidade=cliente_data.get('cidade') or 'A definir',
             estado=(cliente_data.get('estado') or 'DF')[:2],
             cep=cliente_data.get('cep') or '00000-000',
+            pais=cliente_data.get('pais') or 'Brasil',
             nome_responsavel=cliente_data.get('nome_responsavel') or 'A definir',
             cargo_responsavel=cliente_data.get('cargo_responsavel') or 'A definir',
             telefone_contato=cliente_data.get('telefone_contato') or '(00) 0000-0000',
@@ -539,8 +752,14 @@ class ContractAIService:
             numero_contrato=contrato_data.get('numero_contrato', 'A_DEFINIR'),
             objeto=contrato_data.get('objeto', ''),
             regime_legal=regime,
-            pregao_eletronico=contrato_data.get('modalidade_licitacao', ''),
-            processo=contrato_data.get('numero_processo', ''),
+            modalidade_licitacao=contrato_data.get('modalidade_licitacao') or None,
+            numero_edital=contrato_data.get('numero_edital') or None,
+            pregao_eletronico=contrato_data.get('pregao_eletronico') or None,
+            processo=contrato_data.get('numero_processo') or None,
+            termo_referencia=contrato_data.get('termo_referencia') or None,
+            ata_registro_preco=contrato_data.get('ata_registro_preco') or None,
+            orgao_gerenciador_arp=contrato_data.get('orgao_gerenciador_arp') or None,
+            numero_rfp_rfq=contrato_data.get('numero_rfp_rfq') or None,
             data_assinatura=data_assinatura or datetime.now().date(),
             vigencia=vigencia_meses,
             valor_inicial=valor_inicial,
@@ -573,6 +792,18 @@ class ContractAIService:
                 quantidade = Decimal(str(item_data.get('quantidade', 1) or 1))
                 valor_unitario = Decimal(str(item_data.get('valor_unitario', 0) or 0))
                 
+                vigencia_produto = item_data.get('vigencia_produto')
+                if vigencia_produto:
+                    try:
+                        vigencia_produto = int(vigencia_produto)
+                        vigencias_validas = [12, 24, 36, 48, 60, 120]
+                        if vigencia_produto not in vigencias_validas:
+                            vigencia_produto = min(vigencias_validas, key=lambda x: abs(x - vigencia_produto))
+                    except:
+                        vigencia_produto = None
+                else:
+                    vigencia_produto = None
+                
                 item = ItemContrato(
                     contrato=contrato,
                     lote=int(item_data.get('lote', 1) or 1),
@@ -582,6 +813,7 @@ class ContractAIService:
                     unidade=item_data.get('unidade', 'UN'),
                     quantidade=quantidade,
                     valor_unitario=valor_unitario,
+                    vigencia_produto=vigencia_produto,
                 )
                 item.save()
                 itens_criados.append(item)
@@ -599,14 +831,47 @@ class ContractAIService:
         slas_data = dados.get('slas', [])
         slas_criados = []
         
+        tipo_map = {
+            'disponibilidade': 'disponibilidade',
+            'tempo_resposta': 'tempo_resposta',
+            'resolucao': 'resolucao',
+            'atendimento': 'atendimento',
+            'outro': 'outro',
+        }
+        
         for sla_data in slas_data:
             try:
+                titulo = sla_data.get('titulo') or sla_data.get('nome', 'SLA')
+                tipo = tipo_map.get(sla_data.get('tipo', '').lower(), 'outro')
+                
+                # Monta a meta do SLA
+                meta_parts = []
+                if sla_data.get('tempo_resposta_horas'):
+                    meta_parts.append(f"{sla_data.get('tempo_resposta_horas')} horas de resposta")
+                if sla_data.get('tempo_solucao_horas'):
+                    meta_parts.append(f"{sla_data.get('tempo_solucao_horas')} horas de solução")
+                if sla_data.get('percentual_disponibilidade'):
+                    meta_parts.append(f"{sla_data.get('percentual_disponibilidade')}% de disponibilidade")
+                meta = ', '.join(meta_parts) if meta_parts else 'A definir'
+                
+                # Valor da penalidade
+                penalidade_percentual = sla_data.get('penalidade_percentual')
+                valor_penalidade = None
+                if penalidade_percentual:
+                    try:
+                        # Calcula valor da penalidade como percentual do valor do contrato
+                        if contrato.valor_inicial:
+                            valor_penalidade = contrato.valor_inicial * (Decimal(str(penalidade_percentual)) / 100)
+                    except:
+                        pass
+                
                 sla = SLA(
                     contrato=contrato,
-                    nome=sla_data.get('nome', 'SLA'),
+                    titulo=titulo,
                     descricao=sla_data.get('descricao', ''),
-                    tempo_resposta=int(sla_data.get('tempo_resposta_horas', 4) or 4),
-                    tempo_solucao=int(sla_data.get('tempo_solucao_horas', 24) or 24),
+                    tipo=tipo,
+                    meta=meta,
+                    valor_penalidade=valor_penalidade,
                 )
                 sla.save()
                 slas_criados.append(sla)
@@ -615,6 +880,41 @@ class ContractAIService:
                 continue
         
         return slas_criados
+    
+    @staticmethod
+    def create_diario_bordo_from_data(dados: Dict[str, Any], contrato, user=None):
+        """Cria o primeiro registro do Diário de Bordo a partir dos dados extraídos pela IA"""
+        from contracts.models import DiarioBordoContrato
+        
+        diario_data = dados.get('diario_bordo', {})
+        if not diario_data:
+            return None
+        
+        # Monta o conteúdo completo do registro
+        conteudo_parts = []
+        
+        if diario_data.get('resumo_geral'):
+            conteudo_parts.append(f"## Resumo Geral\n\n{diario_data.get('resumo_geral')}\n")
+        
+        if diario_data.get('operacionalizacao_equipe'):
+            conteudo_parts.append(f"## Operacionalização pela Equipe\n\n{diario_data.get('operacionalizacao_equipe')}\n")
+        
+        conteudo = '\n'.join(conteudo_parts) if conteudo_parts else 'Análise inicial do contrato realizada pela IA.'
+        
+        diario = DiarioBordoContrato(
+            contrato=contrato,
+            tipo_registro='analise_ia',
+            titulo='Análise Inicial do Contrato - IA',
+            conteudo=conteudo,
+            resumo_geral=diario_data.get('resumo_geral') or None,
+            itens_mais_importantes=diario_data.get('itens_mais_importantes', []),
+            operacionalizacao_equipe=diario_data.get('operacionalizacao_equipe') or None,
+            informacoes_gerente_contrato_cs=diario_data.get('informacoes_gerente_contrato_cs', {}),
+            informacoes_gerente_projetos=diario_data.get('informacoes_gerente_projetos', {}),
+            criado_por=user,
+        )
+        diario.save()
+        return diario
     
     # Prompt otimizado com melhores práticas de gestão de projetos (PMBOK, Scrum, Agile)
     PLANO_TRABALHO_PROMPT = """Você é especialista em gestão de projetos de infraestrutura de TI e cibersegurança, certificado (PMP/PMI, Scrum Master, ITIL, CISSP) com expertise em metodologias ágeis aplicadas a projetos de infraestrutura e segurança da informação.
@@ -956,19 +1256,18 @@ REGRAS E DIRETRIZES OBRIGATÓRIAS:
 """
     
     @staticmethod
-    def gerar_plano_trabalho_completo(projeto, texto_documento: str, provider: str = "openai") -> Dict[str, Any]:
+    def gerar_plano_trabalho_completo(projeto, texto_documento: str) -> Dict[str, Any]:
         """
         Gera um plano de trabalho completo usando IA para um projeto específico
         
         Args:
             projeto: Instância de Projeto (com item_contrato vinculado)
             texto_documento: Texto extraído do documento
-            provider: "openai" ou "anthropic"
             
         Returns:
             Dict com o plano completo
         """
-        analyzer = ContractAIAnalyzer(provider=provider)
+        analyzer = ContractAIAnalyzer()
         contrato = projeto.contrato
         
         # Busca informações do item do contrato vinculado ao projeto
@@ -1006,39 +1305,21 @@ CONTRATO:
 - Regime Legal: {contrato.get_regime_legal_display()}
 {fornecedor_info}
 Documento do Contrato:
-{texto_documento[:80000] if provider == "openai" else texto_documento[:120000]}
+{texto_documento[:80000]}
 """
         
-        # Analisa com IA
-        if provider == "openai":
-            client = analyzer._get_openai_client()
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": ContractAIService.PLANO_TRABALHO_PROMPT},
-                    {"role": "user", "content": f"{contexto}\n\nGere o plano de trabalho completo para este contrato."}
-                ],
-                temperature=0.3,
-                response_format={"type": "json_object"}
-            )
-            result = response.choices[0].message.content
-        else:  # anthropic
-            client = analyzer._get_anthropic_client()
-            response = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=8000,
-                system=ContractAIService.PLANO_TRABALHO_PROMPT,
-                messages=[
-                    {"role": "user", "content": f"{contexto}\n\nGere o plano de trabalho completo para este contrato."}
-                ]
-            )
-            result = response.content[0].text
-            if result.startswith("```json"):
-                result = result[7:]
-            if result.startswith("```"):
-                result = result[3:]
-            if result.endswith("```"):
-                result = result[:-3]
+        # Analisa com IA usando OpenAI
+        client = analyzer._get_openai_client()
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": ContractAIService.PLANO_TRABALHO_PROMPT},
+                {"role": "user", "content": f"{contexto}\n\nGere o plano de trabalho completo para este contrato."}
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        result = response.choices[0].message.content
         
         return json.loads(result.strip())
     

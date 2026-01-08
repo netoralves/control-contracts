@@ -168,6 +168,8 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # teste local
 # EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = "Controle de Contratos <noreply@alltechsolucoes.com.br>"
 
+# OpenAI API Key para análise de contratos com IA
+OPENAI_API_KEY = config('OPENAI_API_KEY', default=None)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

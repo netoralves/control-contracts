@@ -25,13 +25,9 @@
             </div>
             <div class="flex gap-2">
                 {% if analise.status == 'pendente' or analise.status == 'erro' %}
-                <a href="{% url 'documento_contrato_analisar' analise.pk %}?provider=openai" 
+                <a href="{% url 'documento_contrato_analisar' analise.pk %}" 
                     class="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-brain mr-1"></i> Analisar com OpenAI
-                </a>
-                <a href="{% url 'documento_contrato_analisar' analise.pk %}?provider=anthropic" 
-                    class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-robot mr-1"></i> Analisar com Claude
+                    <i class="fas fa-brain mr-1"></i> Analisar com IA
                 </a>
                 {% endif %}
                 {% if analise.dados_extraidos and not analise.contrato_gerado %}

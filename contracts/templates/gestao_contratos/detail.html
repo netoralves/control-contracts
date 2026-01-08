@@ -1,6 +1,7 @@
 {% extends "contracts/base.html" %}
 {% load static %}
 {% load math_extras %}
+{% load auth_extras %}
 
 {% block title %}{{ contrato.numero_contrato }} - Detalhes do Contrato{% endblock %}
 
@@ -38,6 +39,11 @@
             <a href="{% url 'gestao_contratos_update' contrato.pk %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
                 <i class="fas fa-edit mr-1"></i> Editar
             </a>
+            {% if user.is_superuser or user|is_in_group:'Admin' or user|is_in_group:'Gerente' %}
+            <a href="{% url 'gestao_contratos_delete' contrato.pk %}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition">
+                <i class="fas fa-trash mr-1"></i> Excluir
+            </a>
+            {% endif %}
         </div>
     </div>
 

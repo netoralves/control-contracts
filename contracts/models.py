@@ -1341,8 +1341,8 @@ class OrdemServico(models.Model):
         if hasattr(self, 'projeto') and self.projeto:
             todas_tarefas_consultor = Tarefa.objects.filter(
                 projeto=self.projeto,
-                responsavel__cargo__icontains="consultor"
-            )
+            responsavel__cargo__icontains="consultor"
+        )
         
         horas_total = Decimal('0.00')
         for tarefa in todas_tarefas_consultor:
@@ -1371,8 +1371,8 @@ class OrdemServico(models.Model):
         if hasattr(self, 'projeto') and self.projeto:
             todas_tarefas_gerente = Tarefa.objects.filter(
                 projeto=self.projeto,
-                responsavel__cargo__icontains="gerente"
-            )
+            responsavel__cargo__icontains="gerente"
+        )
         
         horas_total = Decimal('0.00')
         for tarefa in todas_tarefas_gerente:
@@ -3595,5 +3595,91 @@ def atualizar_valor_inicial_contrato_delete(sender, instance, **kwargs):
     if instance.contrato and instance.contrato.pk:
         instance.contrato._atualizar_valor_inicial()
 
+
+class DiarioBordoContrato(models.Model):
+    """
+    Diário de Bordo do Contrato - Registro de todos os acontecimentos e informações relevantes do contrato
+    """
+    TIPO_REGISTRO_CHOICES = [
+        ('analise_ia', 'Análise Inicial (IA)'),
+        ('evento', 'Evento'),
+        ('reuniao', 'Reunião'),
+        ('comunicacao', 'Comunicação'),
+        ('decisao', 'Decisão'),
+        ('problema', 'Problema'),
+        ('solucao', 'Solução'),
+        ('mudanca', 'Mudança'),
+        ('outro', 'Outro'),
+    ]
+    
+    contrato = models.ForeignKey(
+        'Contrato',
+        on_delete=models.CASCADE,
+        related_name='diario_bordo',
+        verbose_name="Contrato"
+    )
+    tipo_registro = models.CharField(
+        max_length=20,
+        choices=TIPO_REGISTRO_CHOICES,
+        default='analise_ia',
+        verbose_name="Tipo de Registro"
+    )
+    titulo = models.CharField(
+        max_length=255,
+        verbose_name="Título"
+    )
+    conteudo = models.TextField(
+        verbose_name="Conteúdo",
+        help_text="Conteúdo completo do registro do diário de bordo"
+    )
+    
+    # Campos específicos para análise inicial da IA
+    resumo_geral = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Resumo Geral",
+        help_text="Resumo executivo do contrato"
+    )
+    itens_mais_importantes = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Itens Mais Importantes",
+        help_text="Lista de itens críticos do contrato"
+    )
+    operacionalizacao_equipe = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Operacionalização pela Equipe",
+        help_text="Como o contrato deve ser operacionalizado"
+    )
+    informacoes_gerente_contrato_cs = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Informações para Gerente de Contrato/CS",
+        help_text="Informações relevantes para gestão comercial e customer success"
+    )
+    informacoes_gerente_projetos = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Informações para Gerente de Projetos",
+        help_text="Informações técnicas para execução dos serviços"
+    )
+    
+    criado_por = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Criado por",
+        related_name='registros_diario_bordo'
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Registro do Diário de Bordo"
+        verbose_name_plural = "Registros do Diário de Bordo"
+        ordering = ['-criado_em']
+    
     def __str__(self):
-        return f"{self.titulo} - {self.contrato.numero_contrato}"
+        return f"{self.contrato.numero_contrato} - {self.titulo} ({self.get_tipo_registro_display()})"

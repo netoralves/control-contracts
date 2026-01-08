@@ -4630,14 +4630,25 @@ def documento_contrato_upload(request):
                     erro_arquivos = f'Arquivo muito grande: {arquivo.name}. Limite: 50MB'
                     break
         
+        # Cria o formulário - sempre passa FILES mesmo se vazio para evitar erro de validação
         form = AnaliseContratoForm(request.POST, request.FILES)
+        
+        # Remove a validação do campo arquivos do formulário, pois já validamos manualmente
+        # O Django valida o campo arquivos mesmo quando required=False se não houver FILES
+        if 'arquivos' in form.errors:
+            # Remove o erro de "Nenhum arquivo enviado" se tivermos arquivos ou se for erro de validação do Django
+            if arquivos or 'Nenhum arquivo enviado' in str(form.errors.get('arquivos', [])):
+                form.errors.pop('arquivos', None)
         
         # Se houver erro nos arquivos, adiciona ao formulário
         if erro_arquivos:
             form.add_error('arquivos', erro_arquivos)
         
         # Valida o formulário (nome e número de contrato)
-        if form.is_valid() and not erro_arquivos:
+        # Importante: validar mesmo se houver erro_arquivos para mostrar todos os erros
+        form_valid = form.is_valid()
+        
+        if form_valid and not erro_arquivos:
             nome_analise = form.cleaned_data['nome_analise']
             numero_contrato_busca = form.cleaned_data.get('numero_contrato_busca', '').strip()
             
@@ -4690,9 +4701,58 @@ def documento_contrato_upload(request):
             messages.success(request, f'Análise "{nome_analise}" criada com {len(arquivos)} documento(s)!')
             if contrato_existente:
                 messages.info(request, f'Vinculada ao contrato existente: {contrato_existente.numero_contrato}')
+            
+            # Executa análise automaticamente após criar
+            try:
+                import logging
+                import os
+                from django.conf import settings
+                from decouple import config
+                logger = logging.getLogger(__name__)
+                from .services.contract_ai_service import ContractAIService
+                
+                # Verifica se a chave da API está configurada
+                # Tenta ler do settings primeiro, depois do .env usando decouple
+                api_key = getattr(settings, 'OPENAI_API_KEY', None)
+                if not api_key:
+                    api_key = config('OPENAI_API_KEY', default=None)
+                if not api_key:
+                    api_key = os.environ.get('OPENAI_API_KEY')
+                
+                if not api_key:
+                    messages.warning(
+                        request, 
+                        'Análise criada com sucesso! Configure a chave da API (OPENAI_API_KEY) no arquivo .env para executar a análise automaticamente. '
+                        'Você pode executar a análise manualmente na página de detalhes.'
+                    )
+                else:
+                    service = ContractAIService()
+                    dados = service.process_multiple_documents(analise)
+                    messages.success(request, f'Análise concluída! {len(analise.documentos.all())} documento(s) processado(s).')
+            except ValueError as e:
+                # Erro de configuração (chave não configurada)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Chave da API não configurada: {str(e)}")
+                messages.warning(
+                    request, 
+                    f'Análise criada com sucesso! {str(e)}. '
+                    'Configure a chave da API (OPENAI_API_KEY) no arquivo .env e execute a análise manualmente na página de detalhes.'
+                )
+            except Exception as e:
+                import traceback
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erro na análise automática: {traceback.format_exc()}")
+                messages.warning(request, f'Análise criada, mas houve erro ao processar: {str(e)}. Você pode tentar novamente na página de detalhes.')
+            
             return redirect('documento_contrato_detail', pk=analise.pk)
         else:
             # Se o formulário não for válido, adiciona mensagem de erro
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Formulário inválido. Erros: {form.errors}, erro_arquivos: {erro_arquivos}")
+            
             if not form.is_valid() or erro_arquivos:
                 # Adiciona mensagem de erro genérica
                 if erro_arquivos:
@@ -4732,13 +4792,10 @@ def documento_contrato_analisar(request, pk):
     """Executa análise de todos os documentos com IA"""
     analise = get_object_or_404(AnaliseContrato, pk=pk)
     
-    # Verifica provider configurado
-    provider = request.GET.get('provider', 'openai')
-    
     try:
         from .services.contract_ai_service import ContractAIService
         
-        service = ContractAIService(provider=provider)
+        service = ContractAIService()
         dados = service.process_multiple_documents(analise)
         
         messages.success(request, f'Análise concluída! {len(analise.documentos.all())} documento(s) processado(s).')
@@ -4798,6 +4855,11 @@ def documento_contrato_criar_registros(request, pk):
                     slas = ContractAIService.create_slas_from_data(dados, contrato)
                     if slas:
                         messages.success(request, f'{len(slas)} SLA(s) criado(s).')
+                    
+                    # Criar primeiro registro do Diário de Bordo (apenas se for contrato novo)
+                    diario = ContractAIService.create_diario_bordo_from_data(dados, contrato, request.user)
+                    if diario:
+                        messages.success(request, 'Registro inicial do Diário de Bordo criado.')
                 else:
                     messages.info(request, 'Itens e SLAs não foram criados pois o contrato já existe.')
         
@@ -4912,11 +4974,9 @@ def plano_trabalho_gerar(request, projeto_id):
     try:
         from .services.contract_ai_service import ContractAIService
         
-        provider = request.GET.get('provider', 'openai')
         dados_plano = ContractAIService.gerar_plano_trabalho_completo(
             projeto, 
-            analise.texto_consolidado,
-            provider=provider
+            analise.texto_consolidado
         )
         
         plano = ContractAIService.criar_plano_trabalho(projeto, dados_plano, request.user)

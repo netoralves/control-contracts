@@ -27,17 +27,6 @@
                 <form method="post" enctype="multipart/form-data" class="space-y-6">
                     {% csrf_token %}
                     
-                    {% if messages %}
-                    <div class="mb-4">
-                        {% for message in messages %}
-                        <div class="p-4 mb-2 rounded-lg {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200{% elif message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200{% elif message.tags == 'info' %}bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200{% else %}bg-gray-50 border border-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
-                            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'success' %}fa-check-circle{% elif message.tags == 'info' %}fa-info-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
-                            {{ message }}
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    
                     {% if form.non_field_errors %}
                     <div class="mb-4">
                         {% for error in form.non_field_errors %}
@@ -125,7 +114,7 @@
                             id="submitBtn"
                             disabled
                             class="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fas fa-upload mr-1"></i> Criar Análise
+                            <i class="fas fa-upload mr-1"></i> Criar e Analisar
                         </button>
                     </div>
                 </form>
@@ -149,11 +138,15 @@
                     </li>
                     <li class="flex gap-3">
                         <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">3</span>
-                        <span>Analisa todos os artefatos juntos e identifica informações</span>
+                        <span>A IA analisa automaticamente todos os artefatos e identifica informações</span>
                     </li>
                     <li class="flex gap-3">
                         <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">4</span>
-                        <span>Vincula a contrato existente ou cria novo automaticamente</span>
+                        <span>Verifica se cliente, contatos, contrato e itens já estão cadastrados</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="flex-shrink-0 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">5</span>
+                        <span>Extrai todas as informações relevantes dos documentos</span>
                     </li>
                 </ol>
             </div>
@@ -321,57 +314,77 @@ function atualizarListaArquivos() {
 
 // Intercepta o submit do formulário
 form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
     // Validação do nome da análise
     const nomeAnaliseInput = form.querySelector('[name="nome_analise"]');
     if (!nomeAnaliseInput || !nomeAnaliseInput.value || !nomeAnaliseInput.value.trim()) {
+        e.preventDefault();
         alert('O nome da análise é obrigatório.');
         if (nomeAnaliseInput) nomeAnaliseInput.focus();
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-upload mr-1"></i> Criar Análise';
         return false;
     }
     
     if (arquivosSelecionados.length === 0) {
+        e.preventDefault();
         alert('Selecione pelo menos um arquivo.');
         return false;
     }
     
     // Desabilita o botão durante o envio
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Criando Análise...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Criando e Analisando...';
     
     // Cria um FormData e adiciona os dados do formulário
-    const formData = new FormData(form);
+    const formData = new FormData();
     
-    // Remove o campo arquivos original (se houver)
-    formData.delete('arquivos');
+    // Adiciona os campos do formulário (exceto arquivos)
+    const nomeAnalise = form.querySelector('[name="nome_analise"]').value;
+    const numeroContrato = form.querySelector('[name="numero_contrato_busca"]')?.value || '';
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    formData.append('nome_analise', nomeAnalise);
+    if (numeroContrato) {
+        formData.append('numero_contrato_busca', numeroContrato);
+    }
+    formData.append('csrfmiddlewaretoken', csrfToken);
     
     // Adiciona cada arquivo
     arquivosSelecionados.forEach((file) => {
         formData.append('arquivos', file);
     });
     
+    // Previne o submit padrão
+    e.preventDefault();
+    
     // Obtém a URL do formulário ou usa a URL atual
     const formAction = form.action || window.location.pathname;
     
     // Envia via fetch
+    // NÃO adiciona Content-Type header - o navegador define automaticamente com boundary para multipart/form-data
     fetch(formAction, {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': csrfToken
+            // NÃO adicionar 'Content-Type' - o navegador define automaticamente com boundary
         },
-        redirect: 'follow'
+        redirect: 'follow'  // Segue redirects automaticamente
     })
     .then(response => {
-        if (response.redirected) {
-            window.location.href = response.url;
-        } else if (response.ok) {
+        // Se a resposta for OK (200 ou após redirect), processa
+        if (response.ok) {
+            // Se a URL mudou, significa que houve redirect
+            if (response.url !== formAction) {
+                // Segue o redirect
+                window.location.href = response.url;
+                return;
+            }
+            // Se não houve redirect, processa o HTML
             return response.text();
         } else {
-            throw new Error('Erro na resposta do servidor');
+            // Se não for OK, tenta ler o texto do erro
+            return response.text().then(text => {
+                throw new Error(`Erro na resposta do servidor: ${response.status}`);
+            });
         }
     })
     .then(html => {
@@ -394,11 +407,25 @@ form.addEventListener('submit', (e) => {
             // Verifica se o HTML contém texto de erro
             const hasErrorText = html.includes('Erro') || html.includes('error') || html.includes('required') || html.includes('obrigatório');
             
+            // Verifica se há mensagens de sucesso (que indicam que foi criado com sucesso)
+            const successMessages = doc.querySelectorAll('.messages .success, .messages .alert-success, [class*="success"]');
+            const hasSuccessText = html.includes('Análise') && (html.includes('criada') || html.includes('concluída'));
+            
             if (errorMessages.length > 0 || formErrors.length > 0 || errorTexts.length > 0 || djangoMessages.length > 0 || fieldErrors.length > 0 || hasErrorText) {
                 // Recarrega a página para mostrar os erros do formulário
                 window.location.reload();
+            } else if (successMessages.length > 0 || hasSuccessText) {
+                // Se houver mensagem de sucesso, provavelmente houve redirect que não foi capturado
+                // Tenta encontrar link de detalhes ou recarrega
+                const detailLink = doc.querySelector('a[href*="detail"], a[href*="analise"]');
+                if (detailLink) {
+                    window.location.href = detailLink.href;
+                } else {
+                    // Recarrega a página para mostrar mensagens de sucesso
+                    window.location.reload();
+                }
             } else {
-                // Se não houver erros, recarrega a página para mostrar mensagens de sucesso
+                // Se não houver erros nem sucesso claro, recarrega mesmo assim
                 window.location.reload();
             }
         }
@@ -407,7 +434,7 @@ form.addEventListener('submit', (e) => {
         console.error('Erro:', error);
         alert('Erro ao criar análise. Tente novamente.');
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-upload mr-1"></i> Criar Análise';
+        submitBtn.innerHTML = '<i class="fas fa-upload mr-1"></i> Criar e Analisar';
     });
     
     return false;

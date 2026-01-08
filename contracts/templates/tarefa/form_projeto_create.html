@@ -156,11 +156,11 @@
                 
                 <!-- Prioridade -->
                 {% if form.prioridade %}
-                <div>
+                    <div>
                     <label for="{{ form.prioridade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {{ form.prioridade.label }}
                         {% if form.prioridade.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     {{ form.prioridade }}
                     {% if form.prioridade.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.prioridade.errors.0 }}</p>
@@ -168,7 +168,7 @@
                 </div>
                 {% endif %}
             </div>
-        </div>
+                    </div>
 
         <!-- Planejamento e Datas -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
@@ -179,11 +179,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Data Início -->
                 {% if form.data_inicio_prevista %}
-                <div>
+                    <div>
                     <label for="{{ form.data_inicio_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Data/Hora de Início Planejado
                         {% if form.data_inicio_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     <div class="relative">
                         {{ form.data_inicio_prevista }}
                         <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_inicio">
@@ -203,7 +203,7 @@
                     <label for="{{ form.data_termino_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Data/Hora de Término Planejado
                         {% if form.data_termino_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     <div class="relative">
                         {{ form.data_termino_prevista }}
                         <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_termino">
@@ -241,7 +241,7 @@
                     {% if form.observacoes.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.observacoes.errors.0 }}</p>
                     {% endif %}
-                </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -254,11 +254,11 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Sprint -->
-                {% if form.sprint and not form.sprint.field.widget.is_hidden %}
+            {% if form.sprint and not form.sprint.field.widget.is_hidden %}
                 <div>
                     <label for="{{ form.sprint.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ form.sprint.label }}
-                    </label>
+                    {{ form.sprint.label }}
+                </label>
                     {{ form.sprint }}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         <i class="fa-solid fa-info-circle mr-1"></i>
@@ -279,9 +279,9 @@
                     </label>
                     {{ form.status_sprint }}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        <i class="fa-solid fa-info-circle mr-1"></i>
+                    <i class="fa-solid fa-info-circle mr-1"></i>
                         Status da tarefa quando atribuída a uma sprint.
-                    </p>
+                </p>
                     {% if form.status_sprint.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.status_sprint.errors.0 }}</p>
                     {% endif %}
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para calcular horas planejadas baseado em dias úteis
     function calcularHorasPlanejadas() {
-        const horasPlanejadasField = document.getElementById('id_horas_planejadas');
+    const horasPlanejadasField = document.getElementById('id_horas_planejadas');
         if (!horasPlanejadasField || !dataInicioField || !dataTerminoField) {
             return;
         }

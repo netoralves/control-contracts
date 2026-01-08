@@ -42,7 +42,7 @@
                         {% endfor %}
                     {% endfor %}
                     {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
+                        <li>{{ error }}</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -75,8 +75,8 @@
                 <!-- Coluna 1-2: Título e Descrição -->
                 <div class="md:col-span-2 flex flex-col gap-2">
                     <!-- Título -->
-                    {% if form.titulo %}
-                    <div>
+            {% if form.titulo %}
+            <div>
                         <label for="{{ form.titulo.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             {{ form.titulo.label }} <span class="text-red-500">*</span>
                         </label>
@@ -107,7 +107,7 @@
                     <div class="w-full max-w-[180px]">
                         <label for="{{ form.bilhetar_na_os.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             {{ form.bilhetar_na_os.label }}
-                        </label>
+                </label>
                         <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center gap-2 min-h-[110px]">
                             <div class="relative">
                                 <input type="checkbox" 
@@ -144,26 +144,26 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Responsável -->
-                {% if form.responsavel %}
-                <div>
+            {% if form.responsavel %}
+            <div>
                     <label for="{{ form.responsavel.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ form.responsavel.label }}
-                        {% if form.responsavel.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                    {{ form.responsavel.label }}
+                    {% if form.responsavel.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
                     {{ form.responsavel }}
                     {% if form.responsavel.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.responsavel.errors.0 }}</p>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
+            {% endif %}
+            </div>
+            {% endif %}
+            
                 <!-- Prioridade -->
-                {% if form.prioridade %}
-                <div>
+            {% if form.prioridade %}
+            <div>
                     <label for="{{ form.prioridade.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        {{ form.prioridade.label }}
-                        {% if form.prioridade.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                    {{ form.prioridade.label }}
+                    {% if form.prioridade.field.required %}<span class="text-red-500">*</span>{% endif %}
+                </label>
                     {{ form.prioridade }}
                     {% if form.prioridade.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.prioridade.errors.0 }}</p>
@@ -182,22 +182,22 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Horas Consumidas (somente leitura) -->
                 {% if form.horas_consumidas %}
-                <div>
+            <div>
                     <label for="{{ form.horas_consumidas.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {{ form.horas_consumidas.label }}
-                    </label>
+                </label>
                     {{ form.horas_consumidas|add_class:"bg-gray-100 dark:bg-gray-700 cursor-not-allowed" }}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Calculado automaticamente baseado nos lançamentos de horas</p>
-                </div>
-                {% endif %}
-                
+            </div>
+            {% endif %}
+            
                 <!-- Data Início -->
                 {% if form.data_inicio_prevista %}
                 <div>
                     <label for="{{ form.data_inicio_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Data/Hora de Início Planejado
                         {% if form.data_inicio_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     <div class="relative">
                         {{ form.data_inicio_prevista }}
                         <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_inicio_edit">
@@ -213,11 +213,11 @@
                 
                 <!-- Data Término -->
                 {% if form.data_termino_prevista %}
-                <div>
+                    <div>
                     <label for="{{ form.data_termino_prevista.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Data/Hora de Término Planejado
                         {% if form.data_termino_prevista.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     <div class="relative">
                         {{ form.data_termino_prevista }}
                         <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_termino_edit">
@@ -233,24 +233,24 @@
                 
                 <!-- Horas Planejadas -->
                 {% if form.horas_planejadas %}
-                <div>
+                    <div>
                     <label for="{{ form.horas_planejadas.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {{ form.horas_planejadas.label }}
                         <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">(sugestão automática - pode editar)</span>
-                    </label>
+                        </label>
                     {{ form.horas_planejadas }}
                     {% if form.horas_planejadas.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.horas_planejadas.errors.0 }}</p>
                     {% endif %}
-                </div>
+                    </div>
                 {% endif %}
                 
                 <!-- Observações -->
                 {% if form.observacoes %}
-                <div>
+                    <div>
                     <label for="{{ form.observacoes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {{ form.observacoes.label }}
-                    </label>
+                        </label>
                     {{ form.observacoes }}
                     {% if form.observacoes.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.observacoes.errors.0 }}</p>
@@ -258,7 +258,7 @@
                 </div>
                 {% endif %}
             </div>
-        </div>
+                    </div>
 
         <!-- Sprint e Status -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
@@ -269,11 +269,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Sprint -->
                 {% if form.sprint and not form.sprint.field.widget.is_hidden %}
-                <div>
+                    <div>
                     <label for="{{ form.sprint.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         {{ form.sprint.label }}
                         {% if form.sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     {{ form.sprint }}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         <i class="fa-solid fa-info-circle mr-1"></i>
@@ -282,7 +282,7 @@
                     {% if form.sprint.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.sprint.errors.0 }}</p>
                     {% endif %}
-                </div>
+                    </div>
                 {% endif %}
                 
                 <!-- Status da Tarefa -->
@@ -291,7 +291,7 @@
                     <label for="{{ form.status_sprint.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Status da Tarefa
                         {% if form.status_sprint.field.required %}<span class="text-red-500">*</span>{% endif %}
-                    </label>
+                        </label>
                     {{ form.status_sprint }}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         <i class="fa-solid fa-info-circle mr-1"></i>
@@ -300,7 +300,7 @@
                     {% if form.status_sprint.errors %}
                     <p class="text-red-500 text-xs mt-1">{{ form.status_sprint.errors.0 }}</p>
                     {% endif %}
-                </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dataInicioField.value) {
             valorInicialConvertido = converterDataHoraISOParaBrasileiro(dataInicioField.value);
             dataInicioField.value = valorInicialConvertido;
-            
+        
             // Parsear valor convertido para o Flatpickr
             const brRegex = /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2})/;
             const match = valorInicialConvertido.match(brRegex);
@@ -482,9 +482,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (match) {
                 const [, dia, mes, ano, hora, minuto] = match;
                 initialDateTermino = new Date(`${ano}-${mes}-${dia}T${hora}:${minuto}:00`);
-            }
-        }
-        
+                        }
+                    }
+                    
         // Adicionar placeholder
         if (!dataTerminoField.placeholder) {
             dataTerminoField.placeholder = 'dd/mm/yyyy, HH:MM';
@@ -550,16 +550,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.target.value = formattedValue;
                 // Recalcular horas planejadas
                 calcularHorasPlanejadas();
-            }
+                            }
         });
-    }
-    
+                    }
+                    
     // Função para calcular horas planejadas baseado em dias úteis
     function calcularHorasPlanejadas() {
         const horasPlanejadasField = document.getElementById('id_horas_planejadas');
         if (!horasPlanejadasField || !dataInicioField || !dataTerminoField) {
             return;
-        }
+                }
         
         // Verificar se o campo está focado (usuário está editando manualmente)
         if (document.activeElement === horasPlanejadasField) {
@@ -670,9 +670,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Tarde
                     totalHoras += calcularHorasPeriodo(horaInicio, horaFimDia, HORA_INICIO_TARDE, HORA_FIM_TARDE);
-                }
-                
-                // Avançar para o próximo dia
+            }
+            
+            // Avançar para o próximo dia
                 currentDate.setDate(currentDate.getDate() + 1);
                 currentDate.setHours(0, 0, 0, 0);
                 

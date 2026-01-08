@@ -89,11 +89,11 @@
             
             {# Linha 2: Data de Início (esquerda) e Data de Término (direita) #}
             {% if form.data_inicio %}
-            <div>
+                    <div>
                 <label for="{{ form.data_inicio.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     {{ form.data_inicio.label }}
                     {% if form.data_inicio.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
+                        </label>
                 <div class="relative">
                     {{ form.data_inicio|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
                     <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="calendar_btn_inicio">
@@ -102,15 +102,15 @@
                 </div>
                 {% if form.data_inicio.help_text %}
                     <p class="mt-1 text-xs text-gray-500">{{ form.data_inicio.help_text }}</p>
-                {% endif %}
+                        {% endif %}
                 {% if form.data_inicio.errors %}
                     <p class="mt-1 text-sm text-red-600">{{ form.data_inicio.errors }}</p>
-                {% endif %}
-            </div>
+                        {% endif %}
+                    </div>
             {% endif %}
             
             {% if form.data_fim %}
-            <div>
+                    <div>
                 <label for="{{ form.data_fim.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     {{ form.data_fim.label }}
                     {% if form.data_fim.field.required %}<span class="text-red-500">*</span>{% endif %}
@@ -136,15 +136,15 @@
                 <label for="{{ form.descricao.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     {{ form.descricao.label }}
                     {% if form.descricao.field.required %}<span class="text-red-500">*</span>{% endif %}
-                </label>
+                        </label>
                 {{ form.descricao|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
                 {% if form.descricao.help_text %}
                     <p class="mt-1 text-xs text-gray-500">{{ form.descricao.help_text }}</p>
-                {% endif %}
+                        {% endif %}
                 {% if form.descricao.errors %}
                     <p class="mt-1 text-sm text-red-600">{{ form.descricao.errors }}</p>
-                {% endif %}
-            </div>
+                        {% endif %}
+                    </div>
             {% endif %}
             
             {# Outros campos #}
