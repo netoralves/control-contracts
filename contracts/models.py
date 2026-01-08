@@ -1114,6 +1114,15 @@ class OrdemServico(models.Model):
 
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE)
+    projeto = models.ForeignKey(
+        "Projeto",
+        on_delete=models.CASCADE,
+        related_name="ordens_servico",
+        verbose_name="Projeto",
+        help_text="Projeto ao qual a OS está vinculada",
+        blank=True,
+        null=True  # Temporariamente nullable para migração
+    )
     item_contrato = models.ForeignKey(
         ItemContrato,
         on_delete=models.CASCADE,
@@ -1298,10 +1307,19 @@ class OrdemServico(models.Model):
         from django.db.models.functions import Coalesce
         
         # Horas realizadas = soma de todos os lançamentos de horas das tarefas vinculadas à OS
-        # Buscar todas as tarefas do projeto vinculado à OS
-        todas_tarefas = Tarefa.objects.none()
-        if hasattr(self, 'projeto') and self.projeto:
-            todas_tarefas = Tarefa.objects.filter(projeto=self.projeto)
+        # Buscar todas as tarefas vinculadas à OS (através da sprint ou diretamente)
+        tarefas_os = self.tarefas.all()
+        
+        # Se a OS tem uma sprint vinculada, buscar também tarefas da sprint
+        if hasattr(self, 'sprint') and self.sprint:
+            tarefas_sprint = self.sprint.tarefas.all()
+            # Combinar tarefas diretas e tarefas da sprint
+            from django.db.models import Q
+            todas_tarefas = Tarefa.objects.filter(
+                Q(ordem_servico=self) | Q(sprint=self.sprint)
+            ).distinct()
+        else:
+            todas_tarefas = tarefas_os
         
         # Calcular horas realizadas: soma de todos os lançamentos de horas
         horas_realizadas_total = Decimal('0.00')
@@ -1336,13 +1354,19 @@ class OrdemServico(models.Model):
         from django.db.models import Sum, Value, DecimalField, Q
         from django.db.models.functions import Coalesce
         
-        # Buscar tarefas do projeto vinculado à OS onde o consultor é responsável
-        todas_tarefas_consultor = Tarefa.objects.none()
-        if hasattr(self, 'projeto') and self.projeto:
-            todas_tarefas_consultor = Tarefa.objects.filter(
-                projeto=self.projeto,
+        # Buscar tarefas vinculadas à OS onde o consultor é responsável
+        tarefas_consultor = self.tarefas.filter(
             responsavel__cargo__icontains="consultor"
         )
+        
+        # Se há sprint vinculada, incluir tarefas da sprint também
+        if hasattr(self, 'sprint') and self.sprint:
+            tarefas_sprint_consultor = self.sprint.tarefas.filter(
+                responsavel__cargo__icontains="consultor"
+            )
+            todas_tarefas_consultor = (tarefas_consultor | tarefas_sprint_consultor).distinct()
+        else:
+            todas_tarefas_consultor = tarefas_consultor
         
         horas_total = Decimal('0.00')
         for tarefa in todas_tarefas_consultor:
@@ -1366,13 +1390,19 @@ class OrdemServico(models.Model):
         from django.db.models import Sum, Value, DecimalField, Q
         from django.db.models.functions import Coalesce
         
-        # Buscar tarefas do projeto vinculado à OS onde o gerente é responsável (tarefas de gestão)
-        todas_tarefas_gerente = Tarefa.objects.none()
-        if hasattr(self, 'projeto') and self.projeto:
-            todas_tarefas_gerente = Tarefa.objects.filter(
-                projeto=self.projeto,
+        # Buscar tarefas vinculadas à OS onde o gerente é responsável (tarefas de gestão)
+        tarefas_gerente = self.tarefas.filter(
             responsavel__cargo__icontains="gerente"
         )
+        
+        # Se há sprint vinculada, incluir tarefas da sprint também
+        if hasattr(self, 'sprint') and self.sprint:
+            tarefas_sprint_gerente = self.sprint.tarefas.filter(
+                responsavel__cargo__icontains="gerente"
+            )
+            todas_tarefas_gerente = (tarefas_gerente | tarefas_sprint_gerente).distinct()
+        else:
+            todas_tarefas_gerente = tarefas_gerente
         
         horas_total = Decimal('0.00')
         for tarefa in todas_tarefas_gerente:
@@ -2152,22 +2182,13 @@ class Projeto(models.Model):
     )
     item_contrato = models.ForeignKey(
         "ItemContrato",
-        on_delete=models.PROTECT,
-        related_name="projetos",
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
+        related_name="projetos",
         verbose_name="Item do Contrato",
         help_text="Item do contrato vinculado ao projeto (apenas Serviço ou Treinamento)",
         limit_choices_to={"tipo__in": TIPOS_OS_ITEM_CONTRATO}
-    )
-    ordem_servico = models.OneToOneField(
-        "OrdemServico",
-        on_delete=models.PROTECT,
-        related_name="projeto",
-        blank=True,
-        null=True,
-        verbose_name="Ordem de Serviço",
-        help_text="OS vinculada ao projeto (criada automaticamente)"
     )
     nome = models.CharField(max_length=255, verbose_name="Nome do Projeto")
     descricao = models.TextField(verbose_name="Descrição", blank=True, null=True)
@@ -2201,55 +2222,73 @@ class Projeto(models.Model):
         return f"{self.nome} - {self.contrato.numero_contrato}"
     
     def save(self, *args, **kwargs):
-        """Sincroniza datas com o contrato e cria OS automaticamente se necessário"""
-        is_new = self.pk is None
-        
+        """Sincroniza datas com o contrato"""
         if self.contrato:
             # Sincronizar datas com o contrato
             if self.contrato.data_assinatura:
                 self.data_inicio = self.contrato.data_assinatura
             if self.contrato.data_fim_atual:
                 self.data_fim_prevista = self.contrato.data_fim_atual
-        
-        # Salvar primeiro para ter PK
         super().save(*args, **kwargs)
-        
-        # Criar OS automaticamente se for novo projeto e não tiver OS vinculada
-        if is_new and not self.ordem_servico and self.item_contrato:
-            from .models import OrdemServico, ItemFornecedor
-            from decimal import Decimal
-            
-            # Buscar item de fornecedor do tipo serviço ou treinamento
-            item_fornecedor = ItemFornecedor.objects.filter(
-                tipo__in=["servico", "treinamento"]
-            ).first()
-            
-            if not item_fornecedor:
-                item_fornecedor = ItemFornecedor.objects.first()
-            
-            if item_fornecedor:
-                gerente_nome = str(self.gerente_projeto) if self.gerente_projeto else None
-                
-                os = OrdemServico.objects.create(
-                    cliente=self.contrato.cliente,
-                    contrato=self.contrato,
-                    item_contrato=self.item_contrato,
-                    item_fornecedor_consultor=item_fornecedor,
-                    item_fornecedor_gerente=item_fornecedor,
-                    data_inicio=self.data_inicio,
-                    data_termino=self.data_fim_prevista,
-                    quantidade=Decimal('0.00'),  # Será atualizado quando o plano de trabalho for aprovado
-                    status="aberta",
-                    gerente_projetos=gerente_nome,
-                )
-                self.ordem_servico = os
-                # Salvar novamente para vincular a OS
-                super().save(update_fields=['ordem_servico'])
     
     @property
     def total_tarefas_backlog(self):
-        """Total de tarefas no backlog do projeto (sem sprint atribuída)"""
-        return self.tarefas.filter(sprint__isnull=True).count()
+        """Total de tarefas no backlog do projeto (tarefas sem sprint atribuída que pertencem ao projeto)"""
+        from .models import Tarefa
+        # Tarefas sem sprint que foram criadas no contexto do projeto
+        # Busca tarefas que estão em sprints do projeto mas sem sprint atribuída (não deveria acontecer)
+        # Ou tarefas que estão no backlog do contrato mas podem ser atribuídas ao projeto
+        # Por enquanto, vamos buscar tarefas sem sprint que podem ser atribuídas a sprints do projeto
+        return Tarefa.objects.filter(
+            sprint__isnull=True,
+            backlog__contrato=self.contrato
+        ).count()
+    
+    @property
+    def tarefas_backlog_projeto(self):
+        """Tarefas no backlog do projeto (sem sprint atribuída, que podem ser atribuídas a sprints do projeto)"""
+        from .models import Tarefa
+        # Tarefas sem sprint que pertencem ao backlog do contrato
+        # Essas tarefas podem ser atribuídas a sprints do projeto
+        return Tarefa.objects.filter(
+            sprint__isnull=True,
+            backlog__contrato=self.contrato
+        )
+    
+    @property
+    def horas_previstas_os(self):
+        """Total de horas previstas na OS vinculada ao projeto"""
+        from decimal import Decimal
+        ordem_servico = self.ordens_servico.filter(status__in=['aberta', 'execucao']).first()
+        if ordem_servico:
+            return ordem_servico.horas_planejadas or Decimal('0.00')
+        return Decimal('0.00')
+    
+    @property
+    def horas_executadas_projeto(self):
+        """Total de horas executadas no projeto (horas lançadas em tarefas concluídas e bilhetáveis)"""
+        from .models import Tarefa, LancamentoHora
+        from decimal import Decimal
+        
+        # Buscar todas as tarefas concluídas do projeto que são bilhetáveis
+        tarefas_concluidas = Tarefa.objects.filter(
+            sprint__projeto=self,
+            status_sprint='concluida',
+            bilhetavel_os=True
+        )
+        
+        # Somar horas lançadas para essas tarefas
+        total_horas = Decimal('0.00')
+        for tarefa in tarefas_concluidas:
+            lancamentos = LancamentoHora.objects.filter(
+                tarefa=tarefa,
+                faturavel=True
+            )
+            for lancamento in lancamentos:
+                if lancamento.tempo_gasto:
+                    total_horas += Decimal(str(lancamento.tempo_gasto))
+        
+        return total_horas
     
     @property
     def total_sprints(self):
@@ -2259,46 +2298,7 @@ class Projeto(models.Model):
     @property
     def sprints_ativas(self):
         """Sprints ativas do projeto"""
-        return self.sprints.filter(status="execucao").count()
-    
-    @property
-    def horas_previstas_os(self):
-        """Total de horas previstas na OS vinculada ao projeto"""
-        if self.ordem_servico:
-            return self.ordem_servico.horas_planejadas or Decimal('0.00')
-        return Decimal('0.00')
-    
-    @property
-    def horas_executadas_projeto(self):
-        """Total de horas executadas no projeto (soma das horas lançadas em tarefas concluídas)"""
-        from .models import Tarefa, LancamentoHora
-        from django.db.models import Sum, Q
-        
-        # Buscar todas as tarefas concluídas do projeto
-        tarefas_concluidas = self.tarefas.filter(
-            Q(status="concluida") | Q(status_sprint="finalizada")
-        )
-        
-        # Somar horas lançadas nessas tarefas
-        total_horas = LancamentoHora.objects.filter(
-            tarefa__in=tarefas_concluidas
-        ).aggregate(
-            total=Sum('horas')
-        )['total'] or Decimal('0.00')
-        
-        return total_horas
-    
-    @property
-    def total_horas_sprints(self):
-        """Total de esforço em horas de todas as sprints do projeto"""
-        total = Decimal('0.00')
-        for sprint in self.sprints.all():
-            total += sprint.total_horas_tarefas
-        return total
-    
-    def get_cliente(self):
-        """Retorna o cliente do contrato vinculado"""
-        return self.contrato.cliente if self.contrato else None
+        return self.sprints.filter(status="ativa").count()
 
 
 class Backlog(models.Model):
@@ -2360,44 +2360,70 @@ class Backlog(models.Model):
     
     def converter_para_projeto(self, nome_projeto, descricao_projeto=None, gerente_projeto=None, item_contrato=None):
         """
-        Converte o backlog em um projeto com OS automática.
-        Ao converter, o backlog é excluído, pois deixa de ser uma demanda do contrato
-        e passa a ser um projeto.
+        Converte o backlog em um projeto e cria OS automaticamente
         
         Args:
             nome_projeto: Nome do projeto a ser criado
             descricao_projeto: Descrição do projeto (opcional)
             gerente_projeto: Instância de Colaborador para ser o gerente (opcional)
-            item_contrato: Item do contrato do tipo Serviço ou Treinamento (opcional, será buscado automaticamente se não fornecido)
+            item_contrato: Instância de ItemContrato (opcional, apenas Serviço ou Treinamento)
         """
-        from .models import ItemContrato
+        from .models import OrdemServico, ItemContrato
+        from decimal import Decimal
         
-        # Se não fornecido, buscar o primeiro item do contrato do tipo Serviço ou Treinamento
+        # Buscar item do contrato se não fornecido
         if not item_contrato:
+            # Buscar primeiro item do tipo Serviço ou Treinamento do contrato
             item_contrato = ItemContrato.objects.filter(
                 contrato=self.contrato,
-                tipo__in=TIPOS_OS_ITEM_CONTRATO
+                tipo__in=['servico', 'treinamento']
             ).first()
         
-        # Criar o projeto (sem backlog_origem, pois o backlog será excluído)
         projeto = Projeto.objects.create(
             contrato=self.contrato,
-            backlog_origem=None,  # Não manter referência ao backlog
-            item_contrato=item_contrato,
+            backlog_origem=self,
             nome=nome_projeto,
             descricao=descricao_projeto or self.descricao,
             gerente_projeto=gerente_projeto,  # Colaborador ou None
+            item_contrato=item_contrato,
             data_inicio=self.contrato.data_assinatura or timezone.now().date(),
             data_fim_prevista=self.contrato.data_fim_atual or timezone.now().date(),
             status="planejamento"
         )
-        # A OS será criada automaticamente no save() do Projeto
         
-        # Excluir o backlog, pois ele deixa de ser uma demanda do contrato
-        # e passa a ser um projeto
-        backlog_id = self.pk
-        self.delete()
+        # Criar OS automaticamente vinculada ao projeto
+        if item_contrato:
+            # Gerar número da OS
+            ano = timezone.now().year
+            ultima_os = OrdemServico.objects.filter(
+                numero_os__startswith=f"OS-{ano}"
+            ).order_by('-numero_os').first()
+            
+            if ultima_os:
+                try:
+                    ultimo_num = int(ultima_os.numero_os.split('/')[0].split('-')[-1])
+                    novo_num = ultimo_num + 1
+                except (ValueError, IndexError):
+                    novo_num = 1
+            else:
+                novo_num = 1
+            
+            numero_os = f"OS-{novo_num:04d}/{ano}"
+            
+            # Criar OS vinculada ao projeto
+            ordem_servico = OrdemServico.objects.create(
+                numero_os=numero_os,
+                cliente=self.contrato.cliente,
+                contrato=self.contrato,
+                projeto=projeto,
+                item_contrato=item_contrato,
+                quantidade=Decimal('0.00'),  # Será atualizado com o plano de trabalho
+                data_inicio=projeto.data_inicio,
+                status="aberta"
+            )
         
+        self.status = "convertido_projeto"
+        self.save()
         return projeto
 
 
@@ -2425,8 +2451,16 @@ class Sprint(models.Model):
         verbose_name="Status"
     )
     data_inicio = models.DateField(verbose_name="Data de Início")
-    data_fim = models.DateField(verbose_name="Data de Término")
-    # Removido: ordem_servico agora é vinculada ao projeto, não à sprint
+    data_fim = models.DateField(verbose_name="Data de Fim")
+    ordem_servico = models.OneToOneField(
+        "OrdemServico",
+        on_delete=models.CASCADE,
+        related_name="sprint",
+        blank=True,
+        null=True,
+        verbose_name="Ordem de Serviço",
+        help_text="OS vinculada à sprint (criada automaticamente se não existir)"
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
@@ -2439,10 +2473,121 @@ class Sprint(models.Model):
         return f"{self.nome} - {self.projeto.nome}"
     
     def save(self, *args, **kwargs):
-        """Salva a sprint"""
+        """Cria OS automaticamente se não existir e sincroniza status com OS"""
         if not self.pk:  # Apenas na criação
             self.status = "aberta"
+            # Se não há OS vinculada, criar automaticamente
+            if not self.ordem_servico:
+                from .models import OrdemServico, ItemContrato, ItemFornecedor
+                from decimal import Decimal
+                
+                # Buscar o primeiro item de contrato do tipo serviço
+                item_contrato = ItemContrato.objects.filter(
+                    contrato=self.projeto.contrato,
+                    tipo__in=["servico", "treinamento", "consultoria"]
+                ).first()
+                
+                # Se não houver item de contrato de serviço, buscar qualquer item do contrato
+                if not item_contrato:
+                    item_contrato = ItemContrato.objects.filter(
+                        contrato=self.projeto.contrato
+                    ).first()
+                
+                # Buscar o primeiro item de fornecedor do tipo serviço
+                item_fornecedor = ItemFornecedor.objects.filter(
+                    tipo="servico"
+                ).first()
+                
+                # Se não houver item de fornecedor de serviço, buscar qualquer item de fornecedor
+                if not item_fornecedor:
+                    item_fornecedor = ItemFornecedor.objects.first()
+                
+                # Se ainda não houver item_contrato ou item_fornecedor, não criar a OS
+                if not item_contrato or not item_fornecedor:
+                    raise ValueError(
+                        "Não é possível criar a OS automaticamente: "
+                        "é necessário ter pelo menos um Item de Contrato e um Item de Fornecedor cadastrados."
+                    )
+                
+                # Obter nome do gerente de projetos do Projeto (não da Sprint)
+                # O gerente está vinculado ao Projeto, não à Sprint
+                gerente_nome = str(self.projeto.gerente_projeto) if self.projeto.gerente_projeto else None
+                
+                os = OrdemServico.objects.create(
+                    cliente=self.projeto.contrato.cliente,
+                    contrato=self.projeto.contrato,
+                    item_contrato=item_contrato,
+                    item_fornecedor=item_fornecedor,
+                    data_inicio=self.data_inicio,
+                    data_termino=self.data_fim,
+                    quantidade=Decimal('0.00'),  # Será atualizado quando as tarefas forem adicionadas
+                    status="aberta",
+                    gerente_projetos=gerente_nome,  # Sincronizar com o gerente do Projeto
+                )
+                self.ordem_servico = os
+        
+        # Obter valores anteriores antes de salvar (para sincronização com OS)
+        old_data_inicio = None
+        old_data_fim = None
+        old_status = None
+        if self.pk:
+            try:
+                old_instance = Sprint.objects.get(pk=self.pk)
+                old_data_inicio = old_instance.data_inicio
+                old_data_fim = old_instance.data_fim
+                old_status = old_instance.status
+            except Sprint.DoesNotExist:
+                pass
+        
+        # Salvar a Sprint primeiro para garantir que tenha PK
         super().save(*args, **kwargs)
+        
+        # Sincronizar datas, status e gerente de projetos com a OS vinculada (após salvar para garantir que a Sprint tenha PK)
+        if self.ordem_servico:
+            os_updated = False
+            update_fields = []
+            
+            # Sincronizar datas: Sprint → OS
+            if old_data_inicio != self.data_inicio:
+                self.ordem_servico.data_inicio = self.data_inicio
+                update_fields.append('data_inicio')
+                os_updated = True
+            
+            if old_data_fim != self.data_fim:
+                self.ordem_servico.data_termino = self.data_fim
+                update_fields.append('data_termino')
+                os_updated = True
+            
+            # Sincronizar gerente de projetos: Projeto → OS (via Sprint)
+            # O gerente está no Projeto, não na Sprint
+            if self.projeto.gerente_projeto:
+                gerente_nome = str(self.projeto.gerente_projeto)
+                if self.ordem_servico.gerente_projetos != gerente_nome:
+                    self.ordem_servico.gerente_projetos = gerente_nome
+                    update_fields.append('gerente_projetos')
+                    os_updated = True
+            
+            # Sincronizar status: Sprint → OS
+            if old_status != self.status:
+                self.ordem_servico.status = self.status
+                update_fields.append('status')
+                
+                # Aplicar regras de datas conforme o status (mesmas regras da OS)
+                if self.status == "finalizada" and not self.ordem_servico.data_emissao_trd:
+                    from django.utils import timezone
+                    self.ordem_servico.data_emissao_trd = timezone.now().date()
+                    update_fields.append('data_emissao_trd')
+                
+                if self.status == "faturada" and not self.ordem_servico.data_faturamento:
+                    from django.utils import timezone
+                    self.ordem_servico.data_faturamento = timezone.now().date()
+                    update_fields.append('data_faturamento')
+                
+                os_updated = True
+            
+            # Salvar a OS se houver alterações
+            if os_updated and update_fields:
+                self.ordem_servico.save(update_fields=update_fields)
     
     @property
     def total_tarefas(self):
@@ -2460,14 +2605,6 @@ class Sprint(models.Model):
         if self.total_tarefas > 0:
             return (self.tarefas_concluidas / self.total_tarefas) * 100
         return Decimal('0.00')
-    
-    @property
-    def total_horas_tarefas(self):
-        """Total de esforço em horas de todas as tarefas da sprint"""
-        total = Decimal('0.00')
-        for tarefa in self.tarefas.all():
-            total += tarefa.horas_planejadas or Decimal('0.00')
-        return total
 
 
 class Tarefa(models.Model):
@@ -2494,23 +2631,16 @@ class Tarefa(models.Model):
         ("alta", "Alta"),
     ]
     
-    projeto = models.ForeignKey(
-        "Projeto",
-        on_delete=models.CASCADE,
-        related_name="tarefas",
-        verbose_name="Projeto",
-        help_text="Projeto ao qual a tarefa pertence"
-    )
     titulo = models.CharField(max_length=255, verbose_name="Nome da Tarefa")
     descricao = models.TextField(verbose_name="Descrição")
     backlog = models.ForeignKey(
         "Backlog",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="tarefas",
         blank=True,
         null=True,
-        verbose_name="Backlog de Origem",
-        help_text="Backlog do contrato que originou esta tarefa (opcional)"
+        verbose_name="Backlog",
+        help_text="Tarefa no backlog do projeto (alocação automática)"
     )
     sprint = models.ForeignKey(
         "Sprint",
@@ -2519,14 +2649,22 @@ class Tarefa(models.Model):
         blank=True,
         null=True,
         verbose_name="Sprint",
-        help_text="Sprint à qual a tarefa está atribuída (se None, fica no backlog do projeto)"
+        help_text="Tarefa movida para sprint"
     )
-    bilhetar_na_os = models.BooleanField(
+    ordem_servico = models.ForeignKey(
+        "OrdemServico",
+        on_delete=models.CASCADE,
+        related_name="tarefas",
+        blank=True,
+        null=True,
+        verbose_name="Ordem de Serviço",
+        help_text="Opcional: vincular a uma OS para horas faturadas (vinculada ao projeto)"
+    )
+    bilhetavel_os = models.BooleanField(
         default=True,
-        verbose_name="Bilhetar na OS",
-        help_text="Se marcado, as horas desta tarefa serão contabilizadas na Ordem de Serviço do projeto"
+        verbose_name="Bilhetável na OS",
+        help_text="Se marcado, as horas desta tarefa serão contabilizadas na OS do projeto"
     )
-    # Removido: ordem_servico agora é vinculada ao projeto, não à tarefa individual
     responsavel = models.ForeignKey(
         "Colaborador",
         on_delete=models.SET_NULL,
@@ -2577,18 +2715,13 @@ class Tarefa(models.Model):
         help_text="Calculado automaticamente baseado em lançamentos de horas"
     )
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    ordem_sprint = models.PositiveIntegerField(
-        default=0,
-        verbose_name="Ordem na Sprint",
-        help_text="Ordem de exibição da tarefa dentro da sprint (0 = primeiro)"
-    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
     class Meta:
         verbose_name = "Tarefa"
         verbose_name_plural = "Tarefas"
-        ordering = ["ordem_sprint", "-criado_em"]
+        ordering = ["-criado_em"]
     
     def __str__(self):
         return f"{self.titulo} - {self.responsavel.nome_completo if self.responsavel else 'Sem responsável'}"
@@ -2876,8 +3009,7 @@ class Tarefa(models.Model):
     @property
     def is_faturada(self):
         """Verifica se a tarefa está vinculada a uma OS (horas faturadas)"""
-        # A ordem de serviço agora está vinculada ao projeto, não diretamente à tarefa
-        return self.projeto and hasattr(self.projeto, 'ordem_servico') and self.projeto.ordem_servico is not None
+        return self.ordem_servico is not None
     
     @property
     def status_display(self):
@@ -3280,79 +3412,6 @@ class PlanoTrabalho(models.Model):
         if observacoes:
             self.observacoes_aprovacao = observacoes
         self.save()
-        # Criar/atualizar tarefa de gestão após aprovação
-        self._criar_atualizar_tarefa_gestao()
-    
-    def _criar_atualizar_tarefa_gestao(self):
-        """
-        Cria ou atualiza a tarefa de gestão do projeto
-        Calcula +25% do total de horas previstas em todas as sprints e tarefas
-        """
-        if not self.projeto:
-            return
-        
-        from .models import Tarefa, Colaborador
-        from datetime import datetime, timedelta
-        
-        # Calcular total de horas previstas em todas as sprints e tarefas
-        total_horas_previstas = Decimal('0.00')
-        
-        # Somar horas de todas as tarefas do projeto (exceto a tarefa de gestão)
-        for tarefa in self.projeto.tarefas.exclude(
-            titulo__icontains="Gestão do Projeto"
-        ).all():
-            total_horas_previstas += tarefa.horas_planejadas or Decimal('0.00')
-        
-        # Calcular 25% do total
-        horas_gestao = total_horas_previstas * Decimal('0.25')
-        
-        if horas_gestao <= 0:
-            return  # Não criar tarefa se não houver horas
-        
-        # Buscar tarefa de gestão existente
-        tarefa_gestao = Tarefa.objects.filter(
-            projeto=self.projeto,
-            titulo__icontains="Gestão do Projeto"
-        ).first()
-        
-        if tarefa_gestao:
-            # Atualizar tarefa existente
-            tarefa_gestao.horas_planejadas = horas_gestao
-            tarefa_gestao.bilhetar_na_os = True
-            tarefa_gestao.descricao = 'Tarefa de gestão do projeto que contabiliza 25% do total de horas previstas em todas as sprints e tarefas. Esta tarefa sempre será bilhetada na OS.'
-            tarefa_gestao.save(update_fields=['horas_planejadas', 'bilhetar_na_os', 'descricao'])
-        else:
-            # Criar nova tarefa de gestão
-            Tarefa.objects.create(
-                titulo='Gestão do Projeto',
-                descricao='Tarefa de gestão do projeto que contabiliza 25% do total de horas previstas em todas as sprints e tarefas. Esta tarefa sempre será bilhetada na OS.',
-                projeto=self.projeto,
-                horas_planejadas=horas_gestao,
-                bilhetar_na_os=True,  # Sempre bilhetada na OS
-                status='pendente',
-                prioridade='alta',
-                data_inicio_prevista=timezone.now(),
-                data_termino_prevista=timezone.now() + timedelta(days=30),
-            )
-    
-    def save(self, *args, **kwargs):
-        """Salva o plano de trabalho e cria/atualiza tarefa de gestão se aprovado ou modificado"""
-        # Verificar se o status mudou para aprovado ou se foi modificado
-        old_status = None
-        if self.pk:
-            try:
-                old_instance = PlanoTrabalho.objects.get(pk=self.pk)
-                old_status = old_instance.status
-            except PlanoTrabalho.DoesNotExist:
-                pass
-        
-        super().save(*args, **kwargs)
-        
-        # Se foi aprovado (status mudou para aprovado) ou se já estava aprovado e foi modificado
-        if self.status == 'aprovado':
-            # Criar/atualizar tarefa de gestão sempre que o plano estiver aprovado
-            # Isso garante que seja atualizado mesmo quando modificado após aprovação
-            self._criar_atualizar_tarefa_gestao()
 
 
 class SLAImportante(models.Model):
@@ -3596,90 +3655,111 @@ def atualizar_valor_inicial_contrato_delete(sender, instance, **kwargs):
         instance.contrato._atualizar_valor_inicial()
 
 
-class DiarioBordoContrato(models.Model):
+class StakeholderContrato(models.Model):
     """
-    Diário de Bordo do Contrato - Registro de todos os acontecimentos e informações relevantes do contrato
+    Stakeholders do contrato (pessoas chave da contratada e contratante)
     """
-    TIPO_REGISTRO_CHOICES = [
-        ('analise_ia', 'Análise Inicial (IA)'),
-        ('evento', 'Evento'),
-        ('reuniao', 'Reunião'),
-        ('comunicacao', 'Comunicação'),
-        ('decisao', 'Decisão'),
-        ('problema', 'Problema'),
-        ('solucao', 'Solução'),
-        ('mudanca', 'Mudança'),
-        ('outro', 'Outro'),
-    ]
+    class TipoStakeholder(models.TextChoices):
+        CONTRATADA = "CONTRATADA", "Contratada"
+        CONTRATANTE = "CONTRATANTE", "Contratante"
+    
+    class PapelContratada(models.TextChoices):
+        PREPOSTO = "PREPOSTO", "Preposto"
+        PREPOSTO_SUBSTITUTO = "PREPOSTO_SUBSTITUTO", "Preposto Substituto"
+        CS = "CS", "CS (Customer Success)"
+        GERENTE_CONTRATO = "GERENTE_CONTRATO", "Gerente do Contrato"
+        GERENTE_PROJETO = "GERENTE_PROJETO", "Gerente do Projeto"
+        GERENTE_SUBSTITUTO = "GERENTE_SUBSTITUTO", "Gerente Substituto"
+        GERENTE_COMERCIAL = "GERENTE_COMERCIAL", "Gerente Comercial"
+    
+    class PapelContratante(models.TextChoices):
+        GESTOR_CONTRATO = "GESTOR_CONTRATO", "Gestor do Contrato"
+        FISCAL_ADMINISTRATIVO = "FISCAL_ADMINISTRATIVO", "Fiscal Administrativo"
+        FISCAL_TECNICO = "FISCAL_TECNICO", "Fiscal Técnico"
     
     contrato = models.ForeignKey(
-        'Contrato',
+        "Contrato",
         on_delete=models.CASCADE,
-        related_name='diario_bordo',
+        related_name="stakeholders",
         verbose_name="Contrato"
     )
-    tipo_registro = models.CharField(
+    tipo = models.CharField(
         max_length=20,
-        choices=TIPO_REGISTRO_CHOICES,
-        default='analise_ia',
-        verbose_name="Tipo de Registro"
+        choices=TipoStakeholder.choices,
+        verbose_name="Tipo de Stakeholder"
     )
-    titulo = models.CharField(
-        max_length=255,
-        verbose_name="Título"
+    papel = models.CharField(
+        max_length=50,
+        verbose_name="Papel/Função"
     )
-    conteudo = models.TextField(
-        verbose_name="Conteúdo",
-        help_text="Conteúdo completo do registro do diário de bordo"
-    )
-    
-    # Campos específicos para análise inicial da IA
-    resumo_geral = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Resumo Geral",
-        help_text="Resumo executivo do contrato"
-    )
-    itens_mais_importantes = models.JSONField(
-        default=list,
-        blank=True,
-        verbose_name="Itens Mais Importantes",
-        help_text="Lista de itens críticos do contrato"
-    )
-    operacionalizacao_equipe = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Operacionalização pela Equipe",
-        help_text="Como o contrato deve ser operacionalizado"
-    )
-    informacoes_gerente_contrato_cs = models.JSONField(
-        default=dict,
-        blank=True,
-        verbose_name="Informações para Gerente de Contrato/CS",
-        help_text="Informações relevantes para gestão comercial e customer success"
-    )
-    informacoes_gerente_projetos = models.JSONField(
-        default=dict,
-        blank=True,
-        verbose_name="Informações para Gerente de Projetos",
-        help_text="Informações técnicas para execução dos serviços"
-    )
-    
-    criado_por = models.ForeignKey(
-        'auth.User',
+    colaborador = models.ForeignKey(
+        "Colaborador",
         on_delete=models.SET_NULL,
+        related_name="stakeholders_contrato",
         blank=True,
         null=True,
-        verbose_name="Criado por",
-        related_name='registros_diario_bordo'
+        verbose_name="Colaborador",
+        help_text="Colaborador da contratada (usado quando tipo = Contratada)"
+    )
+    contato_cliente = models.ForeignKey(
+        "ContatoCliente",
+        on_delete=models.SET_NULL,
+        related_name="stakeholders_contrato",
+        blank=True,
+        null=True,
+        verbose_name="Contato do Cliente",
+        help_text="Contato do cliente/contratante (usado quando tipo = Contratante)"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo"
     )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Registro do Diário de Bordo"
-        verbose_name_plural = "Registros do Diário de Bordo"
-        ordering = ['-criado_em']
+        verbose_name = "Stakeholder do Contrato"
+        verbose_name_plural = "Stakeholders do Contrato"
+        unique_together = ("contrato", "tipo", "papel")
+        ordering = ["tipo", "papel"]
+    
+    def clean(self):
+        """Validação: colaborador obrigatório para Contratada, contato_cliente obrigatório para Contratante"""
+        if self.tipo == self.TipoStakeholder.CONTRATADA:
+            if not self.colaborador:
+                raise ValidationError("Colaborador é obrigatório para stakeholders da Contratada.")
+            if self.contato_cliente:
+                raise ValidationError("Contato do cliente não deve ser preenchido para stakeholders da Contratada.")
+        elif self.tipo == self.TipoStakeholder.CONTRATANTE:
+            if not self.contato_cliente:
+                raise ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
+            if self.colaborador:
+                raise ValidationError("Colaborador não deve ser preenchido para stakeholders da Contratante.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"{self.contrato.numero_contrato} - {self.titulo} ({self.get_tipo_registro_display()})"
+        if self.tipo == self.TipoStakeholder.CONTRATADA and self.colaborador:
+            return f"{self.get_papel_display()} - {self.colaborador.nome_completo}"
+        elif self.tipo == self.TipoStakeholder.CONTRATANTE and self.contato_cliente:
+            return f"{self.get_papel_display()} - {self.contato_cliente.nome}"
+        return f"{self.get_tipo_display()} - {self.papel}"
+    
+    def get_papel_display(self):
+        """Retorna o display do papel baseado no tipo"""
+        if self.tipo == self.TipoStakeholder.CONTRATADA:
+            for choice in self.PapelContratada.choices:
+                if choice[0] == self.papel:
+                    return choice[1]
+        elif self.tipo == self.TipoStakeholder.CONTRATANTE:
+            for choice in self.PapelContratante.choices:
+                if choice[0] == self.papel:
+                    return choice[1]
+        return self.papel

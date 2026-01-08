@@ -11,6 +11,8 @@ from .models import (
     OrdemServico,
     FeedbackSprintOS,
     ContatoCliente,
+    Projeto,
+    StakeholderContrato,
 )
 from dateutil.relativedelta import relativedelta
 from .utils import map_tipo_item_contrato_para_fornecedor
@@ -775,10 +777,9 @@ class CriarTicketContatoForm(forms.ModelForm):
             # Ordem de Serviço: se houver contrato selecionado, carregar OS desse contrato
             if contrato_id:
                 os_queryset = OrdemServico.objects.filter(contrato_id=contrato_id)
-                # Se também houver projeto, filtrar por projeto (via Projeto vinculado à OS)
+                # Se também houver projeto, filtrar por projeto
                 if projeto_id:
-                    # Projeto está relacionado à OS via Projeto.ordem_servico (OneToOneField, related_name="projeto")
-                    os_queryset = os_queryset.filter(projeto__id=projeto_id)
+                    os_queryset = os_queryset.filter(sprint__projeto_id=projeto_id)
                 self.fields['ordem_servico'].queryset = os_queryset
             else:
                 self.fields['ordem_servico'].queryset = OrdemServico.objects.none()
@@ -1054,19 +1055,16 @@ class ColaboradorForm(forms.ModelForm):
         password = self.cleaned_data.get('password')
         grupos = self.cleaned_data.get('grupos', [])
         user = self.cleaned_data.get('user')
-
-        # Usar user_id para evitar acessar o relacionamento OneToOne antes de existir
-        has_user = getattr(colaborador, "user_id", None) is not None
         
         # Se já tem usuário selecionado (vinculando a existente), usar ele
-        if user and not has_user:
+        if user and not colaborador.user:
             colaborador.user = user
             # Atualizar email do colaborador se necessário
             if email and not colaborador.email:
                 colaborador.email = email
         
         # Criar usuário se necessário
-        elif not has_user and criar_usuario and email:
+        elif not colaborador.user and criar_usuario and email:
             if not username:
                 username = email
             
@@ -1213,7 +1211,22 @@ class CentroCustoForm(forms.ModelForm):
 class ProjetoForm(forms.ModelForm):
     class Meta:
         model = Projeto
-        fields = "__all__"
+        fields = ["nome", "descricao", "gerente_projeto", "status", "item_contrato"]
+        exclude = ["contrato", "backlog_origem", "data_inicio", "data_fim_prevista", "criado_em", "atualizado_em"]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtrar item_contrato apenas para Serviço ou Treinamento
+        from .constants import TIPOS_OS_ITEM_CONTRATO
+        if 'item_contrato' in self.fields:
+            self.fields['item_contrato'].queryset = ItemContrato.objects.filter(
+                tipo__in=TIPOS_OS_ITEM_CONTRATO
+            )
+            # Se estiver editando e tiver contrato, filtrar por contrato
+            if self.instance and self.instance.pk and self.instance.contrato:
+                self.fields['item_contrato'].queryset = self.fields['item_contrato'].queryset.filter(
+                    contrato=self.instance.contrato
+                )
 
 
 class BacklogForm(forms.ModelForm):
@@ -1226,138 +1239,143 @@ class SprintForm(forms.ModelForm):
     class Meta:
         model = Sprint
         fields = "__all__"
-        widgets = {
-            'descricao': forms.Textarea(attrs={
-                'rows': 2,
-                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white resize-y',
-                'style': 'min-height: 3.5rem; max-height: 10rem;'
-            }),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        projeto_id = kwargs.pop('projeto_id', None)
-        super().__init__(*args, **kwargs)
-        
-        # Configurar formato de data para dd/mm/yyyy
-        from django.forms.widgets import DateInput
-        if 'data_inicio' in self.fields:
-            self.fields['data_inicio'].widget = DateInput(
-                attrs={
-                    'type': 'text',
-                    'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white',
-                    'placeholder': 'dd/mm/yyyy',
-                },
-                format='%d/%m/%Y'
-            )
-            # Converter valor inicial se existir (será feito no template via JavaScript)
-            if self.instance and self.instance.pk and self.instance.data_inicio:
-                from datetime import date
-                if isinstance(self.instance.data_inicio, date):
-                    self.initial['data_inicio'] = self.instance.data_inicio.strftime('%d/%m/%Y')
-        if 'data_fim' in self.fields:
-            self.fields['data_fim'].widget = DateInput(
-                attrs={
-                    'type': 'text',
-                    'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 pr-10 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white',
-                    'placeholder': 'dd/mm/yyyy',
-                },
-                format='%d/%m/%Y'
-            )
-            # Converter valor inicial se existir (será feito no template via JavaScript)
-            if self.instance and self.instance.pk and self.instance.data_fim:
-                from datetime import date
-                if isinstance(self.instance.data_fim, date):
-                    self.initial['data_fim'] = self.instance.data_fim.strftime('%d/%m/%Y')
-        
-        # Se projeto_id foi fornecido, definir projeto automaticamente (oculto)
-        if projeto_id:
-            from .models import Projeto
-            try:
-                projeto = Projeto.objects.get(pk=projeto_id)
-                # Definir projeto automaticamente (oculto)
-                if 'projeto' in self.fields:
-                    self.fields['projeto'].initial = projeto
-                    self.fields['projeto'].widget = forms.HiddenInput()
-            except Projeto.DoesNotExist:
-                pass
 
 
 class TarefaForm(forms.ModelForm):
     class Meta:
         model = Tarefa
         fields = "__all__"
+
+
+class StakeholderContratoForm(forms.ModelForm):
+    PAPEIS_CONTRATADA = [
+        ("PREPOSTO", "Preposto"),
+        ("PREPOSTO_SUBSTITUTO", "Preposto Substituto"),
+        ("CS", "CS (Customer Success)"),
+        ("GERENTE_CONTRATO", "Gerente do Contrato"),
+        ("GERENTE_PROJETO", "Gerente do Projeto"),
+        ("GERENTE_SUBSTITUTO", "Gerente Substituto"),
+        ("GERENTE_COMERCIAL", "Gerente Comercial"),
+    ]
+    
+    PAPEIS_CONTRATANTE = [
+        ("GESTOR_CONTRATO", "Gestor do Contrato"),
+        ("FISCAL_ADMINISTRATIVO", "Fiscal Administrativo"),
+        ("FISCAL_TECNICO", "Fiscal Técnico"),
+    ]
+    
+    class Meta:
+        model = StakeholderContrato
+        fields = ["tipo", "papel", "colaborador", "contato_cliente", "observacoes", "ativo"]
         widgets = {
-            'descricao': forms.Textarea(attrs={
-                'rows': 3,
-                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white'
-            }),
-            'observacoes': forms.TextInput(attrs={
-                'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white'
-            }),
+            'tipo': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'papel': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'colaborador': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'contato_cliente': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'}),
         }
     
     def __init__(self, *args, **kwargs):
-        projeto_id = kwargs.pop('projeto_id', None)
+        self.contrato = kwargs.pop('contrato', None)
         super().__init__(*args, **kwargs)
         
-        # Aplicar CSS padrão em todos os campos (exceto checkboxes e campos ocultos)
-        for field_name, field in self.fields.items():
-            if not isinstance(field.widget, (forms.CheckboxInput, forms.HiddenInput)):
-                if "class" not in field.widget.attrs:
-                    if isinstance(field.widget, forms.Textarea):
-                        field.widget.attrs.update({
-                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                        })
-                    elif isinstance(field.widget, forms.Select):
-                        field.widget.attrs.update({
-                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                        })
-                    else:
-                        field.widget.attrs.update({
-                            "class": "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                        })
-                
-                # Adicionar placeholder e padding para campos de data/hora
-                if field_name in ['data_inicio_prevista', 'data_termino_prevista']:
-                    if "placeholder" not in field.widget.attrs:
-                        field.widget.attrs.update({
-                            "placeholder": "dd/mm/yyyy, HH:MM"
-                        })
-                    # Adicionar padding-right para o ícone de calendário
-                    current_class = field.widget.attrs.get("class", "")
-                    if "pr-10" not in current_class:
-                        field.widget.attrs["class"] = current_class + " pr-10"
+        # Filtrar contatos do cliente do contrato
+        if self.contrato and self.contrato.cliente:
+            self.fields['contato_cliente'].queryset = ContatoCliente.objects.filter(
+                cliente=self.contrato.cliente
+            )
+        else:
+            self.fields['contato_cliente'].queryset = ContatoCliente.objects.none()
         
-        # Se projeto_id foi fornecido, filtrar sprints e definir projeto
-        if projeto_id:
-            from .models import Projeto, Sprint
-            try:
-                projeto = Projeto.objects.get(pk=projeto_id)
-                # Filtrar sprints apenas do projeto
-                if 'sprint' in self.fields:
-                    self.fields['sprint'].queryset = Sprint.objects.filter(projeto=projeto)
-                # Definir projeto automaticamente (oculto)
-                if 'projeto' in self.fields:
-                    self.fields['projeto'].initial = projeto
-                    self.fields['projeto'].widget = forms.HiddenInput()
-                # Remover campo backlog - tarefas de projeto não têm backlog de origem
-                if 'backlog' in self.fields:
-                    del self.fields['backlog']
-                # Remover campo status (geral) - usar apenas status_sprint quando em sprint
-                if 'status' in self.fields:
-                    del self.fields['status']
-                # Ajustar status_sprint: mostrar apenas quando há sprint (na criação ou edição)
-                if 'status_sprint' in self.fields:
-                    # Se é edição e a tarefa já está em uma sprint, manter visível
-                    # Se é criação ou tarefa sem sprint, será controlado via JavaScript no template
-                    if self.instance and self.instance.sprint:
-                        # Tarefa já está em sprint: manter campo visível
-                        self.fields['status_sprint'].required = True
-                    else:
-                        # Tarefa sem sprint: tornar opcional (será mostrado via JS quando sprint for selecionada)
-                        self.fields['status_sprint'].required = False
-            except Projeto.DoesNotExist:
-                pass
+        # Ajustar opções de papel baseado no tipo
+        if self.instance and self.instance.pk:
+            tipo_atual = self.instance.tipo
+        else:
+            tipo_atual = self.initial.get('tipo') or (self.data.get('tipo') if hasattr(self, 'data') and self.data else None)
+        
+        if tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATADA:
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA
+        elif tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATANTE:
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATANTE
+        else:
+            # Inicialmente mostra todos os papéis
+            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA + self.PAPEIS_CONTRATANTE
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        colaborador = cleaned_data.get('colaborador')
+        contato_cliente = cleaned_data.get('contato_cliente')
+        
+        if tipo == StakeholderContrato.TipoStakeholder.CONTRATADA:
+            if not colaborador:
+                raise forms.ValidationError("Colaborador é obrigatório para stakeholders da Contratada.")
+        elif tipo == StakeholderContrato.TipoStakeholder.CONTRATANTE:
+            if not contato_cliente:
+                raise forms.ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.contrato:
+            instance.contrato = self.contrato
+        if commit:
+            instance.save()
+        return instance
+
+
+class StakeholderContratoForm(forms.ModelForm):
+    class Meta:
+        model = StakeholderContrato
+        fields = ["tipo", "papel", "colaborador", "contato_cliente", "observacoes", "ativo"]
+        widgets = {
+            'tipo': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'papel': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'colaborador': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'contato_cliente': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.contrato = kwargs.pop('contrato', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar contatos do cliente do contrato
+        if self.contrato and self.contrato.cliente:
+            self.fields['contato_cliente'].queryset = ContatoCliente.objects.filter(
+                cliente=self.contrato.cliente
+            )
+        else:
+            self.fields['contato_cliente'].queryset = ContatoCliente.objects.none()
+        
+        # JavaScript será usado para mostrar/ocultar campos baseado no tipo
+        self.fields['tipo'].widget.attrs['onchange'] = 'toggleStakeholderFields()'
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        colaborador = cleaned_data.get('colaborador')
+        contato_cliente = cleaned_data.get('contato_cliente')
+        
+        if tipo == StakeholderContrato.TipoStakeholder.CONTRATADA:
+            if not colaborador:
+                raise forms.ValidationError("Colaborador é obrigatório para stakeholders da Contratada.")
+        elif tipo == StakeholderContrato.TipoStakeholder.CONTRATANTE:
+            if not contato_cliente:
+                raise forms.ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.contrato:
+            instance.contrato = self.contrato
+        if commit:
+            instance.save()
+        return instance
 
 
 class LancamentoHoraForm(forms.ModelForm):
