@@ -82,6 +82,47 @@
                     {% endif %}
                 </div>
                 
+                <div id="nome-field" style="display: none;">
+                    <label for="{{ form.nome.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.nome.label }}
+                        <span class="text-red-500" id="nome-required" style="display: none;">*</span>
+                    </label>
+                    {{ form.nome|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.nome.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.nome.help_text }}</p>
+                    {% endif %}
+                    {% if form.nome.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.nome.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div id="email-field" style="display: none;">
+                    <label for="{{ form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.email.label }}
+                        <span class="text-red-500" id="email-required" style="display: none;">*</span>
+                    </label>
+                    {{ form.email|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.email.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.email.help_text }}</p>
+                    {% endif %}
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div id="telefone-field" style="display: none;">
+                    <label for="{{ form.telefone.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ form.telefone.label }}
+                    </label>
+                    {{ form.telefone|add_class:"bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" }}
+                    {% if form.telefone.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.telefone.help_text }}</p>
+                    {% endif %}
+                    {% if form.telefone.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.telefone.errors }}</p>
+                    {% endif %}
+                </div>
+                
                 <div class="md:col-span-2">
                     <label for="{{ form.observacoes.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                         {{ form.observacoes.label }}
@@ -125,10 +166,16 @@
 <script>
 function updateStakeholderFields(tipo) {
     const papelField = document.getElementById('{{ form.papel.id_for_label }}');
+    const papelFieldContainer = document.getElementById('papel-field');
     const colaboradorField = document.getElementById('colaborador-field');
     const contatoClienteField = document.getElementById('contato-cliente-field');
+    const nomeField = document.getElementById('nome-field');
+    const emailField = document.getElementById('email-field');
+    const telefoneField = document.getElementById('telefone-field');
     const colaboradorRequired = document.getElementById('colaborador-required');
     const contatoRequired = document.getElementById('contato-required');
+    const nomeRequired = document.getElementById('nome-required');
+    const emailRequired = document.getElementById('email-required');
     
     // Opções de papel baseadas no tipo
     const papeisContratada = [
@@ -150,20 +197,40 @@ function updateStakeholderFields(tipo) {
     ];
     
     if (tipo === 'CONTRATADA') {
-        // Atualizar opções de papel
-        papelField.innerHTML = '';
-        papeisContratada.forEach(function(papel) {
-            const option = document.createElement('option');
-            option.value = papel[0];
-            option.textContent = papel[1];
-            papelField.appendChild(option);
-        });
+        // Atualizar papel para Select
+        if (papelField.tagName === 'INPUT') {
+            const select = document.createElement('select');
+            select.id = papelField.id;
+            select.name = papelField.name;
+            select.className = papelField.className;
+            papelField.parentNode.replaceChild(select, papelField);
+            const newPapelField = document.getElementById('{{ form.papel.id_for_label }}');
+            papeisContratada.forEach(function(papel) {
+                const option = document.createElement('option');
+                option.value = papel[0];
+                option.textContent = papel[1];
+                newPapelField.appendChild(option);
+            });
+        } else {
+            papelField.innerHTML = '';
+            papeisContratada.forEach(function(papel) {
+                const option = document.createElement('option');
+                option.value = papel[0];
+                option.textContent = papel[1];
+                papelField.appendChild(option);
+            });
+        }
         
-        // Mostrar colaborador, ocultar contato cliente
+        // Mostrar colaborador, ocultar outros campos
         colaboradorField.style.display = 'block';
         contatoClienteField.style.display = 'none';
+        nomeField.style.display = 'none';
+        emailField.style.display = 'none';
+        telefoneField.style.display = 'none';
         colaboradorRequired.style.display = 'inline';
         contatoRequired.style.display = 'none';
+        nomeRequired.style.display = 'none';
+        emailRequired.style.display = 'none';
         
         // Tornar colaborador obrigatório
         const colaboradorInput = document.getElementById('{{ form.colaborador.id_for_label }}');
@@ -171,26 +238,54 @@ function updateStakeholderFields(tipo) {
             colaboradorInput.required = true;
         }
         
-        // Tornar contato cliente não obrigatório
+        // Tornar outros campos não obrigatórios
         const contatoInput = document.getElementById('{{ form.contato_cliente.id_for_label }}');
         if (contatoInput) {
             contatoInput.required = false;
         }
+        const nomeInput = document.getElementById('{{ form.nome.id_for_label }}');
+        if (nomeInput) {
+            nomeInput.required = false;
+        }
+        const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+        if (emailInput) {
+            emailInput.required = false;
+        }
     } else if (tipo === 'CONTRATANTE') {
-        // Atualizar opções de papel
-        papelField.innerHTML = '';
-        papeisContratante.forEach(function(papel) {
-            const option = document.createElement('option');
-            option.value = papel[0];
-            option.textContent = papel[1];
-            papelField.appendChild(option);
-        });
+        // Atualizar papel para Select
+        if (papelField.tagName === 'INPUT') {
+            const select = document.createElement('select');
+            select.id = papelField.id;
+            select.name = papelField.name;
+            select.className = papelField.className;
+            papelField.parentNode.replaceChild(select, papelField);
+            const newPapelField = document.getElementById('{{ form.papel.id_for_label }}');
+            papeisContratante.forEach(function(papel) {
+                const option = document.createElement('option');
+                option.value = papel[0];
+                option.textContent = papel[1];
+                newPapelField.appendChild(option);
+            });
+        } else {
+            papelField.innerHTML = '';
+            papeisContratante.forEach(function(papel) {
+                const option = document.createElement('option');
+                option.value = papel[0];
+                option.textContent = papel[1];
+                papelField.appendChild(option);
+            });
+        }
         
-        // Ocultar colaborador, mostrar contato cliente
+        // Ocultar colaborador, mostrar contato cliente, ocultar campos Equipe Técnica
         colaboradorField.style.display = 'none';
         contatoClienteField.style.display = 'block';
+        nomeField.style.display = 'none';
+        emailField.style.display = 'none';
+        telefoneField.style.display = 'none';
         colaboradorRequired.style.display = 'none';
         contatoRequired.style.display = 'inline';
+        nomeRequired.style.display = 'none';
+        emailRequired.style.display = 'none';
         
         // Tornar colaborador não obrigatório
         const colaboradorInput = document.getElementById('{{ form.colaborador.id_for_label }}');
@@ -203,12 +298,71 @@ function updateStakeholderFields(tipo) {
         if (contatoInput) {
             contatoInput.required = true;
         }
-    } else {
-        // Estado inicial - ambos visíveis
-        colaboradorField.style.display = 'block';
-        contatoClienteField.style.display = 'block';
+        
+        // Tornar campos Equipe Técnica não obrigatórios
+        const nomeInput = document.getElementById('{{ form.nome.id_for_label }}');
+        if (nomeInput) {
+            nomeInput.required = false;
+        }
+        const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+        if (emailInput) {
+            emailInput.required = false;
+        }
+    } else if (tipo === 'EQUIPE_TECNICA') {
+        // Atualizar papel para Input de texto
+        if (papelField.tagName === 'SELECT') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = papelField.id;
+            input.name = papelField.name;
+            input.className = papelField.className;
+            if (papelField.value && papelField.options[papelField.selectedIndex]) {
+                input.value = papelField.options[papelField.selectedIndex].text;
+            }
+            papelField.parentNode.replaceChild(input, papelField);
+        }
+        
+        // Ocultar colaborador e contato cliente, mostrar campos Equipe Técnica
+        colaboradorField.style.display = 'none';
+        contatoClienteField.style.display = 'none';
+        nomeField.style.display = 'block';
+        emailField.style.display = 'block';
+        telefoneField.style.display = 'block';
         colaboradorRequired.style.display = 'none';
         contatoRequired.style.display = 'none';
+        nomeRequired.style.display = 'inline';
+        emailRequired.style.display = 'inline';
+        
+        // Tornar campos Equipe Técnica obrigatórios (exceto telefone)
+        const nomeInput = document.getElementById('{{ form.nome.id_for_label }}');
+        if (nomeInput) {
+            nomeInput.required = true;
+        }
+        const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+        if (emailInput) {
+            emailInput.required = true;
+        }
+        
+        // Tornar colaborador e contato cliente não obrigatórios
+        const colaboradorInput = document.getElementById('{{ form.colaborador.id_for_label }}');
+        if (colaboradorInput) {
+            colaboradorInput.required = false;
+        }
+        const contatoInput = document.getElementById('{{ form.contato_cliente.id_for_label }}');
+        if (contatoInput) {
+            contatoInput.required = false;
+        }
+    } else {
+        // Estado inicial - todos os campos visíveis mas não obrigatórios
+        colaboradorField.style.display = 'block';
+        contatoClienteField.style.display = 'block';
+        nomeField.style.display = 'none';
+        emailField.style.display = 'none';
+        telefoneField.style.display = 'none';
+        colaboradorRequired.style.display = 'none';
+        contatoRequired.style.display = 'none';
+        nomeRequired.style.display = 'none';
+        emailRequired.style.display = 'none';
     }
 }
 

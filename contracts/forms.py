@@ -629,6 +629,87 @@ class OrdemServicoForm(forms.ModelForm):
             contratos__situacao="Ativo"
         ).distinct()
 
+        # Filtrar contratos baseado no cliente selecionado
+        from .constants import TIPOS_OS_ITEM_CONTRATO
+        
+        # Se há dados POST (formulário sendo re-renderizado após erro)
+        if self.data and 'cliente' in self.data:
+            cliente_id = self.data.get('cliente')
+            if cliente_id:
+                self.fields["contrato"].queryset = Contrato.objects.filter(
+                    cliente_id=cliente_id
+                )
+            else:
+                self.fields["contrato"].queryset = Contrato.objects.none()
+            
+            # Filtrar itens do contrato baseado no contrato selecionado
+            if 'contrato' in self.data:
+                contrato_id = self.data.get('contrato')
+                if contrato_id:
+                    self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                        contrato_id=contrato_id,
+                        tipo__in=TIPOS_OS_ITEM_CONTRATO
+                    )
+                else:
+                    self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                        tipo__in=TIPOS_OS_ITEM_CONTRATO
+                    )
+            else:
+                self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                    tipo__in=TIPOS_OS_ITEM_CONTRATO
+                )
+        # Se estiver editando uma instância existente
+        elif self.instance.pk:
+            if self.instance.cliente:
+                self.fields["contrato"].queryset = Contrato.objects.filter(
+                    cliente=self.instance.cliente
+                )
+            else:
+                self.fields["contrato"].queryset = Contrato.objects.none()
+            
+            if self.instance.contrato:
+                self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                    contrato=self.instance.contrato,
+                    tipo__in=TIPOS_OS_ITEM_CONTRATO
+                )
+            else:
+                self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                    tipo__in=TIPOS_OS_ITEM_CONTRATO
+                )
+        # Se há valores iniciais (ex: quando vem de um projeto)
+        elif self.initial:
+            if 'cliente' in self.initial:
+                cliente_id = self.initial.get('cliente')
+                if cliente_id:
+                    self.fields["contrato"].queryset = Contrato.objects.filter(
+                        cliente_id=cliente_id
+                    )
+                else:
+                    self.fields["contrato"].queryset = Contrato.objects.none()
+            
+            if 'contrato' in self.initial:
+                contrato_id = self.initial.get('contrato')
+                if contrato_id:
+                    self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                        contrato_id=contrato_id,
+                        tipo__in=TIPOS_OS_ITEM_CONTRATO
+                    )
+                else:
+                    self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                        tipo__in=TIPOS_OS_ITEM_CONTRATO
+                    )
+            else:
+                # Se não há contrato inicial, ainda filtrar por tipo
+                self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                    tipo__in=TIPOS_OS_ITEM_CONTRATO
+                )
+        else:
+            # Nova OS - querysets vazios ou apenas filtrados por tipo
+            self.fields["contrato"].queryset = Contrato.objects.none()
+            self.fields["item_contrato"].queryset = ItemContrato.objects.filter(
+                tipo__in=TIPOS_OS_ITEM_CONTRATO
+            )
+
         # Configuração das opções de status
         if not self.instance.pk:
             self.fields["status"].choices = [("aberta", "Aberta")]
@@ -671,7 +752,7 @@ class OrdemServicoForm(forms.ModelForm):
 
         # Validação de saldo do item
         if item_contrato:
-            saldo = item_contrato.saldo_quantidade
+            saldo = item_contrato.saldo_quantidade_atual or 0
             if quantidade and quantidade > saldo:
                 self.add_error(
                     "quantidade",
@@ -1057,14 +1138,16 @@ class ColaboradorForm(forms.ModelForm):
         user = self.cleaned_data.get('user')
         
         # Se já tem usuário selecionado (vinculando a existente), usar ele
-        if user and not colaborador.user:
+        # Verificar se o relacionamento user existe usando getattr para evitar exceção
+        has_user = getattr(colaborador, 'user', None) is not None
+        if user and not has_user:
             colaborador.user = user
             # Atualizar email do colaborador se necessário
             if email and not colaborador.email:
                 colaborador.email = email
         
         # Criar usuário se necessário
-        elif not colaborador.user and criar_usuario and email:
+        elif not has_user and criar_usuario and email:
             if not username:
                 username = email
             
@@ -1093,7 +1176,8 @@ class ColaboradorForm(forms.ModelForm):
         
         if commit:
             colaborador.save()
-            if colaborador.user:
+            # Verificar se o relacionamento user existe antes de acessar
+            if hasattr(colaborador, 'user') and colaborador.user:
                 colaborador.user.groups.set(grupos)
         
         return colaborador
@@ -1245,6 +1329,23 @@ class TarefaForm(forms.ModelForm):
     class Meta:
         model = Tarefa
         fields = "__all__"
+    
+    def __init__(self, *args, **kwargs):
+        # Extrair projeto_id se fornecido (não é um argumento padrão do ModelForm)
+        projeto_id = kwargs.pop('projeto_id', None)
+        super().__init__(*args, **kwargs)
+        
+        # Se projeto_id foi fornecido, filtrar sprints por projeto
+        if projeto_id:
+            from .models import Projeto, Sprint
+            try:
+                projeto = Projeto.objects.get(pk=projeto_id)
+                if 'sprint' in self.fields:
+                    self.fields['sprint'].queryset = Sprint.objects.filter(projeto=projeto)
+                if 'projeto' in self.fields:
+                    self.fields['projeto'].initial = projeto
+            except Projeto.DoesNotExist:
+                pass
 
 
 class StakeholderContratoForm(forms.ModelForm):
@@ -1266,12 +1367,15 @@ class StakeholderContratoForm(forms.ModelForm):
     
     class Meta:
         model = StakeholderContrato
-        fields = ["tipo", "papel", "colaborador", "contato_cliente", "observacoes", "ativo"]
+        fields = ["tipo", "papel", "colaborador", "contato_cliente", "nome", "email", "telefone", "observacoes", "ativo"]
         widgets = {
             'tipo': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'papel': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'papel': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
             'colaborador': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
             'contato_cliente': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'nome': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'email': forms.EmailInput(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
+            'telefone': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
             'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
             'ativo': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'}),
         }
@@ -1301,20 +1405,49 @@ class StakeholderContratoForm(forms.ModelForm):
             tipo_atual = self.initial.get('tipo', None)
         
         if tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATADA:
+            self.fields['papel'].widget = forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'})
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA
             self.fields['colaborador'].required = True
             self.fields['contato_cliente'].required = False
             self.fields['contato_cliente'].widget = forms.HiddenInput()
+            self.fields['nome'].required = False
+            self.fields['nome'].widget = forms.HiddenInput()
+            self.fields['email'].required = False
+            self.fields['email'].widget = forms.HiddenInput()
+            self.fields['telefone'].required = False
+            self.fields['telefone'].widget = forms.HiddenInput()
         elif tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATANTE:
+            self.fields['papel'].widget = forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'})
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATANTE
             self.fields['contato_cliente'].required = True
             self.fields['colaborador'].required = False
             self.fields['colaborador'].widget = forms.HiddenInput()
+            self.fields['nome'].required = False
+            self.fields['nome'].widget = forms.HiddenInput()
+            self.fields['email'].required = False
+            self.fields['email'].widget = forms.HiddenInput()
+            self.fields['telefone'].required = False
+            self.fields['telefone'].widget = forms.HiddenInput()
+        elif tipo_atual == StakeholderContrato.TipoStakeholder.EQUIPE_TECNICA:
+            # Para Equipe Técnica, papel é texto livre
+            self.fields['papel'].widget = forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'})
+            self.fields['papel'].required = True
+            self.fields['nome'].required = True
+            self.fields['email'].required = True
+            self.fields['telefone'].required = False
+            self.fields['colaborador'].required = False
+            self.fields['colaborador'].widget = forms.HiddenInput()
+            self.fields['contato_cliente'].required = False
+            self.fields['contato_cliente'].widget = forms.HiddenInput()
         else:
-            # Estado inicial - ambos visíveis mas não obrigatórios
+            # Estado inicial - todos os campos visíveis mas não obrigatórios
+            self.fields['papel'].widget = forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'})
             self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA + self.PAPEIS_CONTRATANTE
             self.fields['colaborador'].required = False
             self.fields['contato_cliente'].required = False
+            self.fields['nome'].required = False
+            self.fields['email'].required = False
+            self.fields['telefone'].required = False
         
         # JavaScript será usado para atualizar dinamicamente
         self.fields['tipo'].widget.attrs.update({
@@ -1326,6 +1459,8 @@ class StakeholderContratoForm(forms.ModelForm):
         tipo = cleaned_data.get('tipo')
         colaborador = cleaned_data.get('colaborador')
         contato_cliente = cleaned_data.get('contato_cliente')
+        nome = cleaned_data.get('nome')
+        email = cleaned_data.get('email')
         
         if tipo == StakeholderContrato.TipoStakeholder.CONTRATADA:
             if not colaborador:
@@ -1333,6 +1468,11 @@ class StakeholderContratoForm(forms.ModelForm):
         elif tipo == StakeholderContrato.TipoStakeholder.CONTRATANTE:
             if not contato_cliente:
                 raise forms.ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
+        elif tipo == StakeholderContrato.TipoStakeholder.EQUIPE_TECNICA:
+            if not nome:
+                raise forms.ValidationError("Nome é obrigatório para membros da Equipe Técnica.")
+            if not email:
+                raise forms.ValidationError("E-mail é obrigatório para membros da Equipe Técnica.")
         
         return cleaned_data
     
@@ -1345,86 +1485,6 @@ class StakeholderContratoForm(forms.ModelForm):
         return instance
 
 
-class StakeholderContratoForm(forms.ModelForm):
-    class Meta:
-        model = StakeholderContrato
-        fields = ["tipo", "papel", "colaborador", "contato_cliente", "observacoes", "ativo"]
-        widgets = {
-            'tipo': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'papel': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'colaborador': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'contato_cliente': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500'}),
-            'ativo': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600'}),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.contrato = kwargs.pop('contrato', None)
-        super().__init__(*args, **kwargs)
-        
-        # Filtrar colaboradores ativos
-        from .models import Colaborador
-        self.fields['colaborador'].queryset = Colaborador.objects.filter(ativo=True).order_by("nome_completo")
-        
-        # Filtrar contatos do cliente do contrato
-        if self.contrato and self.contrato.cliente:
-            self.fields['contato_cliente'].queryset = ContatoCliente.objects.filter(
-                cliente=self.contrato.cliente
-            ).order_by("nome")
-        else:
-            self.fields['contato_cliente'].queryset = ContatoCliente.objects.none()
-        
-        # Ajustar opções de papel baseado no tipo
-        if self.instance and self.instance.pk:
-            tipo_atual = self.instance.tipo
-        elif self.data and 'tipo' in self.data:
-            tipo_atual = self.data.get('tipo')
-        else:
-            tipo_atual = self.initial.get('tipo', None)
-        
-        if tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATADA:
-            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA
-            self.fields['colaborador'].required = True
-            self.fields['contato_cliente'].required = False
-            self.fields['contato_cliente'].widget = forms.HiddenInput()
-        elif tipo_atual == StakeholderContrato.TipoStakeholder.CONTRATANTE:
-            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATANTE
-            self.fields['contato_cliente'].required = True
-            self.fields['colaborador'].required = False
-            self.fields['colaborador'].widget = forms.HiddenInput()
-        else:
-            # Estado inicial - ambos visíveis mas não obrigatórios
-            self.fields['papel'].choices = [('', '---------')] + self.PAPEIS_CONTRATADA + self.PAPEIS_CONTRATANTE
-            self.fields['colaborador'].required = False
-            self.fields['contato_cliente'].required = False
-        
-        # JavaScript será usado para atualizar dinamicamente
-        self.fields['tipo'].widget.attrs.update({
-            'onchange': 'updateStakeholderFields(this.value);'
-        })
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        tipo = cleaned_data.get('tipo')
-        colaborador = cleaned_data.get('colaborador')
-        contato_cliente = cleaned_data.get('contato_cliente')
-        
-        if tipo == StakeholderContrato.TipoStakeholder.CONTRATADA:
-            if not colaborador:
-                raise forms.ValidationError("Colaborador é obrigatório para stakeholders da Contratada.")
-        elif tipo == StakeholderContrato.TipoStakeholder.CONTRATANTE:
-            if not contato_cliente:
-                raise forms.ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
-        
-        return cleaned_data
-    
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if self.contrato:
-            instance.contrato = self.contrato
-        if commit:
-            instance.save()
-        return instance
 
 
 class LancamentoHoraForm(forms.ModelForm):

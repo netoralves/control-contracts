@@ -1037,6 +1037,24 @@
         setTimeout(() => {
             calcularExequibilidade();
         }, 500);
+        
+        // Carregar valores iniciais se o formulário já tiver cliente/contrato selecionados
+        // Isso é importante quando o formulário é carregado com dados pré-preenchidos (ex: vindo de um projeto)
+        if (clienteSelect && clienteSelect.value) {
+            // Disparar evento change para carregar contratos do cliente
+            clienteSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            // Aguardar um pouco para garantir que os contratos foram carregados
+            setTimeout(() => {
+                if (contratoSelect && contratoSelect.value) {
+                    // Disparar evento change para carregar itens do contrato
+                    contratoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, 300);
+        } else if (contratoSelect && contratoSelect.value) {
+            // Se não há cliente mas há contrato (caso raro), carregar itens do contrato
+            contratoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     });
 </script>
 {% endblock %}

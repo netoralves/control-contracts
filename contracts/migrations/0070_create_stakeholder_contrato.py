@@ -15,8 +15,11 @@ class Migration(migrations.Migration):
             name='StakeholderContrato',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('tipo', models.CharField(choices=[('CONTRATADA', 'Contratada'), ('CONTRATANTE', 'Contratante')], max_length=20, verbose_name='Tipo de Stakeholder')),
+                ('tipo', models.CharField(choices=[('CONTRATADA', 'Contratada'), ('CONTRATANTE', 'Contratante'), ('EQUIPE_TECNICA', 'Equipe Técnica')], max_length=20, verbose_name='Tipo de Stakeholder')),
                 ('papel', models.CharField(max_length=50, verbose_name='Papel/Função')),
+                ('nome', models.CharField(blank=True, help_text='Nome do membro da equipe técnica (usado quando tipo = Equipe Técnica)', max_length=255, null=True, verbose_name='Nome')),
+                ('email', models.EmailField(blank=True, help_text='E-mail do membro da equipe técnica (usado quando tipo = Equipe Técnica)', null=True, verbose_name='E-mail')),
+                ('telefone', models.CharField(blank=True, help_text='Telefone do membro da equipe técnica (usado quando tipo = Equipe Técnica)', max_length=20, null=True, verbose_name='Telefone')),
                 ('observacoes', models.TextField(blank=True, null=True, verbose_name='Observações')),
                 ('ativo', models.BooleanField(default=True, verbose_name='Ativo')),
                 ('criado_em', models.DateTimeField(auto_now_add=True)),
@@ -29,7 +32,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Stakeholder do Contrato',
                 'verbose_name_plural': 'Stakeholders do Contrato',
                 'ordering': ['tipo', 'papel'],
-                'unique_together': {('contrato', 'tipo', 'papel')},
+                # Removido unique_together para permitir múltiplos membros da Equipe Técnica com o mesmo papel
             },
         ),
     ]

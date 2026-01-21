@@ -113,41 +113,41 @@
     <!-- Abas -->
     <div class="mb-6">
         <div class="border-b border-gray-200 dark:border-gray-700">
-            <nav class="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            <nav class="flex flex-wrap gap-x-2 gap-y-1" aria-label="Tabs">
                 <button type="button" onclick="showTab('info')" id="tab-info"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
                     <i class="fas fa-info-circle mr-1"></i> Informações
                 </button>
                 <button type="button" onclick="showTab('slas')" id="tab-slas"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-clipboard-check mr-1"></i> SLAs ({{ slas.count|add:slas_importantes.count }})
                 </button>
                 <button type="button" onclick="showTab('itens')" id="tab-itens"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-list-alt mr-1"></i> Itens do Contrato ({{ itens_contrato.count }})
                 </button>
                 <button type="button" onclick="showTab('projetos')" id="tab-projetos"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-project-diagram mr-1"></i> Projetos ({{ projetos.count }})
                 </button>
                 <button type="button" onclick="showTab('ofs')" id="tab-ofs"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-truck-loading mr-1"></i> Ordens de Fornecimento ({{ ordens_fornecimento.count }})
                 </button>
                 <button type="button" onclick="showTab('oss')" id="tab-oss"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-tools mr-1"></i> Ordens de Serviço ({{ ordens_servico.count }})
                 </button>
                 <button type="button" onclick="showTab('aditivos')" id="tab-aditivos"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-file-alt mr-1"></i> Termos Aditivos ({{ termos_aditivos.count }})
                 </button>
                 <button type="button" onclick="showTab('timeline')" id="tab-timeline"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-history mr-1"></i> Histórico
                 </button>
                 <button type="button" onclick="showTab('stakeholders')" id="tab-stakeholders"
-                    class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 whitespace-nowrap">
+                    class="tab-btn px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400">
                     <i class="fas fa-users mr-1"></i> Stakeholders ({{ stakeholders.count }})
                 </button>
             </nav>
@@ -200,40 +200,103 @@
                 </div>
             </div>
 
-            <!-- Origem do Contrato -->
+            <!-- Stakeholders -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                    <i class="fas fa-route mr-2 text-teal-500"></i>Origem do Contrato
+                    <i class="fas fa-users mr-2 text-blue-500"></i>Stakeholders
                 </h3>
+                {% if stakeholders %}
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Origem</p>
-                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.get_origem_contrato_display|default:"-" }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Detalhe da Origem</p>
-                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.origem_contrato_detalhe|default:"-" }}</p>
-                        </div>
-                    </div>
-                    {% if contrato.origem_contrato_justificativa_ia %}
+                    <!-- Contratada -->
+                    {% if stakeholders_contratada %}
                     <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Justificativa (IA)</p>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ contrato.origem_contrato_justificativa_ia }}</p>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-user-tie mr-1"></i>Contratada
+                        </h4>
+                        <div class="space-y-2 ml-4">
+                            {% for stakeholder in stakeholders_contratada %}
+                            <div class="border-l-2 border-blue-500 pl-3 py-1">
+                                <p class="text-xs font-medium text-gray-900 dark:text-white">{{ stakeholder.get_papel_display }}</p>
+                                {% if stakeholder.colaborador %}
+                                <p class="text-xs text-gray-600 dark:text-gray-400">{{ stakeholder.colaborador.nome_completo }}</p>
+                                {% if stakeholder.colaborador.email %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-envelope mr-1"></i>{{ stakeholder.colaborador.email }}
+                                </p>
+                                {% endif %}
+                                {% if stakeholder.colaborador.telefone %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-phone mr-1"></i>{{ stakeholder.colaborador.telefone }}
+                                </p>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     {% endif %}
-                    {% if contrato.origem_contrato_confianca_ia %}
+
+                    <!-- Contratante -->
+                    {% if stakeholders_contratante %}
                     <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Confiança da Classificação (IA)</p>
-                        <div class="flex items-center gap-2">
-                            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div class="bg-teal-500 h-2 rounded-full" style="width: {{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%"></div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-handshake mr-1"></i>Contratante
+                        </h4>
+                        <div class="space-y-2 ml-4">
+                            {% for stakeholder in stakeholders_contratante %}
+                            <div class="border-l-2 border-green-500 pl-3 py-1">
+                                <p class="text-xs font-medium text-gray-900 dark:text-white">{{ stakeholder.get_papel_display }}</p>
+                                {% if stakeholder.contato_cliente %}
+                                <p class="text-xs text-gray-600 dark:text-gray-400">{{ stakeholder.contato_cliente.nome }}</p>
+                                {% if stakeholder.contato_cliente.email %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-envelope mr-1"></i>{{ stakeholder.contato_cliente.email }}
+                                </p>
+                                {% endif %}
+                                {% if stakeholder.contato_cliente.telefone %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-phone mr-1"></i>{{ stakeholder.contato_cliente.telefone }}
+                                </p>
+                                {% endif %}
+                                {% endif %}
                             </div>
-                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Equipe Técnica -->
+                    {% if stakeholders_equipe_tecnica %}
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-users-cog mr-1"></i>Equipe Técnica da Contratante
+                        </h4>
+                        <div class="space-y-2 ml-4">
+                            {% for stakeholder in stakeholders_equipe_tecnica %}
+                            <div class="border-l-2 border-amber-500 pl-3 py-1">
+                                <p class="text-xs font-medium text-gray-900 dark:text-white">{{ stakeholder.papel|default:"Membro da Equipe Técnica" }}</p>
+                                {% if stakeholder.nome %}
+                                <p class="text-xs text-gray-600 dark:text-gray-400">{{ stakeholder.nome }}</p>
+                                {% endif %}
+                                {% if stakeholder.email %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-envelope mr-1"></i>{{ stakeholder.email }}
+                                </p>
+                                {% endif %}
+                                {% if stakeholder.telefone %}
+                                <p class="text-xs text-gray-500 dark:text-gray-500">
+                                    <i class="fas fa-phone mr-1"></i>{{ stakeholder.telefone }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                     {% endif %}
                 </div>
+                {% else %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum stakeholder cadastrado.</p>
+                {% endif %}
             </div>
 
             <!-- Vigência e Valores -->
@@ -317,6 +380,42 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">Tipo</p>
                         <p class="font-medium text-gray-900 dark:text-white">{{ contrato.cliente.get_tipo_cliente_display }} - {{ contrato.cliente.get_tipo_pessoa_display }}</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Origem do Contrato -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    <i class="fas fa-route mr-2 text-teal-500"></i>Origem do Contrato
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Origem</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.get_origem_contrato_display|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Detalhe da Origem</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ contrato.origem_contrato_detalhe|default:"-" }}</p>
+                        </div>
+                    </div>
+                    {% if contrato.origem_contrato_justificativa_ia %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Justificativa (IA)</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ contrato.origem_contrato_justificativa_ia }}</p>
+                    </div>
+                    {% endif %}
+                    {% if contrato.origem_contrato_confianca_ia %}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Confiança da Classificação (IA)</p>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div class="bg-teal-500 h-2 rounded-full" style="width: {{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%"></div>
+                            </div>
+                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ contrato.origem_contrato_confianca_ia|floatformat:0 }}%</span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -922,6 +1021,12 @@
                                             title="Converter em Projeto">
                                             <i class="fas fa-arrow-right mr-1"></i>Criar Projeto
                                         </button>
+                                        <button onclick="return editarBacklog({{ backlog.id }}, event);" 
+                                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded transition"
+                                            title="Editar Backlog"
+                                            type="button">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                         <button onclick="return excluirBacklog({{ backlog.id }}, event);" 
                                             class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition"
                                             title="Excluir Backlog"
@@ -1053,6 +1158,82 @@
                         <button type="submit" 
                             class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
                             <i class="fas fa-save mr-1"></i> Criar Backlog
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Modal: Editar Backlog -->
+        <div id="modalEditarBacklog" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-edit mr-2 text-blue-500"></i>Editar Backlog
+                    </h3>
+                    <button onclick="fecharModalEditarBacklog()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="formEditarBacklog" onsubmit="return salvarEdicaoBacklog(event);">
+                    {% csrf_token %}
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Título <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="editar_backlog_titulo" 
+                                   name="titulo" 
+                                   required
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descrição
+                            </label>
+                            <textarea id="editar_backlog_descricao" 
+                                      name="descricao" 
+                                      rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Prioridade
+                                </label>
+                                <select id="editar_backlog_prioridade" 
+                                        name="prioridade"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                                    <option value="baixa">Baixa</option>
+                                    <option value="media">Média</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="critica">Crítica</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Status
+                                </label>
+                                <select id="editar_backlog_status" 
+                                        name="status"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                                    <option value="pendente">Pendente</option>
+                                    <option value="em_analise">Em Análise</option>
+                                    <option value="convertido_projeto">Convertido em Projeto</option>
+                                    <option value="arquivado">Arquivado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button type="button" onclick="fecharModalEditarBacklog()" 
+                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                            <i class="fas fa-save mr-1"></i> Salvar Alterações
                         </button>
                     </div>
                 </form>
@@ -1685,30 +1866,138 @@
                 </div>
                 {% endif %}
             </div>
+            
+            <!-- Equipe Técnica da Contratante -->
+            <div class="mt-6">
+                <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                    <i class="fas fa-users-cog mr-2 text-purple-500"></i>Equipe Técnica da Contratante
+                </h4>
+                {% if stakeholders_equipe_tecnica %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Papel/Função</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nome</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">E-mail</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Telefone</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Observações</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                                {% if user.is_superuser or user|is_in_group:'Admin' or user|is_in_group:'Gerente' %}
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for stakeholder in stakeholders_equipe_tecnica %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ stakeholder.papel }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                    {{ stakeholder.nome|default:"-" }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                    {% if stakeholder.email %}
+                                        <a href="mailto:{{ stakeholder.email }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                            {{ stakeholder.email }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                    {% if stakeholder.telefone %}
+                                        <a href="tel:{{ stakeholder.telefone }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                            {{ stakeholder.telefone }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                    <div class="truncate max-w-xs" title="{{ stakeholder.observacoes|default:'' }}">
+                                        {{ stakeholder.observacoes|default:"-"|truncatechars:50 }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    {% if stakeholder.ativo %}
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                        Ativo
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                        Inativo
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                {% if user.is_superuser or user|is_in_group:'Admin' or user|is_in_group:'Gerente' %}
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'stakeholder_contrato_update' stakeholder.pk %}" 
+                                           class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'stakeholder_contrato_delete' stakeholder.pk %}" 
+                                           class="text-red-600 hover:text-red-800 dark:text-red-400" title="Excluir"
+                                           onclick="return confirm('Tem certeza que deseja excluir este stakeholder?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                    <p class="text-gray-500 dark:text-gray-400">Nenhum membro da Equipe Técnica cadastrado.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <script>
-function showTab(tabName) {
-    // Hide all content
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    // Remove active state from all tabs
-    document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
-        el.classList.add('border-transparent', 'text-gray-500');
-    });
-    
-    // Show selected content
-    document.getElementById('content-' + tabName).classList.remove('hidden');
-    // Add active state to selected tab
-    const activeTab = document.getElementById('tab-' + tabName);
-    activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
-    activeTab.classList.remove('border-transparent', 'text-gray-500');
-    
-    // Atualizar URL com o parâmetro tab para manter a aba ativa após recarregar
-    const url = new URL(window.location);
-    url.searchParams.set('tab', tabName);
-    window.history.pushState({}, '', url);
+// Função para navegar entre abas - deve estar no escopo global para ser acessível via onclick
+window.showTab = function(tabName) {
+    console.log('showTab chamado com:', tabName);
+    try {
+        // Hide all content
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        // Remove active state from all tabs
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+            el.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show selected content
+        const contentEl = document.getElementById('content-' + tabName);
+        if (!contentEl) {
+            console.error('Conteúdo da aba não encontrado:', 'content-' + tabName);
+            return;
+        }
+        contentEl.classList.remove('hidden');
+        
+        // Add active state to selected tab
+        const activeTab = document.getElementById('tab-' + tabName);
+        if (!activeTab) {
+            console.error('Aba não encontrada:', 'tab-' + tabName);
+            return;
+        }
+        activeTab.classList.add('border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+        activeTab.classList.remove('border-transparent', 'text-gray-500');
+        
+        // Atualizar URL com o parâmetro tab para manter a aba ativa após recarregar
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
+        console.log('Aba alterada com sucesso para:', tabName);
+    } catch (error) {
+        console.error('Erro ao mudar de aba:', error);
+    }
 }
 
 function toggleItemForm() {
@@ -1788,6 +2077,189 @@ function fecharModalConverterProjeto() {
     document.getElementById('formConverterProjeto').reset();
 }
 
+function abrirModalEditarBacklog(backlogId) {
+    // Buscar dados do backlog via AJAX
+    fetch(`/backlog/${backlogId}/editar/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const backlog = data.backlog;
+                document.getElementById('editar_backlog_titulo').value = backlog.titulo || '';
+                document.getElementById('editar_backlog_descricao').value = backlog.descricao || '';
+                document.getElementById('editar_backlog_prioridade').value = backlog.prioridade || 'media';
+                document.getElementById('editar_backlog_status').value = backlog.status || 'pendente';
+                document.getElementById('modalEditarBacklog').setAttribute('data-backlog-id', backlogId);
+                document.getElementById('modalEditarBacklog').classList.remove('hidden');
+            } else {
+                alert('Erro ao carregar dados do backlog: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao carregar dados do backlog.');
+        });
+}
+
+function fecharModalEditarBacklog() {
+    document.getElementById('modalEditarBacklog').classList.add('hidden');
+    document.getElementById('modalEditarBacklog').removeAttribute('data-backlog-id');
+    document.getElementById('formEditarBacklog').reset();
+}
+
+async function salvarEdicaoBacklog(event) {
+    event.preventDefault();
+    
+    const modal = document.getElementById('modalEditarBacklog');
+    const backlogId = modal.getAttribute('data-backlog-id');
+    
+    if (!backlogId) {
+        alert('Erro: ID do backlog não encontrado.');
+        return false;
+    }
+    
+    const formData = new FormData(document.getElementById('formEditarBacklog'));
+    
+    try {
+        const csrfInput1 = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfInput2 = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        const csrfToken = (csrfInput1 && csrfInput1.value) || (csrfInput2 && csrfInput2.value) || '';
+        
+        const response = await fetch(`/backlog/${backlogId}/editar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Fechar modal
+            fecharModalEditarBacklog();
+            
+            // Atualizar o card do backlog na interface
+            const backlogCard = document.querySelector(`[data-backlog-id="${backlogId}"]`);
+            if (backlogCard && data.backlog) {
+                const backlog = data.backlog;
+                const backlogsContainer = document.getElementById('backlogs-container');
+                
+                // Guardar a prioridade antiga para verificar se mudou
+                const flexContainer = backlogCard.querySelector('div.flex.justify-between');
+                const prioridadeElementAntiga = flexContainer ? flexContainer.querySelector('span:last-child') : null;
+                let prioridadeAntiga = 'baixa';
+                if (prioridadeElementAntiga) {
+                    const classesAntigas = prioridadeElementAntiga.className;
+                    if (classesAntigas.includes('bg-red-100') || classesAntigas.includes('bg-red-900')) {
+                        prioridadeAntiga = 'critica';
+                    } else if (classesAntigas.includes('bg-orange-100') || classesAntigas.includes('bg-orange-900')) {
+                        prioridadeAntiga = 'alta';
+                    } else if (classesAntigas.includes('bg-yellow-100') || classesAntigas.includes('bg-yellow-900')) {
+                        prioridadeAntiga = 'media';
+                    }
+                }
+                
+                // Atualizar título
+                const tituloElement = backlogCard.querySelector('h5');
+                if (tituloElement) {
+                    tituloElement.textContent = backlog.titulo || 'Backlog sem título';
+                }
+                
+                // Atualizar descrição
+                const descricaoElement = backlogCard.querySelector('p.text-xs.text-gray-600');
+                if (descricaoElement) {
+                    if (backlog.descricao) {
+                        descricaoElement.textContent = backlog.descricao;
+                        descricaoElement.classList.remove('hidden');
+                    } else {
+                        descricaoElement.classList.add('hidden');
+                    }
+                }
+                
+                // Atualizar prioridade
+                const prioridadeElement = flexContainer ? flexContainer.querySelector('span:last-child') : null;
+                if (prioridadeElement) {
+                    const prioridadeClasses = {
+                        'critica': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                        'alta': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+                        'media': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                        'baixa': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    };
+                    prioridadeElement.className = `px-2 py-0.5 text-xs rounded-full ${prioridadeClasses[backlog.prioridade] || prioridadeClasses['baixa']}`;
+                    prioridadeElement.textContent = backlog.prioridade_display;
+                }
+                
+                // Se a prioridade mudou, reposicionar o card na ordem correta
+                if (prioridadeAntiga !== backlog.prioridade && backlogsContainer) {
+                    const prioridadeOrdem = {
+                        'critica': 4,
+                        'alta': 3,
+                        'media': 2,
+                        'baixa': 1
+                    };
+                    const novaPrioridadeOrdem = prioridadeOrdem[backlog.prioridade] || 0;
+                    
+                    // Remover o card da posição atual
+                    backlogCard.remove();
+                    
+                    // Encontrar a nova posição correta
+                    const backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
+                    let inserirAntesDe = null;
+                    
+                    for (let i = 0; i < backlogCards.length; i++) {
+                        const card = backlogCards[i];
+                        const flexContainer = card.querySelector('div.flex.justify-between');
+                        const cardPrioridadeSpan = flexContainer ? flexContainer.querySelector('span:last-child') : null;
+                        if (cardPrioridadeSpan) {
+                            const cardClasses = cardPrioridadeSpan.className;
+                            let cardPrioridade = 'baixa';
+                            if (cardClasses.includes('bg-red-100') || cardClasses.includes('bg-red-900')) {
+                                cardPrioridade = 'critica';
+                            } else if (cardClasses.includes('bg-orange-100') || cardClasses.includes('bg-orange-900')) {
+                                cardPrioridade = 'alta';
+                            } else if (cardClasses.includes('bg-yellow-100') || cardClasses.includes('bg-yellow-900')) {
+                                cardPrioridade = 'media';
+                            }
+                            
+                            const cardPrioridadeOrdem = prioridadeOrdem[cardPrioridade] || 0;
+                            
+                            if (novaPrioridadeOrdem > cardPrioridadeOrdem) {
+                                inserirAntesDe = card;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Inserir na nova posição
+                    if (inserirAntesDe) {
+                        backlogsContainer.insertBefore(backlogCard, inserirAntesDe);
+                    } else {
+                        backlogsContainer.appendChild(backlogCard);
+                    }
+                }
+            }
+        } else {
+            alert('Erro: ' + (data.error || 'Erro ao atualizar backlog.'));
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar backlog: ' + error.message);
+    }
+    
+    return false;
+}
+
+function editarBacklog(backlogId, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+    }
+    
+    abrirModalEditarBacklog(backlogId);
+    return false;
+}
+
 function abrirModalExcluirBacklog(backlogId, backlogTitulo) {
     document.getElementById('backlog-excluir-titulo').textContent = backlogTitulo || 'Backlog sem título';
     document.getElementById('modalExcluirBacklog').setAttribute('data-backlog-id', backlogId);
@@ -1862,6 +2334,12 @@ function adicionarBacklogNaLista(backlog) {
                 title="Converter em Projeto">
                 <i class="fas fa-arrow-right mr-1"></i>Criar Projeto
             </button>
+            <button onclick="return editarBacklog(${backlog.id}, event);" 
+                class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded transition"
+                title="Editar Backlog"
+                type="button">
+                <i class="fas fa-edit"></i>
+            </button>
             <button onclick="return excluirBacklog(${backlog.id}, event);" 
                 class="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition"
                 title="Excluir Backlog"
@@ -1871,11 +2349,54 @@ function adicionarBacklogNaLista(backlog) {
         </div>
     `;
     
-    // Adicionar no início da lista
-    backlogsContainer.insertBefore(backlogCard, backlogsContainer.firstChild);
+    // Ordenar por prioridade: Crítica (4) > Alta (3) > Média (2) > Baixa (1)
+    const prioridadeOrdem = {
+        'critica': 4,
+        'alta': 3,
+        'media': 2,
+        'baixa': 1
+    };
+    const novaPrioridade = prioridadeOrdem[backlog.prioridade] || 0;
     
-    // Atualizar contador de backlogs
-    const backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
+    // Encontrar a posição correta para inserir o backlog
+    let backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
+    let inserirAntesDe = null;
+    
+    for (let i = 0; i < backlogCards.length; i++) {
+        const card = backlogCards[i];
+        const flexContainer = card.querySelector('div.flex.justify-between');
+        const cardPrioridadeSpan = flexContainer ? flexContainer.querySelector('span:last-child') : null;
+        if (cardPrioridadeSpan) {
+            // Extrair a prioridade do card existente baseado nas classes
+            const cardClasses = cardPrioridadeSpan.className;
+            let cardPrioridade = 'baixa';
+            if (cardClasses.includes('bg-red-100') || cardClasses.includes('bg-red-900')) {
+                cardPrioridade = 'critica';
+            } else if (cardClasses.includes('bg-orange-100') || cardClasses.includes('bg-orange-900')) {
+                cardPrioridade = 'alta';
+            } else if (cardClasses.includes('bg-yellow-100') || cardClasses.includes('bg-yellow-900')) {
+                cardPrioridade = 'media';
+            }
+            
+            const cardPrioridadeOrdem = prioridadeOrdem[cardPrioridade] || 0;
+            
+            // Se a nova prioridade é maior, inserir antes deste card
+            if (novaPrioridade > cardPrioridadeOrdem) {
+                inserirAntesDe = card;
+                break;
+            }
+        }
+    }
+    
+    // Inserir na posição encontrada ou no final se não encontrou
+    if (inserirAntesDe) {
+        backlogsContainer.insertBefore(backlogCard, inserirAntesDe);
+    } else {
+        backlogsContainer.appendChild(backlogCard);
+    }
+    
+    // Atualizar contador de backlogs (reutilizar backlogCards já declarado)
+    backlogCards = backlogsContainer.querySelectorAll('.backlog-card');
     const backlogCount = backlogCards.length;
     const backlogHeader = document.querySelector('h4.text-sm.font-semibold.text-orange-800');
     if (backlogHeader && backlogHeader.querySelector('i.fa-list-ul')) {
@@ -1899,7 +2420,8 @@ function excluirBacklog(backlogId, event) {
         return false;
     }
     
-    const backlogTitulo = backlogCard.querySelector('h5')?.textContent?.trim() || 'Backlog sem título';
+    const tituloElement = backlogCard.querySelector('h5');
+    const backlogTitulo = (tituloElement && tituloElement.textContent) ? tituloElement.textContent.trim() : 'Backlog sem título';
     
     // Verificar se o modal existe
     const modal = document.getElementById('modalExcluirBacklog');
@@ -1922,8 +2444,9 @@ async function confirmarExclusaoBacklog() {
     if (!backlogId) return;
     
     try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                         document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+        const csrfInput1 = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfInput2 = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        const csrfToken = (csrfInput1 && csrfInput1.value) || (csrfInput2 && csrfInput2.value) || '';
         
         const response = await fetch(`/backlog/${backlogId}/excluir/`, {
             method: 'POST',
@@ -1973,79 +2496,84 @@ async function confirmarExclusaoBacklog() {
     }
 }
 
-// Submissão do formulário de novo backlog via AJAX
-document.getElementById('formNovoBacklog')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    try {
-        const response = await fetch(this.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Fechar modal sem mostrar alerta
-            fecharModalNovoBacklog();
-            // Adicionar backlog à lista dinamicamente
-            if (data.backlog) {
-                adicionarBacklogNaLista(data.backlog);
-            }
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    } catch (error) {
-        alert('Erro ao criar backlog: ' + error.message);
-    }
-});
-
-// Submissão do formulário de converter backlog em projeto via AJAX
-document.getElementById('formConverterProjeto')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const backlogId = document.getElementById('backlog_id_input').value;
-    
-    try {
-        const response = await fetch(`/backlog/${backlogId}/converter-projeto-ajax/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Fechar modal de conversão
-            fecharModalConverterProjeto();
-            
-            // Mostrar modal de sucesso
-            const mensagemElement = document.getElementById('mensagem-sucesso-conversao');
-            if (mensagemElement) {
-                mensagemElement.textContent = data.message;
-            }
-            document.getElementById('modalSucessoConversao').classList.remove('hidden');
-            
-            // Sempre redirecionar para a página de detalhes do contrato na aba de Projetos
-            const contratoId = {{ contrato.pk }};
-            const redirectUrl = `{% url 'gestao_contratos_detail' contrato.pk %}?tab=projetos`;
-            document.getElementById('modalSucessoConversao').setAttribute('data-redirect-url', redirectUrl);
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    } catch (error) {
-        alert('Erro ao converter backlog: ' + error.message);
-    }
-});
-
 // Verificar se há parâmetro tab na URL e abrir a aba correspondente
 document.addEventListener('DOMContentLoaded', function() {
+    // Submissão do formulário de novo backlog via AJAX
+    const formNovoBacklog = document.getElementById('formNovoBacklog');
+    if (formNovoBacklog) {
+        formNovoBacklog.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Fechar modal sem mostrar alerta
+                    fecharModalNovoBacklog();
+                    // Adicionar backlog à lista dinamicamente
+                    if (data.backlog) {
+                        adicionarBacklogNaLista(data.backlog);
+                    }
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erro ao criar backlog: ' + error.message);
+            }
+        });
+    }
+
+    // Submissão do formulário de converter backlog em projeto via AJAX
+    const formConverterProjeto = document.getElementById('formConverterProjeto');
+    if (formConverterProjeto) {
+        formConverterProjeto.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const backlogId = document.getElementById('backlog_id_input').value;
+            
+            try {
+                const response = await fetch(`/backlog/${backlogId}/converter-projeto-ajax/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Fechar modal de conversão
+                    fecharModalConverterProjeto();
+                    
+                    // Mostrar modal de sucesso
+                    const mensagemElement = document.getElementById('mensagem-sucesso-conversao');
+                    if (mensagemElement) {
+                        mensagemElement.textContent = data.message;
+                    }
+                    document.getElementById('modalSucessoConversao').classList.remove('hidden');
+                    
+                    // Sempre redirecionar para a página de detalhes do contrato na aba de Projetos
+                    const contratoId = {{ contrato.pk }};
+                    const redirectUrl = `{% url 'gestao_contratos_detail' contrato.pk %}?tab=projetos`;
+                    document.getElementById('modalSucessoConversao').setAttribute('data-redirect-url', redirectUrl);
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erro ao converter backlog: ' + error.message);
+            }
+        });
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
     if (tab) {
@@ -2081,29 +2609,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Fechar modais ao clicar fora
-    document.getElementById('modalNovoBacklog')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            fecharModalNovoBacklog();
-        }
-    });
+    const modalNovoBacklog = document.getElementById('modalNovoBacklog');
+    if (modalNovoBacklog) {
+        modalNovoBacklog.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalNovoBacklog();
+            }
+        });
+    }
     
-    document.getElementById('modalConverterProjeto')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            fecharModalConverterProjeto();
-        }
-    });
+    const modalConverterProjeto = document.getElementById('modalConverterProjeto');
+    if (modalConverterProjeto) {
+        modalConverterProjeto.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalConverterProjeto();
+            }
+        });
+    }
     
-    document.getElementById('modalExcluirBacklog')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            fecharModalExcluirBacklog();
-        }
-    });
+    const modalEditarBacklog = document.getElementById('modalEditarBacklog');
+    if (modalEditarBacklog) {
+        modalEditarBacklog.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalEditarBacklog();
+            }
+        });
+    }
     
-    document.getElementById('modalSucessoConversao')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            fecharModalSucessoConversao();
-        }
-    });
+    const modalExcluirBacklog = document.getElementById('modalExcluirBacklog');
+    if (modalExcluirBacklog) {
+        modalExcluirBacklog.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalExcluirBacklog();
+            }
+        });
+    }
+    
+    const modalSucessoConversao = document.getElementById('modalSucessoConversao');
+    if (modalSucessoConversao) {
+        modalSucessoConversao.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalSucessoConversao();
+            }
+        });
+    }
 });
 </script>
 

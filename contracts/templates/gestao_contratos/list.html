@@ -122,43 +122,54 @@
     {% if page_obj %}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contrato</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fornecedores</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Regime Legal</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Valor Atual</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Vigência</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contrato</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fornecedores</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Regime Legal</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Vigência</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {% for contrato in page_obj %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ contrato.numero_contrato }}</div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">
                                 {% if contrato.processo %}Processo: {{ contrato.processo }}{% endif %}
                             </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4">
                             <div class="text-sm text-gray-900 dark:text-white truncate max-w-xs">{{ contrato.cliente.nome_razao_social }}</div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex flex-wrap gap-1 max-w-xs">
+                        <td class="px-4 py-4">
+                            <div class="flex flex-wrap gap-1 max-w-xs" id="fornecedores-{{ contrato.pk }}">
                                 {% for fornecedor in contrato.fornecedores %}
-                                <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-300">
-                                    {{ fornecedor }}
-                                </span>
+                                    {% if fornecedor != "ALLTECH - SOLUÇÕES EM TECNOLOGIA LTDA" and fornecedor != "IB SERVICES" %}
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-300">
+                                        {{ fornecedor }}
+                                    </span>
+                                    {% endif %}
                                 {% empty %}
                                 <span class="text-xs text-gray-400">-</span>
                                 {% endfor %}
                             </div>
+                            {% if contrato.fornecedores %}
+                            <script>
+                                (function() {
+                                    var container = document.getElementById('fornecedores-{{ contrato.pk }}');
+                                    if (container && container.children.length === 0) {
+                                        container.innerHTML = '<span class="text-xs text-gray-400">-</span>';
+                                    }
+                                })();
+                            </script>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs rounded-full 
                                 {% if contrato.regime_legal == 'LEI_14133' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
                                 {% elif contrato.regime_legal == 'LEI_13303' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
@@ -166,14 +177,11 @@
                                 {{ contrato.get_regime_legal_display }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            {{ contrato.valor_atual|currency_br }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             <div>{{ contrato.data_assinatura|date:"d/m/Y" }} → {{ contrato.data_fim_atual|date:"d/m/Y" }}</div>
                             <div class="text-xs">{{ contrato.vigencia_total_meses }} meses</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             {% if contrato.renovacao_pendente %}
                             <span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
                                 <i class="fas fa-exclamation-triangle mr-1"></i>Renovar em {{ contrato.dias_para_vencimento }} dias
@@ -188,7 +196,7 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm">
                             <div class="flex gap-2">
                                 <a href="{% url 'gestao_contratos_detail' contrato.pk %}" 
                                     class="text-blue-600 hover:text-blue-800 dark:text-blue-400" title="Visualizar">
@@ -197,10 +205,6 @@
                                 <a href="{% url 'gestao_contratos_update' contrato.pk %}" 
                                     class="text-green-600 hover:text-green-800 dark:text-green-400" title="Editar">
                                     <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'termo_aditivo_create' contrato.pk %}" 
-                                    class="text-purple-600 hover:text-purple-800 dark:text-purple-400" title="Novo Aditivo">
-                                    <i class="fas fa-plus-circle"></i>
                                 </a>
                                 {% if user.is_superuser or user|is_in_group:'Admin' or user|is_in_group:'Gerente' %}
                                 <a href="{% url 'gestao_contratos_delete' contrato.pk %}" 

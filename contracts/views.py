@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.http import HttpResponse, JsonResponse, FileResponse
 from django.contrib import messages
-from django.db.models import Q, Sum, Value, F, ExpressionWrapper, DecimalField
+from django.db.models import Q, Sum, Value, F, ExpressionWrapper, DecimalField, Case, When, IntegerField, Max
 from django.db.models.functions import Coalesce
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -716,7 +716,15 @@ def api_contratos_por_cliente(request):
 @require_GET
 def api_itens_contrato_por_contrato(request):
     contrato_id = request.GET.get("contrato_id")
-    tipos = request.GET.get("tipo", "").split(",")
+    tipos_param = request.GET.get("tipo", "")
+    
+    # Se tipos não foram especificados, usar apenas Serviço e Treinamento (padrão para OS)
+    from .constants import TIPOS_OS_ITEM_CONTRATO
+    if tipos_param:
+        tipos = [t.strip() for t in tipos_param.split(",") if t.strip()]
+    else:
+        tipos = TIPOS_OS_ITEM_CONTRATO
+    
     itens = []
 
     if contrato_id:
@@ -1530,14 +1538,56 @@ def ordemservico_detail(request, pk):
 @group_required("Admin", "Gerente")
 def ordemservico_create(request):
     contrato_id = request.GET.get("contrato")
+    projeto_id = request.GET.get("projeto")
+    
+    # Se projeto_id foi fornecido, preencher dados automaticamente
+    projeto = None
+    if projeto_id:
+        projeto = get_object_or_404(Projeto.objects.select_related('contrato', 'gerente_projeto'), pk=projeto_id)
+    
     if request.method == "POST":
         form = OrdemServicoForm(request.POST)
         if form.is_valid():
-            form.save()
+            ordem_servico = form.save(commit=False)
+            # Se veio de um projeto, vincular automaticamente
+            # Pode vir do GET (projeto_id) ou do POST (form.projeto)
+            if projeto:
+                ordem_servico.projeto = projeto
+            elif form.cleaned_data.get('projeto'):
+                ordem_servico.projeto = form.cleaned_data['projeto']
+            
+            ordem_servico.save()
+            messages.success(request, "Ordem de Serviço criada com sucesso!")
+            
+            # Redirecionar para o projeto se foi criado a partir de um projeto
+            projeto_redirect = projeto or ordem_servico.projeto
+            if projeto_redirect:
+                return redirect("projeto_detail", pk=projeto_redirect.pk)
             return redirect("ordem_servico_list")
     else:
-        form = OrdemServicoForm(initial={"contrato": contrato_id})
-    return render(request, "ordem_servico/form.html", {"form": form})
+        initial_data = {}
+        if contrato_id:
+            initial_data["contrato"] = contrato_id
+        
+        # Se projeto foi fornecido, preencher dados automaticamente
+        if projeto:
+            initial_data["contrato"] = projeto.contrato.pk
+            initial_data["cliente"] = projeto.contrato.cliente.pk
+            initial_data["projeto"] = projeto.pk
+            if projeto.gerente_projeto:
+                # OrdemServico tem campo gerente_projetos (string), não ForeignKey
+                # Vamos preencher com o nome do gerente
+                initial_data["gerente_projetos"] = projeto.gerente_projeto.nome_completo
+            if projeto.item_contrato:
+                initial_data["item_contrato"] = projeto.item_contrato.pk
+        
+        form = OrdemServicoForm(initial=initial_data)
+    
+    context = {
+        "form": form,
+        "projeto": projeto,
+    }
+    return render(request, "ordem_servico/form.html", context)
 
 
 # Ordem de Serviço - Editar
@@ -2444,6 +2494,13 @@ def projeto_detail(request, pk):
     horas_previstas_os = projeto.horas_previstas_os
     horas_executadas_projeto = projeto.horas_executadas_projeto
     
+    # Colaboradores ativos para o select de responsável
+    colaboradores = Colaborador.objects.filter(ativo=True).order_by('nome_completo')
+    
+    # Combinar tarefas do backlog (projeto + origem) para exibição no canvas
+    from itertools import chain
+    tarefas_backlog = list(chain(tarefas_backlog_projeto, tarefas_backlog_origem))
+    
     context = {
         "projeto": projeto,
         "backlog_origem": projeto.backlog_origem,
@@ -2451,10 +2508,12 @@ def projeto_detail(request, pk):
         "tarefas_projeto": tarefas_projeto,
         "tarefas_backlog_projeto": tarefas_backlog_projeto,
         "tarefas_backlog_origem": tarefas_backlog_origem,
+        "tarefas_backlog": tarefas_backlog,
         "todas_tarefas": todas_tarefas,
         "sprints": sprints,
         "plano_trabalho": plano_trabalho,
         "ordem_servico": ordem_servico,
+        "colaboradores": colaboradores,
         "total_tarefas_projeto": total_tarefas_projeto,
         "total_sprints": total_sprints,
         "sprints_pendentes": sprints_pendentes,
@@ -2503,40 +2562,7 @@ def projeto_create(request):
                 projeto.data_fim_prevista = contrato.data_fim_atual
             projeto.save()
             
-            # Criar OS automaticamente se item_contrato foi definido
-            if projeto.item_contrato:
-                from .models import OrdemServico
-                from decimal import Decimal
-                from django.utils import timezone
-                
-                # Gerar número da OS
-                ano = timezone.now().year
-                ultima_os = OrdemServico.objects.filter(
-                    numero_os__startswith=f"OS-{ano}"
-                ).order_by('-numero_os').first()
-                
-                if ultima_os:
-                    try:
-                        ultimo_num = int(ultima_os.numero_os.split('/')[0].split('-')[-1])
-                        novo_num = ultimo_num + 1
-                    except (ValueError, IndexError):
-                        novo_num = 1
-                else:
-                    novo_num = 1
-                
-                numero_os = f"OS-{novo_num:04d}/{ano}"
-                
-                # Criar OS vinculada ao projeto
-                ordem_servico = OrdemServico.objects.create(
-                    numero_os=numero_os,
-                    cliente=contrato.cliente,
-                    contrato=contrato,
-                    projeto=projeto,
-                    item_contrato=projeto.item_contrato,
-                    quantidade=Decimal('0.00'),  # Será atualizado com o plano de trabalho
-                    data_inicio=projeto.data_inicio,
-                    status="aberta"
-                )
+            # Não criar OS automaticamente - será criada manualmente pelo usuário
             
             messages.success(request, "Projeto criado com sucesso!")
             return redirect("projeto_detail", pk=projeto.pk)
@@ -2648,6 +2674,55 @@ def backlog_create_ajax(request, contrato_id):
 
 # Backlog - Excluir via AJAX
 @group_required("Admin", "Gerente")
+def backlog_update_ajax(request, backlog_id):
+    """Atualiza um backlog via AJAX"""
+    from django.http import JsonResponse
+    backlog = get_object_or_404(Backlog, pk=backlog_id)
+    
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        prioridade = request.POST.get('prioridade', 'media')
+        status = request.POST.get('status', 'pendente')
+        
+        if not titulo:
+            return JsonResponse({'success': False, 'error': 'Título é obrigatório.'}, status=400)
+        
+        try:
+            backlog.titulo = titulo
+            backlog.descricao = descricao
+            backlog.prioridade = prioridade
+            backlog.status = status
+            backlog.save()
+            
+            return JsonResponse({
+                'success': True,
+                'backlog': {
+                    'id': backlog.id,
+                    'titulo': backlog.titulo or 'Backlog sem título',
+                    'descricao': backlog.descricao or '',
+                    'prioridade': backlog.prioridade,
+                    'prioridade_display': backlog.get_prioridade_display(),
+                    'status': backlog.status,
+                    'status_display': backlog.get_status_display(),
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    # GET: Retornar dados do backlog para preencher o formulário
+    return JsonResponse({
+        'success': True,
+        'backlog': {
+            'id': backlog.id,
+            'titulo': backlog.titulo or '',
+            'descricao': backlog.descricao or '',
+            'prioridade': backlog.prioridade,
+            'status': backlog.status,
+        }
+    })
+
+
 def backlog_delete_ajax(request, backlog_id):
     """Exclui um backlog via AJAX"""
     from django.http import JsonResponse
@@ -3461,6 +3536,141 @@ def tarefa_projeto_create(request, projeto_id):
     return render(request, "tarefa/form_projeto_create.html", context)
 
 
+# Tarefa - Criar via AJAX
+@group_required("Admin", "Gerente")
+def tarefa_create_ajax(request, projeto_id):
+    """Cria uma nova tarefa no projeto via AJAX"""
+    from django.http import JsonResponse
+    from django.utils import timezone
+    from datetime import datetime
+    from decimal import InvalidOperation
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        bilhetar_na_os = request.POST.get('bilhetar_na_os') == 'on'
+        responsavel_id = request.POST.get('responsavel')
+        data_inicio_prevista = request.POST.get('data_inicio_prevista')
+        data_termino_prevista = request.POST.get('data_termino_prevista')
+        horas_planejadas = request.POST.get('horas_planejadas', '0')
+        observacoes = request.POST.get('observacoes', '')
+        sprint_id = request.POST.get('sprint', '')
+        
+        if not titulo:
+            return JsonResponse({'success': False, 'error': 'Nome da Tarefa é obrigatório.'}, status=400)
+        
+        if not data_inicio_prevista or not data_termino_prevista:
+            return JsonResponse({'success': False, 'error': 'Data/Hora de Início e Término são obrigatórias.'}, status=400)
+        
+        try:
+            # Converter datas
+            try:
+                data_inicio = datetime.strptime(data_inicio_prevista, '%Y-%m-%dT%H:%M')
+                data_termino = datetime.strptime(data_termino_prevista, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                return JsonResponse({'success': False, 'error': 'Formato de data inválido. Use o formato: YYYY-MM-DDTHH:MM'}, status=400)
+            
+            # Tornar timezone-aware se necessário
+            if timezone.is_naive(data_inicio):
+                data_inicio = timezone.make_aware(data_inicio)
+            if timezone.is_naive(data_termino):
+                data_termino = timezone.make_aware(data_termino)
+            
+            # Validar que data de término é posterior à data de início
+            if data_termino <= data_inicio:
+                return JsonResponse({'success': False, 'error': 'Data/Hora de Término deve ser posterior à Data/Hora de Início.'}, status=400)
+            
+            # Converter horas planejadas
+            try:
+                horas_planejadas_decimal = Decimal(str(horas_planejadas))
+            except (ValueError, InvalidOperation):
+                horas_planejadas_decimal = Decimal('0.00')
+            
+            # Buscar ou criar backlog
+            if projeto.backlog_origem:
+                backlog = projeto.backlog_origem
+            else:
+                backlog = Backlog.objects.filter(contrato=projeto.contrato, status='pendente').first()
+                if not backlog:
+                    backlog = Backlog.objects.create(
+                        contrato=projeto.contrato,
+                        titulo=f"Backlog - {projeto.nome}",
+                        status='pendente'
+                    )
+            
+            # Buscar responsável se fornecido
+            responsavel = None
+            if responsavel_id:
+                try:
+                    responsavel = Colaborador.objects.get(pk=responsavel_id)
+                except Colaborador.DoesNotExist:
+                    pass
+            
+            # Buscar sprint se fornecido
+            sprint = None
+            if sprint_id:
+                try:
+                    sprint = Sprint.objects.get(pk=sprint_id, projeto=projeto)
+                except Sprint.DoesNotExist:
+                    pass
+            
+            # Calcular ordem_sprint se a tarefa está em uma sprint
+            ordem_sprint = 0
+            if sprint:
+                # Obter a última ordem na sprint e adicionar 1
+                ultima_ordem = Tarefa.objects.filter(sprint=sprint).aggregate(
+                    max_ordem=Max('ordem_sprint')
+                )['max_ordem']
+                ordem_sprint = (ultima_ordem or 0) + 1
+            
+            # Criar tarefa
+            # Se não há sprint, garantir que a tarefa tenha um backlog
+            tarefa_backlog = None
+            if not sprint:
+                tarefa_backlog = backlog
+            
+            tarefa = Tarefa.objects.create(
+                titulo=titulo,
+                descricao=descricao,
+                bilhetar_na_os=bilhetar_na_os,
+                responsavel=responsavel,
+                data_inicio_prevista=data_inicio,
+                data_termino_prevista=data_termino,
+                horas_planejadas=horas_planejadas_decimal,
+                observacoes=observacoes,
+                sprint=sprint,
+                backlog=tarefa_backlog,
+                projeto=projeto,
+                status_sprint="nao_iniciada" if sprint else None,
+                status="pendente",
+                ordem_sprint=ordem_sprint,
+                prioridade="media"  # Definir prioridade padrão
+            )
+            
+            # Retornar dados da tarefa criada
+            return JsonResponse({
+                'success': True,
+                'message': 'Tarefa criada com sucesso!',
+                'tarefa': {
+                    'id': tarefa.id,
+                    'titulo': tarefa.titulo,
+                    'descricao': tarefa.descricao or '',
+                    'responsavel': tarefa.responsavel.nome_completo if tarefa.responsavel else 'Sem responsável',
+                    'sprint': tarefa.sprint.nome if tarefa.sprint else None,
+                    'prioridade': tarefa.prioridade,
+                    'horas_planejadas': str(tarefa.horas_planejadas),
+                    'data_inicio_prevista': tarefa.data_inicio_prevista.strftime('%d/%m/%Y, %H:%M') if tarefa.data_inicio_prevista else '',
+                    'data_termino_prevista': tarefa.data_termino_prevista.strftime('%d/%m/%Y, %H:%M') if tarefa.data_termino_prevista else '',
+                }
+            })
+        except Exception as e:
+            import traceback
+            return JsonResponse({'success': False, 'error': f'Erro ao criar tarefa: {str(e)}'}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Método não permitido.'}, status=405)
+
+
 # Tarefa - Deletar (do projeto)
 @group_required("Admin", "Gerente")
 def tarefa_projeto_delete(request, projeto_id, tarefa_id):
@@ -3528,7 +3738,7 @@ def gestao_contratos_list(request):
     total_privados = Contrato.objects.filter(regime_legal=RegimeLegal.PRIVADO).count()
     total_renovacao_pendente = len(ContratoService.listar_contratos_com_renovacao_pendente())
     
-    paginator = Paginator(contratos, 10)
+    paginator = Paginator(contratos, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -3629,7 +3839,17 @@ def gestao_contratos_detail(request, pk):
     slas_importantes = contrato.slas_importantes.all().order_by('-prioridade', '-criado_em')
     
     # Backlogs do contrato (demandas que ainda não viraram projetos)
-    backlogs = contrato.backlogs.filter(status__in=['pendente', 'em_analise']).order_by('-prioridade', '-criado_em')
+    # Ordenar por prioridade: Crítica (4) > Alta (3) > Média (2) > Baixa (1)
+    backlogs = contrato.backlogs.filter(status__in=['pendente', 'em_analise']).annotate(
+        prioridade_ordem=Case(
+            When(prioridade='critica', then=Value(4)),
+            When(prioridade='alta', then=Value(3)),
+            When(prioridade='media', then=Value(2)),
+            When(prioridade='baixa', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    ).order_by('-prioridade_ordem', '-criado_em')
     
     # Projetos do contrato
     projetos = contrato.projetos.all().select_related('gerente_projeto', 'backlog_origem').prefetch_related('plano_trabalho').order_by('-criado_em')
@@ -3669,9 +3889,18 @@ def gestao_contratos_detail(request, pk):
             messages.error(request, "Erro ao adicionar SLA. Verifique os campos.")
     
     # Stakeholders do contrato
-    stakeholders = contrato.stakeholders.filter(ativo=True).order_by('tipo', 'papel')
-    stakeholders_contratada = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATADA)
-    stakeholders_contratante = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATANTE)
+    # Verificar se a tabela existe antes de fazer a query (migração pode não ter sido aplicada)
+    try:
+        stakeholders = contrato.stakeholders.filter(ativo=True).order_by('tipo', 'papel')
+        stakeholders_contratada = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATADA)
+        stakeholders_contratante = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.CONTRATANTE)
+        stakeholders_equipe_tecnica = stakeholders.filter(tipo=StakeholderContrato.TipoStakeholder.EQUIPE_TECNICA)
+    except Exception:
+        # Se a tabela não existir ainda (migração não aplicada), usar querysets vazios
+        stakeholders = StakeholderContrato.objects.none()
+        stakeholders_contratada = StakeholderContrato.objects.none()
+        stakeholders_contratante = StakeholderContrato.objects.none()
+        stakeholders_equipe_tecnica = StakeholderContrato.objects.none()
     
     context = {
         "contrato": contrato,
@@ -3690,6 +3919,7 @@ def gestao_contratos_detail(request, pk):
         "stakeholders": stakeholders,
         "stakeholders_contratada": stakeholders_contratada,
         "stakeholders_contratante": stakeholders_contratante,
+        "stakeholders_equipe_tecnica": stakeholders_equipe_tecnica,
     }
     return render(request, "gestao_contratos/detail.html", context)
 

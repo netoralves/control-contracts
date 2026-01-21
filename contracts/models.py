@@ -2274,7 +2274,7 @@ class Projeto(models.Model):
         tarefas_concluidas = Tarefa.objects.filter(
             sprint__projeto=self,
             status_sprint='concluida',
-            bilhetavel_os=True
+            bilhetar_na_os=True
         )
         
         # Somar horas lançadas para essas tarefas
@@ -2360,7 +2360,7 @@ class Backlog(models.Model):
     
     def converter_para_projeto(self, nome_projeto, descricao_projeto=None, gerente_projeto=None, item_contrato=None):
         """
-        Converte o backlog em um projeto e cria OS automaticamente
+        Converte o backlog em um projeto
         
         Args:
             nome_projeto: Nome do projeto a ser criado
@@ -2391,36 +2391,7 @@ class Backlog(models.Model):
             status="planejamento"
         )
         
-        # Criar OS automaticamente vinculada ao projeto
-        if item_contrato:
-            # Gerar número da OS
-            ano = timezone.now().year
-            ultima_os = OrdemServico.objects.filter(
-                numero_os__startswith=f"OS-{ano}"
-            ).order_by('-numero_os').first()
-            
-            if ultima_os:
-                try:
-                    ultimo_num = int(ultima_os.numero_os.split('/')[0].split('-')[-1])
-                    novo_num = ultimo_num + 1
-                except (ValueError, IndexError):
-                    novo_num = 1
-            else:
-                novo_num = 1
-            
-            numero_os = f"OS-{novo_num:04d}/{ano}"
-            
-            # Criar OS vinculada ao projeto
-            ordem_servico = OrdemServico.objects.create(
-                numero_os=numero_os,
-                cliente=self.contrato.cliente,
-                contrato=self.contrato,
-                projeto=projeto,
-                item_contrato=item_contrato,
-                quantidade=Decimal('0.00'),  # Será atualizado com o plano de trabalho
-                data_inicio=projeto.data_inicio,
-                status="aberta"
-            )
+        # Não criar OS automaticamente - será criada manualmente pelo usuário
         
         self.status = "convertido_projeto"
         self.save()
@@ -2633,6 +2604,13 @@ class Tarefa(models.Model):
     
     titulo = models.CharField(max_length=255, verbose_name="Nome da Tarefa")
     descricao = models.TextField(verbose_name="Descrição")
+    projeto = models.ForeignKey(
+        "Projeto",
+        on_delete=models.CASCADE,
+        related_name="tarefas",
+        verbose_name="Projeto",
+        help_text="Projeto ao qual a tarefa pertence"
+    )
     backlog = models.ForeignKey(
         "Backlog",
         on_delete=models.CASCADE,
@@ -2660,7 +2638,7 @@ class Tarefa(models.Model):
         verbose_name="Ordem de Serviço",
         help_text="Opcional: vincular a uma OS para horas faturadas (vinculada ao projeto)"
     )
-    bilhetavel_os = models.BooleanField(
+    bilhetar_na_os = models.BooleanField(
         default=True,
         verbose_name="Bilhetável na OS",
         help_text="Se marcado, as horas desta tarefa serão contabilizadas na OS do projeto"
@@ -2715,6 +2693,11 @@ class Tarefa(models.Model):
         help_text="Calculado automaticamente baseado em lançamentos de horas"
     )
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    ordem_sprint = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Ordem na Sprint",
+        help_text="Ordem de exibição da tarefa dentro da sprint (0 = primeiro)"
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
@@ -3662,6 +3645,7 @@ class StakeholderContrato(models.Model):
     class TipoStakeholder(models.TextChoices):
         CONTRATADA = "CONTRATADA", "Contratada"
         CONTRATANTE = "CONTRATANTE", "Contratante"
+        EQUIPE_TECNICA = "EQUIPE_TECNICA", "Equipe Técnica"
     
     class PapelContratada(models.TextChoices):
         PREPOSTO = "PREPOSTO", "Preposto"
@@ -3687,6 +3671,26 @@ class StakeholderContrato(models.Model):
         max_length=20,
         choices=TipoStakeholder.choices,
         verbose_name="Tipo de Stakeholder"
+    )
+    nome = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Nome",
+        help_text="Nome do membro da equipe técnica (usado quando tipo = Equipe Técnica)"
+    )
+    email = models.EmailField(
+        blank=True,
+        null=True,
+        verbose_name="E-mail",
+        help_text="E-mail do membro da equipe técnica (usado quando tipo = Equipe Técnica)"
+    )
+    telefone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="Telefone",
+        help_text="Telefone do membro da equipe técnica (usado quando tipo = Equipe Técnica)"
     )
     papel = models.CharField(
         max_length=50,
@@ -3726,21 +3730,35 @@ class StakeholderContrato(models.Model):
     class Meta:
         verbose_name = "Stakeholder do Contrato"
         verbose_name_plural = "Stakeholders do Contrato"
-        unique_together = ("contrato", "tipo", "papel")
+        # Removido unique_together para permitir múltiplos membros da Equipe Técnica com o mesmo papel
+        # unique_together = ("contrato", "tipo", "papel")
         ordering = ["tipo", "papel"]
     
     def clean(self):
-        """Validação: colaborador obrigatório para Contratada, contato_cliente obrigatório para Contratante"""
+        """Validação: colaborador obrigatório para Contratada, contato_cliente obrigatório para Contratante, nome/email/telefone obrigatórios para Equipe Técnica"""
         if self.tipo == self.TipoStakeholder.CONTRATADA:
             if not self.colaborador:
                 raise ValidationError("Colaborador é obrigatório para stakeholders da Contratada.")
             if self.contato_cliente:
                 raise ValidationError("Contato do cliente não deve ser preenchido para stakeholders da Contratada.")
+            if self.nome or self.email or self.telefone:
+                raise ValidationError("Nome, E-mail e Telefone não devem ser preenchidos para stakeholders da Contratada.")
         elif self.tipo == self.TipoStakeholder.CONTRATANTE:
             if not self.contato_cliente:
                 raise ValidationError("Contato do cliente é obrigatório para stakeholders da Contratante.")
             if self.colaborador:
                 raise ValidationError("Colaborador não deve ser preenchido para stakeholders da Contratante.")
+            if self.nome or self.email or self.telefone:
+                raise ValidationError("Nome, E-mail e Telefone não devem ser preenchidos para stakeholders da Contratante.")
+        elif self.tipo == self.TipoStakeholder.EQUIPE_TECNICA:
+            if not self.nome:
+                raise ValidationError("Nome é obrigatório para membros da Equipe Técnica.")
+            if not self.email:
+                raise ValidationError("E-mail é obrigatório para membros da Equipe Técnica.")
+            if self.colaborador:
+                raise ValidationError("Colaborador não deve ser preenchido para membros da Equipe Técnica.")
+            if self.contato_cliente:
+                raise ValidationError("Contato do cliente não deve ser preenchido para membros da Equipe Técnica.")
     
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -3751,6 +3769,8 @@ class StakeholderContrato(models.Model):
             return f"{self.get_papel_display()} - {self.colaborador.nome_completo}"
         elif self.tipo == self.TipoStakeholder.CONTRATANTE and self.contato_cliente:
             return f"{self.get_papel_display()} - {self.contato_cliente.nome}"
+        elif self.tipo == self.TipoStakeholder.EQUIPE_TECNICA and self.nome:
+            return f"{self.papel} - {self.nome}"
         return f"{self.get_tipo_display()} - {self.papel}"
     
     def get_papel_display(self):

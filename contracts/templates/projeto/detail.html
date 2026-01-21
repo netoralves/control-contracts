@@ -24,6 +24,17 @@
             {% endif %}
         </div>
         <div class="flex gap-2">
+            {% if not ordem_servico %}
+            <a href="{% url 'ordem_servico_create' %}?projeto={{ projeto.pk }}" 
+               class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-file-invoice mr-2"></i>Criar Ordem de Serviço
+            </a>
+            {% else %}
+            <a href="{% url 'ordem_servico_detail' ordem_servico.pk %}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fa-solid fa-file-invoice mr-2"></i>Ver Ordem de Serviço
+            </a>
+            {% endif %}
             {% if plano_trabalho %}
             <a href="{% url 'plano_trabalho_detail' plano_trabalho.pk %}" 
                class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg">
@@ -133,10 +144,10 @@
                     <i class="fa-solid fa-th mr-2"></i>Canvas do Projeto
                 </h2>
                 <div class="flex gap-2">
-                    <a href="{% url 'tarefa_projeto_create' projeto.pk %}" 
+                    <button onclick="abrirModalNovaTarefa()" 
                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
                         <i class="fa-solid fa-plus mr-2"></i>Nova Tarefa
-                    </a>
+                    </button>
                     {% if user.groups.all.0.name == "Admin" or user.groups.all.0.name == "Gerente" %}
                     <a href="{% url 'sprint_create' projeto.pk %}" 
                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
@@ -375,10 +386,10 @@
         <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-700" id="tarefas" role="tabpanel">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold dark:text-white">Tarefas do Projeto</h2>
-                <a href="{% url 'tarefa_projeto_create' projeto.pk %}" 
+                <button onclick="abrirModalNovaTarefa()" 
                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm">
                     <i class="fa-solid fa-plus mr-2"></i>Nova Tarefa
-                </a>
+                </button>
             </div>
             
             {% if todas_tarefas %}
@@ -441,7 +452,7 @@
                 </table>
             </div>
             {% else %}
-            <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa cadastrada. <a href="{% url 'tarefa_projeto_create' projeto.pk %}" class="text-blue-600 hover:underline">Criar primeira tarefa</a></p>
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma tarefa cadastrada. <button onclick="abrirModalNovaTarefa()" class="text-blue-600 hover:underline">Criar primeira tarefa</button></p>
             {% endif %}
         </div>
 
@@ -702,6 +713,476 @@ document.addEventListener('DOMContentLoaded', function() {
         return cookieValue;
     }
 });
+
+// Modal de Nova Tarefa
+function abrirModalNovaTarefa() {
+    document.getElementById('modalNovaTarefa').classList.remove('hidden');
+}
+
+function fecharModalNovaTarefa() {
+    document.getElementById('modalNovaTarefa').classList.add('hidden');
+    document.getElementById('formNovaTarefa').reset();
+    document.getElementById('tarefa_horas_planejadas').value = '';
+}
+
+// Adicionar tarefa ao canvas dinamicamente
+function adicionarTarefaAoCanvas(tarefa) {
+    const backlogContainer = document.getElementById('backlog-tasks-container');
+    if (!backlogContainer) {
+        return;
+    }
+    
+    // Remover mensagem "Nenhuma tarefa no backlog" se existir
+    const emptyMessage = backlogContainer.querySelector('.text-center.py-8');
+    if (emptyMessage) {
+        emptyMessage.remove();
+    }
+    
+    // Determinar cor da borda baseado na prioridade
+    const prioridade = tarefa.prioridade || 'media';
+    const borderColor = prioridade === 'alta' ? 'border-red-500' : 
+                       prioridade === 'media' ? 'border-yellow-500' : 'border-blue-500';
+    const badgeColor = prioridade === 'alta' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                      prioridade === 'media' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+    const prioridadeDisplay = prioridade === 'alta' ? 'Alta' : prioridade === 'media' ? 'Média' : 'Baixa';
+    
+    // Criar elemento da tarefa
+    const tarefaElement = document.createElement('div');
+    tarefaElement.className = `bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border-l-4 draggable-task cursor-move ${borderColor}`;
+    tarefaElement.setAttribute('draggable', 'true');
+    tarefaElement.setAttribute('data-tarefa-id', tarefa.id);
+    
+    const projetoId = {{ projeto.pk }};
+    const isAdminOrGerente = {% if user.groups.all.0.name == "Admin" or user.groups.all.0.name == "Gerente" %}true{% else %}false{% endif %};
+    
+    let html = `
+        <div class="flex justify-between items-start mb-2">
+            <a href="/projetos/${projetoId}/tarefas/${tarefa.id}/" 
+               class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">
+                ${tarefa.titulo}
+            </a>
+            <span class="text-xs px-2 py-1 rounded ${badgeColor}">
+                ${prioridadeDisplay}
+            </span>
+        </div>`;
+    
+    if (tarefa.descricao) {
+        const descricao = tarefa.descricao.length > 100 ? tarefa.descricao.substring(0, 100) + '...' : tarefa.descricao;
+        html += `<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">${descricao}</p>`;
+    }
+    
+    if (tarefa.data_inicio_prevista || tarefa.data_termino_prevista) {
+        html += `<div class="mb-2 text-xs text-gray-500 dark:text-gray-400">`;
+        if (tarefa.data_inicio_prevista) {
+            html += `<div class="mb-1"><i class="fas fa-calendar-alt mr-1"></i><span class="font-medium">Início:</span> ${tarefa.data_inicio_prevista}</div>`;
+        }
+        if (tarefa.data_termino_prevista) {
+            html += `<div><i class="fas fa-calendar-check mr-1"></i><span class="font-medium">Término:</span> ${tarefa.data_termino_prevista}</div>`;
+        }
+        html += `</div>`;
+    }
+    
+    html += `<div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+        <span><i class="fas fa-user mr-1"></i>${tarefa.responsavel || 'Sem responsável'}</span>
+        ${tarefa.horas_planejadas ? `<span><i class="fas fa-clock mr-1"></i>${tarefa.horas_planejadas}h</span>` : ''}
+    </div>
+    <div class="mt-2 flex gap-2">
+        <a href="/projetos/${projetoId}/tarefas/${tarefa.id}/editar/" 
+           class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <i class="fas fa-edit mr-1"></i>Editar
+        </a>`;
+    
+    if (isAdminOrGerente) {
+        html += `<a href="/projetos/${projetoId}/tarefas/${tarefa.id}/excluir/" 
+           class="text-xs text-red-600 dark:text-red-400 hover:underline">
+            <i class="fas fa-trash mr-1"></i>Excluir
+        </a>`;
+    }
+    
+    html += `</div>`;
+    
+    tarefaElement.innerHTML = html;
+    
+    // Adicionar ao início do container
+    backlogContainer.insertBefore(tarefaElement, backlogContainer.firstChild);
+}
+
+// Atualizar contadores de tarefas
+function atualizarContadoresTarefas() {
+    const backlogContainer = document.getElementById('backlog-tasks-container');
+    if (backlogContainer) {
+        const tarefasCount = backlogContainer.querySelectorAll('.draggable-task').length;
+        const badge = document.querySelector('[data-backlog-badge]');
+        if (badge) {
+            badge.textContent = tarefasCount;
+        }
+        
+        // Atualizar contador na aba
+        const canvasTab = document.getElementById('canvas-tab');
+        if (canvasTab) {
+            const currentText = canvasTab.textContent;
+            const newText = currentText.replace(/\(\d+ backlog/, `(${tarefasCount} backlog`);
+            canvasTab.textContent = newText;
+        }
+    }
+}
+
+// Calcular horas comerciais (segunda a sexta, 09:00-12:00 e 14:00-19:00)
+function calcularHorasComerciais() {
+    const dataInicio = document.getElementById('tarefa_data_inicio_prevista').value;
+    const dataTermino = document.getElementById('tarefa_data_termino_prevista').value;
+    const horasInput = document.getElementById('tarefa_horas_planejadas');
+    
+    if (!dataInicio || !dataTermino) {
+        horasInput.value = '';
+        return;
+    }
+    
+    try {
+        const inicio = new Date(dataInicio);
+        const termino = new Date(dataTermino);
+        
+        if (termino <= inicio) {
+            horasInput.value = '';
+            return;
+        }
+        
+        // Horários comerciais: 09:00-12:00 (3h) e 14:00-19:00 (5h) = 8h por dia útil
+        const horaInicioManha = 9;
+        const horaFimManha = 12;
+        const horaInicioTarde = 14;
+        const horaFimTarde = 19;
+        
+        let horasTotais = 0;
+        const dataAtual = new Date(inicio);
+        dataAtual.setHours(0, 0, 0, 0);
+        const dataFim = new Date(termino);
+        dataFim.setHours(0, 0, 0, 0);
+        
+        // Iterar pelos dias
+        while (dataAtual <= dataFim) {
+            const diaSemana = dataAtual.getDay(); // 0 = domingo, 6 = sábado
+            
+            // Apenas dias úteis (segunda a sexta = 1 a 5)
+            if (diaSemana >= 1 && diaSemana <= 5) {
+                const isPrimeiroDia = dataAtual.getTime() === new Date(inicio).setHours(0, 0, 0, 0);
+                const isUltimoDia = dataAtual.getTime() === dataFim.getTime();
+                
+                if (isPrimeiroDia && isUltimoDia) {
+                    // Mesmo dia: calcular horas entre início e término
+                    const horaInicio = inicio.getHours() + (inicio.getMinutes() / 60);
+                    const horaTermino = termino.getHours() + (termino.getMinutes() / 60);
+                    
+                    let horasDia = 0;
+                    
+                    // Manhã: 09:00-12:00
+                    if (horaInicio < horaFimManha && horaTermino > horaInicioManha) {
+                        const inicioManha = Math.max(horaInicio, horaInicioManha);
+                        const fimManha = Math.min(horaTermino, horaFimManha);
+                        if (fimManha > inicioManha) {
+                            horasDia += fimManha - inicioManha;
+                        }
+                    }
+                    
+                    // Tarde: 14:00-19:00
+                    if (horaInicio < horaFimTarde && horaTermino > horaInicioTarde) {
+                        const inicioTarde = Math.max(horaInicio, horaInicioTarde);
+                        const fimTarde = Math.min(horaTermino, horaFimTarde);
+                        if (fimTarde > inicioTarde) {
+                            horasDia += fimTarde - inicioTarde;
+                        }
+                    }
+                    
+                    horasTotais += horasDia;
+                } else if (isPrimeiroDia) {
+                    // Primeiro dia: calcular horas do início até o fim do dia
+                    const horaInicio = inicio.getHours() + (inicio.getMinutes() / 60);
+                    let horasDia = 0;
+                    
+                    // Manhã
+                    if (horaInicio < horaFimManha) {
+                        horasDia += horaFimManha - Math.max(horaInicio, horaInicioManha);
+                    }
+                    
+                    // Tarde (sempre completa no primeiro dia se não for o último)
+                    if (horaInicio < horaFimTarde) {
+                        horasDia += horaFimTarde - Math.max(horaInicio, horaInicioTarde);
+                    }
+                    
+                    horasTotais += horasDia;
+                } else if (isUltimoDia) {
+                    // Último dia: calcular horas do início do dia até o término
+                    const horaTermino = termino.getHours() + (termino.getMinutes() / 60);
+                    let horasDia = 0;
+                    
+                    // Manhã (sempre completa no último dia se não for o primeiro)
+                    if (horaTermino > horaInicioManha) {
+                        horasDia += Math.min(horaTermino, horaFimManha) - horaInicioManha;
+                    }
+                    
+                    // Tarde
+                    if (horaTermino > horaInicioTarde) {
+                        horasDia += Math.min(horaTermino, horaFimTarde) - horaInicioTarde;
+                    }
+                    
+                    horasTotais += horasDia;
+                } else {
+                    // Dia completo: 8 horas
+                    horasTotais += 8;
+                }
+            }
+            
+            // Avançar para o próximo dia
+            dataAtual.setDate(dataAtual.getDate() + 1);
+        }
+        
+        // Arredondar para 2 casas decimais
+        horasInput.value = Math.round(horasTotais * 100) / 100;
+    } catch (error) {
+        console.error('Erro ao calcular horas:', error);
+        horasInput.value = '';
+    }
+}
+
+// Adicionar event listeners para cálculo automático e submissão do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const dataInicioInput = document.getElementById('tarefa_data_inicio_prevista');
+    const dataTerminoInput = document.getElementById('tarefa_data_termino_prevista');
+    
+    if (dataInicioInput && dataTerminoInput) {
+        dataInicioInput.addEventListener('change', calcularHorasComerciais);
+        dataTerminoInput.addEventListener('change', calcularHorasComerciais);
+    }
+    
+    // Fechar modal ao clicar fora
+    const modalNovaTarefa = document.getElementById('modalNovaTarefa');
+    if (modalNovaTarefa) {
+        modalNovaTarefa.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalNovaTarefa();
+            }
+        });
+    }
+    
+    // Submeter formulário via AJAX
+    function submeterFormularioTarefa() {
+        const formNovaTarefa = document.getElementById('formNovaTarefa');
+        if (!formNovaTarefa) {
+            console.error('Formulário não encontrado');
+            return;
+        }
+        
+        // Validar campos obrigatórios
+        const titulo = document.getElementById('tarefa_titulo').value;
+        const dataInicio = document.getElementById('tarefa_data_inicio_prevista').value;
+        const dataTermino = document.getElementById('tarefa_data_termino_prevista').value;
+        
+        if (!titulo || !dataInicio || !dataTermino) {
+            alert('Por favor, preencha todos os campos obrigatórios.');
+            return;
+        }
+        
+        const formData = new FormData(formNovaTarefa);
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        
+        if (!csrftoken) {
+            console.error('CSRF token não encontrado');
+            alert('Erro: Token de segurança não encontrado. Recarregue a página e tente novamente.');
+            return;
+        }
+        
+        // Desabilitar botão durante o envio
+        const btnCriar = document.getElementById('btnCriarTarefa');
+        if (btnCriar) {
+            btnCriar.disabled = true;
+            btnCriar.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Criando...';
+        }
+        
+        fetch(formNovaTarefa.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Erro ao criar tarefa');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                fecharModalNovaTarefa();
+                
+                // Se a tarefa não está em sprint, adicionar ao backlog do canvas
+                if (!data.tarefa.sprint) {
+                    adicionarTarefaAoCanvas(data.tarefa);
+                    atualizarContadoresTarefas();
+                }
+                
+                // Recarregar a página para garantir sincronização completa
+                window.location.reload();
+            } else {
+                alert('Erro ao criar tarefa: ' + (data.error || 'Erro desconhecido'));
+                if (btnCriar) {
+                    btnCriar.disabled = false;
+                    btnCriar.innerHTML = '<i class="fas fa-save mr-1"></i> Criar Tarefa';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao criar tarefa: ' + error.message);
+            if (btnCriar) {
+                btnCriar.disabled = false;
+                btnCriar.innerHTML = '<i class="fas fa-save mr-1"></i> Criar Tarefa';
+            }
+        });
+    }
+    
+    // Adicionar event listener ao formulário
+    const formNovaTarefa = document.getElementById('formNovaTarefa');
+    if (formNovaTarefa) {
+        formNovaTarefa.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            submeterFormularioTarefa();
+        });
+    }
+    
+    // Também adicionar ao botão diretamente (backup)
+    const btnCriarTarefa = document.getElementById('btnCriarTarefa');
+    if (btnCriarTarefa) {
+        btnCriarTarefa.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            submeterFormularioTarefa();
+        });
+    }
+});
 </script>
+
+<!-- Modal Nova Tarefa -->
+<div id="modalNovaTarefa" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                <i class="fas fa-plus-circle mr-2 text-blue-500"></i>Nova Tarefa
+            </h3>
+            <button onclick="fecharModalNovaTarefa()" 
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="formNovaTarefa" method="post" action="{% url 'tarefa_create_ajax' projeto.pk %}">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Nome da Tarefa <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="titulo" id="tarefa_titulo" required
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Ex: Implementação de Firewall">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Descrição
+                    </label>
+                    <textarea name="descricao" id="tarefa_descricao" rows="3"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Descreva a tarefa..."></textarea>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" name="bilhetar_na_os" id="tarefa_bilhetar_na_os" checked
+                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="tarefa_bilhetar_na_os" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Bilhetável na OS
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Responsável
+                    </label>
+                    <select name="responsavel" id="tarefa_responsavel"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecione um responsável</option>
+                        {% for colaborador in colaboradores %}
+                        <option value="{{ colaborador.pk }}">{{ colaborador.nome_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Data/Hora de Início Planejado <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="datetime-local" name="data_inicio_prevista" id="tarefa_data_inicio_prevista" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 pr-10">
+                            <i class="fas fa-calendar-alt absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Data/Hora de Término Planejado <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="datetime-local" name="data_termino_prevista" id="tarefa_data_termino_prevista" required
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 pr-10">
+                            <i class="fas fa-calendar-alt absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Horas Totais Planejadas
+                    </label>
+                    <input type="number" name="horas_planejadas" id="tarefa_horas_planejadas" step="0.01" min="0"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Calculado automaticamente">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Calculado automaticamente baseado em horas comerciais (seg-sex, 09:00-12:00 e 14:00-19:00). Você pode editar este valor.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Observações
+                    </label>
+                    <textarea name="observacoes" id="tarefa_observacoes" rows="2"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Observações adicionais..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Sprint
+                    </label>
+                    <select name="sprint" id="tarefa_sprint"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sem Sprint (Backlog)</option>
+                        {% for sprint in sprints %}
+                        <option value="{{ sprint.pk }}">{{ sprint.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="button" onclick="fecharModalNovaTarefa()"
+                    class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="btnCriarTarefa"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                    <i class="fas fa-save mr-1"></i> Criar Tarefa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
